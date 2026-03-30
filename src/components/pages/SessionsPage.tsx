@@ -21,8 +21,9 @@ import {
 import { useRpc } from "@/hooks/use-rpc"
 import { useSessionsRefresh } from "@/hooks/use-sessions-refresh"
 import { gatewayWs } from "@/services/gateway-ws"
-import { MessageSquare, Loader2, Trash2, Eraser } from "lucide-react"
+import { MessageSquare, Loader2, Trash2, Eraser, Terminal } from "lucide-react"
 import { useState } from "react"
+import { useTerminalStore } from "@/stores/terminal-store"
 import type { SessionEntry } from "@/types/session"
 
 function formatAge(ms: number): string {
@@ -73,6 +74,7 @@ export function SessionsPage() {
   // Cleanup state
   const [cleanupOpen, setCleanupOpen] = useState(false)
   const [cleaning, setCleaning] = useState(false)
+  const [cleanupDays, setCleanupDays] = useState("30")
 
   if (scopeError) return <ScopeMessage />
 
@@ -96,9 +98,22 @@ export function SessionsPage() {
   }
 
   const handleCleanup = async () => {
+    const days = parseInt(cleanupDays, 10)
+    if (isNaN(days) || days < 1) return
+    const maxAgeMs = days * 24 * 60 * 60 * 1000
+    const stale = sessions.filter((s) => {
+      const age = s.age ?? (s.updatedAt != null ? Date.now() - s.updatedAt : null)
+      return age != null && age > maxAgeMs
+    })
+    if (stale.length === 0) {
+      setCleanupOpen(false)
+      return
+    }
     setCleaning(true)
     try {
-      await gatewayWs.sessionsCleanup()
+      for (const s of stale) {
+        await gatewayWs.sessionsDelete(s.key)
+      }
       refetch()
     } catch {
       // ignore
@@ -175,9 +190,26 @@ export function SessionsPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground">
-                      {session.age != null ? formatAge(session.age) : "--"}
+                      {session.age != null
+                        ? formatAge(session.age)
+                        : session.updatedAt != null
+                          ? formatAge(Date.now() - session.updatedAt)
+                          : "--"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="Open in terminal"
+                        onClick={() => {
+                          useTerminalStore
+                            .getState()
+                            .setSession(extractAgentId(session.key), session.key)
+                          useTerminalStore.getState().open()
+                        }}
+                      >
+                        <Terminal className="h-3 w-3" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon-xs"
@@ -240,10 +272,20 @@ export function SessionsPage() {
           <DialogHeader>
             <DialogTitle>Cleanup Stale Sessions</DialogTitle>
             <DialogDescription>
-              Remove sessions that exceed the prune threshold (30 days by default). This cannot be
-              undone.
+              Remove sessions older than the specified number of days. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Older than</span>
+            <Input
+              type="number"
+              min="1"
+              value={cleanupDays}
+              onChange={(e) => setCleanupDays((e.target as HTMLInputElement).value)}
+              className="w-20"
+            />
+            <span className="text-sm text-muted-foreground">days</span>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCleanupOpen(false)} disabled={cleaning}>
               Cancel
