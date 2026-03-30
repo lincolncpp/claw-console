@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header"
 import { StatusBar } from "@/components/layout/StatusBar"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { PageRouter } from "@/components/layout/PageRouter"
+import { TerminalPanel } from "@/components/terminal/TerminalPanel"
 import { CronJobDetail } from "@/components/dashboard/CronJobDetail"
 import { useGatewayStore } from "@/stores/gateway-store"
 import { useSystemStore } from "@/stores/system-store"
@@ -29,6 +30,7 @@ function App() {
       onPresence: () => {},
       onApprovalRequested: () => {},
       onApprovalResolved: () => {},
+      onChatEvent: () => {},
     })
     gatewayWs.setStatusChangeHandler((status, error) => {
       setConnectionStatus(status, error)
@@ -59,6 +61,7 @@ function App() {
         <main className="flex-1 overflow-y-auto p-6">
           <PageRouter />
         </main>
+        <TerminalPanel />
         <StatusBar />
       </div>
       <CronJobDetail />
