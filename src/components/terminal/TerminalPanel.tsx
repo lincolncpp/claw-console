@@ -41,12 +41,11 @@ export function TerminalPanel() {
   // Load session history when session changes
   useEffect(() => {
     if (!isOpen || !agentId || !sessionKey) return
-    const compositeKey = `agent:${agentId}:${sessionKey}`
     gatewayWs
-      .chatHistory(compositeKey)
+      .chatHistory(sessionKey)
       .then((resp) => {
         const data = resp as {
-          messages?: Array<{ id?: string; role?: string; content?: string; timestamp?: number }>
+          messages?: Array<{ id?: string; role?: string; content?: unknown; timestamp?: number }>
         }
         if (!data.messages?.length) return
         const { setMessages } = useTerminalStore.getState()
@@ -54,7 +53,7 @@ export function TerminalPanel() {
           data.messages.map((m) => ({
             id: m.id ?? crypto.randomUUID(),
             role: (m.role as "user" | "assistant" | "system") ?? "system",
-            content: m.content ?? "",
+            content: typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""),
             timestamp: m.timestamp ?? Date.now(),
           })),
         )
@@ -97,8 +96,7 @@ export function TerminalPanel() {
         timestamp: Date.now(),
       }
       appendMessage(userMsg)
-      const compositeKey = `agent:${agentId}:${sessionKey}`
-      gatewayWs.chatSend(compositeKey, text).catch((err: Error) => {
+      gatewayWs.chatSend(sessionKey, text).catch((err: Error) => {
         appendMessage({
           id: crypto.randomUUID(),
           role: "system",
@@ -163,7 +161,7 @@ export function TerminalPanel() {
 
       {/* Chat log */}
       <div
-        className="flex-1 overflow-y-auto py-2 font-mono text-sm"
+        className="flex-1 min-h-0 overflow-y-auto py-2 font-mono text-sm"
         onScroll={(e) => {
           const el = e.currentTarget
           const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30

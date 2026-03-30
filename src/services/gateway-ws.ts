@@ -109,8 +109,10 @@ export class GatewayWebSocket {
     return this.sendRpc("sessions.delete", { key }) as Promise<SessionDeleteResponse>
   }
 
-  async sessionsCleanup(): Promise<SessionsCleanupResponse> {
-    return this.sendRpc("sessions.cleanup", {}) as Promise<SessionsCleanupResponse>
+  async sessionsCleanup(maxAgeDays?: number): Promise<SessionsCleanupResponse> {
+    return this.sendRpc("sessions.cleanup", {
+      ...(maxAgeDays != null && { maxAgeDays }),
+    }) as Promise<SessionsCleanupResponse>
   }
 
   // --- Agents RPCs ---
@@ -199,6 +201,7 @@ export class GatewayWebSocket {
   }
 
   private handleFrame(frame: GatewayFrame, token: string) {
+    console.log("[gw-frame]", frame.type, frame)
     if (frame.type === "event") {
       if (frame.event === "connect.challenge") {
         const connectMsg = {
@@ -325,6 +328,7 @@ export interface EventDispatchHandlers {
 export function setupEventDispatch(handlers: EventDispatchHandlers) {
   gatewayWs.setConnectHandler(handlers.onConnect)
   gatewayWs.setEventHandler((event, payload) => {
+    console.log("[gw-event]", event, payload)
     switch (event) {
       case "health":
         handlers.onHealth(payload as HealthPayload)
@@ -345,7 +349,7 @@ export function setupEventDispatch(handlers: EventDispatchHandlers) {
         handlers.onApprovalResolved(payload)
         break
       default:
-        if (event.startsWith("chat.") || event.startsWith("session.")) {
+        if (event === "agent" || event.startsWith("chat.") || event.startsWith("session.")) {
           handlers.onChatEvent(event, payload)
         }
         break

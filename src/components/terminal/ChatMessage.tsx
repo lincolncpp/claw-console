@@ -12,8 +12,24 @@ const roleLabels: Record<string, string> = {
   system: "system",
 }
 
-function renderContent(content: string): string {
-  return content
+function normalizeContent(content: unknown): string {
+  if (typeof content === "string") return content
+  if (Array.isArray(content)) {
+    return content
+      .map((block) => {
+        if (typeof block === "string") return block
+        if (block && typeof block === "object" && "text" in block) return String(block.text)
+        if (block && typeof block === "object" && "content" in block) return String(block.content)
+        return JSON.stringify(block)
+      })
+      .join("\n")
+  }
+  return String(content ?? "")
+}
+
+function renderContent(content: unknown): string {
+  const text = normalizeContent(content)
+  return text
     .replace(/```[\s\S]*?```/g, (m) => {
       const inner = m.slice(3, -3).replace(/^\w*\n/, "")
       return `<pre class="bg-zinc-900 rounded px-2 py-1 my-1 overflow-x-auto"><code>${escapeHtml(inner)}</code></pre>`

@@ -17,7 +17,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }
 
   return (
-    <div className="flex items-center gap-2 border-t border-border px-3 h-9 bg-transparent">
+    <div className="flex items-center gap-2 border-t border-border px-3 h-9 shrink-0 bg-transparent">
       <span className="text-violet-400 text-sm font-mono">❯</span>
       <input
         ref={inputRef}

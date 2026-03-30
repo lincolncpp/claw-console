@@ -36,52 +36,90 @@ function App() {
       onApprovalResolved: () => {},
       onChatEvent: (event, payload) => {
         const p = payload as Record<string, unknown>
-        const evtAgent = (p.agentId as string) ?? null
-        const evtSession = (p.session as string) ?? (p.sessionKey as string) ?? null
-        const { agentId: tAgent, sessionKey: tSession } = useTerminalStore.getState()
+        const evtSession = (p.sessionKey as string) ?? (p.session as string) ?? null
+        const { sessionKey: tSession } = useTerminalStore.getState()
 
         // Only process events for the active terminal session
-        if (evtAgent !== tAgent || evtSession !== tSession) return
+        if (evtSession && tSession && evtSession !== tSession) return
 
+        // Gateway sends "agent" events with stream/data sub-structure
+        if (event === "agent") {
+          const stream = p.stream as string | undefined
+          const data = p.data as Record<string, unknown> | undefined
+          if (!stream || !data) return
+
+          if (stream === "text" || stream === "content") {
+            const text =
+              (data.text as string) ?? (data.content as string) ?? (data.delta as string) ?? ""
+            if (text) {
+              const current = useTerminalStore.getState().streamingText
+              useTerminalStore.getState().updateStreamingText((current ?? "") + text)
+            }
+          } else if (stream === "tool" || stream === "tool_use") {
+            const status = (data.status as string) ?? (data.state as string) ?? ""
+            if (status === "start" || status === "running") {
+              useTerminalStore.getState().updateStreamingToolCall({
+                id: (data.toolCallId as string) ?? (data.id as string) ?? crypto.randomUUID(),
+                name: (data.name as string) ?? (data.tool as string) ?? "unknown",
+                args: data.args ?? data.input,
+                status: "running",
+              })
+            } else if (
+              status === "end" ||
+              status === "done" ||
+              status === "success" ||
+              status === "error"
+            ) {
+              const current = useTerminalStore.getState().streamingToolCall
+              if (current) {
+                const finishedTool = {
+                  ...current,
+                  result: data.result ?? data.output,
+                  status: (status === "error" ? "error" : "success") as "error" | "success",
+                  durationMs: data.durationMs as number | undefined,
+                }
+                const msgs = [...useTerminalStore.getState().messages]
+                const lastMsg = msgs[msgs.length - 1]
+                if (lastMsg && lastMsg.role === "assistant") {
+                  msgs[msgs.length - 1] = {
+                    ...lastMsg,
+                    toolCalls: [...(lastMsg.toolCalls ?? []), finishedTool],
+                  }
+                  useTerminalStore.getState().setMessages(msgs)
+                } else {
+                  useTerminalStore.getState().appendMessage({
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: "",
+                    timestamp: Date.now(),
+                    toolCalls: [finishedTool],
+                  })
+                }
+                useTerminalStore.setState({ streamingToolCall: null })
+              }
+            }
+          } else if (stream === "lifecycle") {
+            const status = (data.status as string) ?? (data.state as string) ?? ""
+            if (status === "done" || status === "end" || status === "complete") {
+              useTerminalStore.getState().finalizeStreaming()
+            } else if (status === "error" || status === "failed") {
+              useTerminalStore.getState().setRunState("error")
+              useTerminalStore.getState().appendMessage({
+                id: crypto.randomUUID(),
+                role: "system",
+                content: (data.message as string) ?? (data.error as string) ?? "An error occurred.",
+                timestamp: Date.now(),
+              })
+            }
+          }
+          return
+        }
+
+        // Fallback: handle chat.*/session.* events (alternative event format)
         if (event === "chat.delta" || event === "session.delta") {
           const text = (p.text as string) ?? (p.content as string) ?? ""
           const current = useTerminalStore.getState().streamingText
           useTerminalStore.getState().updateStreamingText((current ?? "") + text)
-        } else if (event === "chat.tool.start" || event === "session.tool.start") {
-          useTerminalStore.getState().updateStreamingToolCall({
-            id: (p.toolCallId as string) ?? crypto.randomUUID(),
-            name: (p.name as string) ?? (p.tool as string) ?? "unknown",
-            args: p.args ?? p.input,
-            status: "running",
-          })
-        } else if (event === "chat.tool.end" || event === "session.tool.end") {
-          const current = useTerminalStore.getState().streamingToolCall
-          if (current) {
-            const msgs = [...useTerminalStore.getState().messages]
-            const lastMsg = msgs[msgs.length - 1]
-            const finishedTool = {
-              ...current,
-              result: p.result ?? p.output,
-              status: (p.error ? "error" : "success") as "error" | "success",
-              durationMs: p.durationMs as number | undefined,
-            }
-            if (lastMsg && lastMsg.role === "assistant") {
-              msgs[msgs.length - 1] = {
-                ...lastMsg,
-                toolCalls: [...(lastMsg.toolCalls ?? []), finishedTool],
-              }
-              useTerminalStore.getState().setMessages(msgs)
-            } else {
-              useTerminalStore.getState().appendMessage({
-                id: crypto.randomUUID(),
-                role: "assistant",
-                content: "",
-                timestamp: Date.now(),
-                toolCalls: [finishedTool],
-              })
-            }
-            useTerminalStore.setState({ streamingToolCall: null })
-          }
         } else if (
           event === "chat.end" ||
           event === "session.end" ||
@@ -138,16 +176,15 @@ function App() {
               sessResp.sessions.find((s) => s.agentId === aid) ?? sessResp.sessions[0]
             const skey = agentSession?.key ?? "main"
             useTerminalStore.getState().setSession(aid, skey)
-            // Load session history (best-effort)
-            const compositeKey = `agent:${aid}:${skey}`
+            // Load session history (best-effort — key is already composite)
             gatewayWs
-              .chatHistory(compositeKey)
+              .chatHistory(skey)
               .then((histResp) => {
                 const data = histResp as {
                   messages?: Array<{
                     id?: string
                     role?: string
-                    content?: string
+                    content?: unknown
                     timestamp?: number
                   }>
                 }
@@ -155,7 +192,8 @@ function App() {
                 const msgs = data.messages.map((m) => ({
                   id: m.id ?? crypto.randomUUID(),
                   role: (m.role as "user" | "assistant" | "system") ?? "system",
-                  content: m.content ?? "",
+                  content:
+                    typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""),
                   timestamp: m.timestamp ?? Date.now(),
                 }))
                 useTerminalStore.getState().setMessages(msgs)
@@ -170,9 +208,9 @@ function App() {
   }, [connectionStatus])
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <Sidebar />
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 h-full">
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <PageRouter />
