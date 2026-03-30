@@ -5,16 +5,20 @@ import { NodesPage } from "@/components/pages/NodesPage"
 import { LogsPage } from "@/components/pages/LogsPage"
 import { ApprovalsPage } from "@/components/pages/ApprovalsPage"
 import { AgentsPage } from "@/components/pages/AgentsPage"
+import { AgentDetailPage } from "@/components/pages/AgentDetailPage"
 import { CronPage } from "@/components/pages/CronPage"
+import { CronJobDetail } from "@/components/dashboard/CronJobDetail"
 
 export function PageRouter() {
   return (
     <Routes>
       <Route path="/" element={<OverviewPage />} />
       <Route path="/sessions" element={<SessionsPage />} />
+      <Route path="/agents/:agentId" element={<AgentDetailPage />} />
       <Route path="/agents" element={<AgentsPage />} />
       <Route path="/nodes" element={<NodesPage />} />
       <Route path="/cron" element={<CronPage />} />
+      <Route path="/cron/:jobId" element={<CronJobDetail />} />
       <Route path="/logs" element={<LogsPage />} />
       <Route path="/approvals" element={<ApprovalsPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

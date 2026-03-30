@@ -1,30 +1,72 @@
-export type ScheduleType = "cron" | "every" | "at"
+export type ScheduleKind = "cron" | "every" | "at"
 
 export type CronSchedule =
-  | { type: "cron"; expr: string; tz?: string }
-  | { type: "every"; everyMs: number }
-  | { type: "at"; atMs: number }
+  | { kind: "cron"; expr: string; tz?: string }
+  | { kind: "every"; everyMs: number; anchorMs?: number }
+  | { kind: "at"; atMs: number }
+
+export interface CronJobState {
+  lastRunAtMs?: number
+  lastRunStatus?: string
+  lastStatus?: string
+  lastDurationMs?: number
+  lastDeliveryStatus?: string
+  consecutiveErrors?: number
+  lastDelivered?: boolean
+  nextRunAtMs?: number
+  runningAtMs?: number
+}
+
+export interface CronJobDelivery {
+  mode?: string
+  channel?: string
+  to?: string
+}
 
 export interface CronJob {
-  jobId: string
-  jobName: string
-  description?: string
+  id: string
+  agentId?: string
+  name: string
   enabled: boolean
+  createdAtMs?: number
+  updatedAtMs?: number
   sessionTarget: "main" | "isolated"
   schedule: CronSchedule
-  payload?: Record<string, unknown>
   wakeMode?: string
-  deleteAfterRun?: boolean
-  lastRun?: CronRun
+  payload?: Record<string, unknown>
+  delivery?: CronJobDelivery
+  state?: CronJobState
+}
+
+export interface CronRunUsage {
+  input_tokens?: number
+  output_tokens?: number
+  total_tokens?: number
 }
 
 export interface CronRun {
-  runId: string
+  ts: number
   jobId: string
-  startedAt: number
-  finishedAt?: number
+  action?: string
+  status: string
+  summary?: string
+  runAtMs: number
   durationMs?: number
-  status: "running" | "success" | "failed" | "timeout"
-  exitCode?: number
-  error?: string
+  nextRunAtMs?: number
+  model?: string
+  provider?: string
+  usage?: CronRunUsage
+  delivered?: boolean
+  deliveryStatus?: string
+  sessionId?: string
+  sessionKey?: string
+}
+
+export interface CronRunsResponse {
+  entries: CronRun[]
+  total: number
+  offset: number
+  limit: number
+  hasMore: boolean
+  nextOffset?: number
 }

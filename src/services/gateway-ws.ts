@@ -1,4 +1,4 @@
-import type { CronJob, CronRun } from "@/types/cron"
+import type { CronJob, CronRun, CronRunsResponse } from "@/types/cron"
 import type { ConnectResult, HealthPayload } from "@/types/gateway"
 import type {
   SessionsListResponse,
@@ -87,17 +87,25 @@ export class GatewayWebSocket {
 
   // --- Cron RPCs ---
   async cronList(): Promise<CronJob[]> {
-    const res = (await this.sendRpc("cron.list")) as { jobs?: CronJob[] } | CronJob[]
+    const res = (await this.sendRpc("cron.list", { includeDisabled: true })) as
+      | { jobs?: CronJob[] }
+      | CronJob[]
     return Array.isArray(res) ? res : (res?.jobs ?? [])
   }
   async cronRuns(jobId: string, limit = 50): Promise<CronRun[]> {
-    return this.sendRpc("cron.runs", { jobId, limit }) as Promise<CronRun[]>
+    const res = (await this.sendRpc("cron.runs", { jobId, limit })) as
+      | CronRunsResponse
+      | CronRun[]
+    return Array.isArray(res) ? res : (res?.entries ?? [])
   }
   async cronRun(jobId: string): Promise<void> {
     await this.sendRpc("cron.run", { jobId })
   }
   async cronStatus(jobId: string): Promise<CronJob> {
     return this.sendRpc("cron.status", { jobId }) as Promise<CronJob>
+  }
+  async cronUpdate(id: string, patch: Partial<CronJob>): Promise<CronJob> {
+    return this.sendRpc("cron.update", { id, patch }) as Promise<CronJob>
   }
 
   // --- Sessions RPCs ---

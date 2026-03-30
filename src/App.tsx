@@ -4,7 +4,6 @@ import { StatusBar } from "@/components/layout/StatusBar"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { PageRouter } from "@/components/layout/PageRouter"
 import { TerminalPanel } from "@/components/terminal/TerminalPanel"
-import { CronJobDetail } from "@/components/dashboard/CronJobDetail"
 import { useGatewayStore } from "@/stores/gateway-store"
 import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
@@ -195,7 +194,6 @@ function App() {
         <TerminalPanel />
         <StatusBar />
       </div>
-      <CronJobDetail />
     </div>
   )
 }

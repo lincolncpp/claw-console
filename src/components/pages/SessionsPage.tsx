@@ -21,7 +21,7 @@ import {
 import { useRpc } from "@/hooks/use-rpc"
 import { useSessionsRefresh } from "@/hooks/use-sessions-refresh"
 import { gatewayWs } from "@/services/gateway-ws"
-import { MessageSquare, Loader2, Trash2, Eraser, Terminal } from "lucide-react"
+import { MessageSquare, Loader2, Trash2, Eraser } from "lucide-react"
 import { useState } from "react"
 import { useTerminalStore } from "@/stores/terminal-store"
 import type { SessionEntry } from "@/types/session"
@@ -185,9 +185,17 @@ export function SessionsPage() {
                       {extractSessionType(session.key)}
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-xs text-muted-foreground truncate block max-w-[400px]">
+                      <button
+                        className="font-mono text-xs text-muted-foreground truncate block max-w-[400px] hover:text-foreground hover:underline cursor-pointer text-left"
+                        onClick={() => {
+                          useTerminalStore
+                            .getState()
+                            .setSession(extractAgentId(session.key), session.key)
+                          useTerminalStore.getState().open()
+                        }}
+                      >
                         {session.key}
-                      </span>
+                      </button>
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground">
                       {session.age != null
@@ -196,20 +204,7 @@ export function SessionsPage() {
                           ? formatAge(Date.now() - session.updatedAt)
                           : "--"}
                     </TableCell>
-                    <TableCell className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="Open in terminal"
-                        onClick={() => {
-                          useTerminalStore
-                            .getState()
-                            .setSession(extractAgentId(session.key), session.key)
-                          useTerminalStore.getState().open()
-                        }}
-                      >
-                        <Terminal className="h-3 w-3" />
-                      </Button>
+                    <TableCell>
                       <Button
                         variant="ghost"
                         size="icon-xs"

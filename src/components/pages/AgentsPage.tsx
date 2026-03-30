@@ -12,6 +12,7 @@ import {
 import { useRpc } from "@/hooks/use-rpc"
 import { useSystemStore } from "@/stores/system-store"
 import { gatewayWs } from "@/services/gateway-ws"
+import { Link } from "react-router-dom"
 import { Bot, Cpu, Wrench, Sparkles, Loader2 } from "lucide-react"
 
 function AgentCards() {
@@ -31,25 +32,27 @@ function AgentCards() {
       {agents.map((agent) => {
         const snapshot = snapshotAgents.find((a) => a.agentId === agent.id)
         return (
-          <Card key={agent.id}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Bot className="h-4 w-4 text-muted-foreground" />
-                <span>{agent.name ?? agent.id}</span>
-                {(agent.isDefault || (data && agent.id === data.defaultId)) && (
-                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                    default
-                  </Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-mono">{agent.id}</p>
-                {snapshot && <p>{snapshot.sessions.count.toLocaleString()} sessions</p>}
-              </div>
-            </CardContent>
-          </Card>
+          <Link to={`/agents/${agent.id}`} key={agent.id} className="block group">
+            <Card className="transition-colors group-hover:border-primary/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-muted-foreground" />
+                  <span>{agent.name ?? agent.id}</span>
+                  {(agent.isDefault || (data && agent.id === data.defaultId)) && (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                      default
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p className="font-mono">{agent.id}</p>
+                  {snapshot && <p>{snapshot.sessions.count.toLocaleString()} sessions</p>}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         )
       })}
     </div>

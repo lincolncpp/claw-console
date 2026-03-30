@@ -1,9 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useSystemStore } from "@/stores/system-store"
+import { useRpc } from "@/hooks/use-rpc"
+import { gatewayWs } from "@/services/gateway-ws"
 import { Activity, Radio, Users } from "lucide-react"
 
 export function SystemHealth() {
-  const { healthOk, healthCheckMs, channels, agents, totalSessions } = useSystemStore()
+  const { healthOk, healthCheckMs, channels, agents } = useSystemStore()
+  const { data: sessionsData } = useRpc(() => gatewayWs.sessionsList(), [])
 
   const configuredChannels = channels.length
   const runningChannels = channels.filter((c) => c.health.running).length
@@ -11,6 +14,7 @@ export function SystemHealth() {
 
   const totalAgents = agents.length
   const activeAgents = agents.filter((a) => a.sessions.count > 0).length
+  const totalSessions = sessionsData?.count ?? null
 
   return (
     <div className="grid gap-4 md:grid-cols-3">

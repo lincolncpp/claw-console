@@ -22,7 +22,7 @@ export function RunHistoryChart({ runs }: RunHistoryChartProps) {
   const data = runs
     .filter((r) => r.durationMs != null)
     .map((r) => ({
-      time: new Date(r.startedAt).toLocaleTimeString(),
+      time: new Date(r.runAtMs).toLocaleTimeString(),
       duration: (r.durationMs ?? 0) / 1000,
       status: r.status,
     }))

@@ -82,12 +82,8 @@ function RecentCronActivity() {
   const lastUpdated = useSystemStore((s) => s.lastUpdated)
   if (!Array.isArray(jobs)) return null
   const recentJobs = jobs
-    .filter((j) => j.lastRun)
-    .sort((a, b) => {
-      const aTime = a.lastRun?.finishedAt ?? a.lastRun?.startedAt ?? 0
-      const bTime = b.lastRun?.finishedAt ?? b.lastRun?.startedAt ?? 0
-      return bTime - aTime
-    })
+    .filter((j) => j.state?.lastRunAtMs)
+    .sort((a, b) => (b.state?.lastRunAtMs ?? 0) - (a.state?.lastRunAtMs ?? 0))
     .slice(0, 5)
 
   if (recentJobs.length === 0) return null
@@ -106,24 +102,25 @@ function RecentCronActivity() {
       <CardContent>
         <div className="space-y-2">
           {recentJobs.map((job) => {
-            const run = job.lastRun!
-            const time = run.finishedAt ?? run.startedAt ?? 0
+            const state = job.state!
+            const time = state.lastRunAtMs ?? 0
+            const status = state.lastRunStatus ?? "unknown"
             return (
-              <div key={job.jobId} className="flex items-center justify-between text-sm">
+              <div key={job.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <Badge
                     variant={
-                      run.status === "success"
+                      status === "ok"
                         ? "default"
-                        : run.status === "running"
+                        : status === "running"
                           ? "secondary"
                           : "destructive"
                     }
-                    className="text-[10px] px-1.5 py-0"
+                    className={`text-[10px] px-1.5 py-0 ${status === "ok" ? "bg-emerald-500/15 text-emerald-500 border-transparent" : ""}`}
                   >
-                    {run.status}
+                    {status}
                   </Badge>
-                  <span className="truncate max-w-[200px]">{job.jobName || job.jobId}</span>
+                  <span className="truncate max-w-[200px]">{job.name || job.id}</span>
                 </div>
                 {time > 0 && referenceTime > time && (
                   <span className="text-xs text-muted-foreground">
