@@ -1,120 +1,52 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect } from "react"
+import { Header } from "@/components/layout/Header"
+import { StatusBar } from "@/components/layout/StatusBar"
+import { SystemHealth } from "@/components/dashboard/SystemHealth"
+import { CronJobList } from "@/components/dashboard/CronJobList"
+import { CronJobDetail } from "@/components/dashboard/CronJobDetail"
+import { useGatewayStore } from "@/stores/gateway-store"
+import { useSystemStore } from "@/stores/system-store"
+import { useCronStore } from "@/stores/cron-store"
+import { gatewayWs, setupEventDispatch } from "@/services/gateway-ws"
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { token, connectionStatus, setConnectionStatus } = useGatewayStore()
+  const updateSystem = useSystemStore((s) => s.updateSystem)
+  const setJobs = useCronStore((s) => s.setJobs)
+
+  // Set up WS event dispatch (once)
+  useEffect(() => {
+    setupEventDispatch(updateSystem, setJobs)
+    gatewayWs.setStatusChangeHandler((status, error) => {
+      setConnectionStatus(status, error)
+    })
+  }, [updateSystem, setJobs, setConnectionStatus])
+
+  // Connect/disconnect when token is available
+  useEffect(() => {
+    if (token) {
+      gatewayWs.connect(token)
+      return () => gatewayWs.disconnect()
+    }
+  }, [token])
+
+  // On connect: fetch initial data via WS RPC
+  useEffect(() => {
+    if (connectionStatus === "connected") {
+      gatewayWs.cronList().then(setJobs).catch(() => {})
+    }
+  }, [connectionStatus, setJobs])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <Header />
+      <main className="flex-1 space-y-6 p-6">
+        <SystemHealth />
+        <CronJobList />
+      </main>
+      <StatusBar />
+      <CronJobDetail />
+    </div>
   )
 }
 
