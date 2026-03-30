@@ -38,13 +38,16 @@ export function CronJobDetail() {
   const [runningManual, setRunningManual] = useState(false)
 
   const job = jobs.find((j) => j.jobId === selectedJobId)
-  const jobRuns = selectedJobId ? runs[selectedJobId] ?? [] : []
+  const jobRuns = selectedJobId ? (runs[selectedJobId] ?? []) : []
 
   useEffect(() => {
     if (!selectedJobId) return
-    gatewayWs.cronRuns(selectedJobId).then((r) => {
-      setRuns(selectedJobId, r)
-    }).catch(() => {})
+    gatewayWs
+      .cronRuns(selectedJobId)
+      .then((r) => {
+        setRuns(selectedJobId, r)
+      })
+      .catch(() => {})
   }, [selectedJobId, setRuns])
 
   const handleRunNow = async () => {
@@ -64,18 +67,11 @@ export function CronJobDetail() {
       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{job?.jobName || selectedJobId}</DialogTitle>
-          <DialogDescription>
-            {job?.description || "No description"}
-          </DialogDescription>
+          <DialogDescription>{job?.description || "No description"}</DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center gap-2 mb-4">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleRunNow}
-            disabled={runningManual}
-          >
+          <Button size="sm" variant="outline" onClick={handleRunNow} disabled={runningManual}>
             <Play className="h-3 w-3 mr-1" />
             {runningManual ? "Running..." : "Run Now"}
           </Button>
@@ -85,9 +81,7 @@ export function CronJobDetail() {
             </Badge>
           )}
           {job && (
-            <span className="text-xs text-muted-foreground">
-              Target: {job.sessionTarget}
-            </span>
+            <span className="text-xs text-muted-foreground">Target: {job.sessionTarget}</span>
           )}
         </div>
 
@@ -118,9 +112,7 @@ export function CronJobDetail() {
                         {new Date(run.startedAt).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {run.durationMs != null
-                          ? `${(run.durationMs / 1000).toFixed(2)}s`
-                          : "--"}
+                        {run.durationMs != null ? `${(run.durationMs / 1000).toFixed(2)}s` : "--"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariants[run.status] ?? "outline"}>

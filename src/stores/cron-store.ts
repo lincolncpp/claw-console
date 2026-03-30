@@ -29,9 +29,7 @@ export const useCronStore = create<CronState>()((set) => ({
 
   updateJob: (jobId, patch) =>
     set((state) => ({
-      jobs: state.jobs.map((j) =>
-        j.jobId === jobId ? { ...j, ...patch } : j,
-      ),
+      jobs: state.jobs.map((j) => (j.jobId === jobId ? { ...j, ...patch } : j)),
     })),
 
   clear: () => set({ jobs: [], selectedJobId: null, runs: {} }),

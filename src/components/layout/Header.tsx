@@ -20,15 +20,11 @@ export function Header() {
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-4">
-      <h1 className="text-xl font-semibold tracking-tight">
-        OpenClaw Dashboard
-      </h1>
+      <h1 className="text-xl font-semibold tracking-tight">OpenClaw Dashboard</h1>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <div className={`h-2.5 w-2.5 rounded-full ${statusColors[connectionStatus]}`} />
         <span>{statusLabels[connectionStatus]}</span>
-        {host && connectionStatus === "connected" && (
-          <span className="text-xs">({host})</span>
-        )}
+        {host && connectionStatus === "connected" && <span className="text-xs">({host})</span>}
       </div>
     </header>
   )

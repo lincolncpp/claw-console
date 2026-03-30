@@ -1,10 +1,4 @@
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useCronStore } from "@/stores/cron-store"
 import { CronJobRow } from "./CronJobRow"
@@ -44,11 +38,7 @@ export function CronJobList() {
             </TableHeader>
             <TableBody>
               {jobs.map((job) => (
-                <CronJobRow
-                  key={job.jobId}
-                  job={job}
-                  onClick={() => selectJob(job.jobId)}
-                />
+                <CronJobRow key={job.jobId} job={job} onClick={() => selectJob(job.jobId)} />
               ))}
             </TableBody>
           </Table>

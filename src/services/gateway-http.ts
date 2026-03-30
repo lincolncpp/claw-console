@@ -1,6 +1,5 @@
-import type { HealthResponse, SystemInfo, StatusResponse } from "@/types/gateway"
+import type { HealthResponse, StatusResponse } from "@/types/gateway"
 
-// Uses Vite dev proxy - all requests go to same origin, proxy forwards to gateway
 async function fetchWithTimeout(
   path: string,
   options: RequestInit = {},
@@ -19,13 +18,12 @@ async function fetchWithTimeout(
   }
 }
 
-export class GatewayError extends Error {
-  constructor(
-    public statusCode: number,
-    message: string,
-  ) {
+class GatewayError extends Error {
+  statusCode: number
+  constructor(statusCode: number, message: string) {
     super(message)
     this.name = "GatewayError"
+    this.statusCode = statusCode
   }
 }
 
@@ -38,7 +36,7 @@ export async function checkHealth(): Promise<HealthResponse> {
   return res.json()
 }
 
-export async function getSystemInfo(token: string): Promise<SystemInfo> {
+export async function getSystemInfo(token: string): Promise<unknown> {
   const res = await fetchWithTimeout("/api/system", {
     headers: authHeaders(token),
   })

@@ -1,5 +1,14 @@
 import type { CronJob, CronRun } from "@/types/cron"
-import type { SystemInfo } from "@/types/gateway"
+import type { ConnectResult, HealthPayload } from "@/types/gateway"
+import type { SessionsListResponse } from "@/types/session"
+import type { NodeListResponse } from "@/types/node"
+import type { LogsTailResponse } from "@/types/log"
+import type {
+  AgentsListResponse,
+  ModelsListResponse,
+  ToolsCatalogResponse,
+  SkillsStatusResponse,
+} from "@/types/agent"
 import type { GatewayFrame } from "@/types/ws"
 
 type EventHandler = (event: string, payload: unknown) => void
@@ -17,9 +26,12 @@ export class GatewayWebSocket {
   private reconnectDelay = 1000
   private shouldReconnect = false
   private onEvent: EventHandler | null = null
-  private onStatusChange: ((status: "disconnected" | "connecting" | "connected" | "error", error?: string) => void) | null = null
+  private onStatusChange:
+    | ((status: "disconnected" | "connecting" | "connected" | "error", error?: string) => void)
+    | null = null
+  private onConnect: ((data: ConnectResult) => void) | null = null
   private token: string | null = null
-  private connectId = 0 // guards against stale connections
+  private connectId = 0
 
   setEventHandler(handler: EventHandler) {
     this.onEvent = handler
@@ -29,12 +41,12 @@ export class GatewayWebSocket {
     this.onStatusChange = handler
   }
 
-  connect(token: string) {
-    // If already connecting/connected with the same token, skip
-    if (this.token === token && this.ws) {
-      return
-    }
+  setConnectHandler(handler: (data: ConnectResult) => void) {
+    this.onConnect = handler
+  }
 
+  connect(token: string) {
+    if (this.token === token && this.ws) return
     this.teardown()
     this.token = token
     this.shouldReconnect = true
@@ -48,7 +60,7 @@ export class GatewayWebSocket {
   }
 
   private teardown() {
-    this.connectId++ // invalidate any in-flight connection
+    this.connectId++
     this.shouldReconnect = false
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
@@ -69,29 +81,60 @@ export class GatewayWebSocket {
     return this.ws?.readyState === WebSocket.OPEN
   }
 
+  // --- Cron RPCs ---
   async cronList(): Promise<CronJob[]> {
-    return this.sendRpc("cron.list") as Promise<CronJob[]>
+    const res = (await this.sendRpc("cron.list")) as { jobs?: CronJob[] } | CronJob[]
+    return Array.isArray(res) ? res : (res?.jobs ?? [])
   }
-
   async cronRuns(jobId: string, limit = 50): Promise<CronRun[]> {
     return this.sendRpc("cron.runs", { jobId, limit }) as Promise<CronRun[]>
   }
-
   async cronRun(jobId: string): Promise<void> {
     await this.sendRpc("cron.run", { jobId })
   }
-
   async cronStatus(jobId: string): Promise<CronJob> {
     return this.sendRpc("cron.status", { jobId }) as Promise<CronJob>
   }
 
+  // --- Sessions RPCs ---
+  async sessionsList(): Promise<SessionsListResponse> {
+    return this.sendRpc("sessions.list") as Promise<SessionsListResponse>
+  }
+
+  // --- Agents RPCs ---
+  async agentsList(): Promise<AgentsListResponse> {
+    return this.sendRpc("agents.list") as Promise<AgentsListResponse>
+  }
+  async modelsList(): Promise<ModelsListResponse> {
+    return this.sendRpc("models.list") as Promise<ModelsListResponse>
+  }
+  async toolsCatalog(): Promise<ToolsCatalogResponse> {
+    return this.sendRpc("tools.catalog") as Promise<ToolsCatalogResponse>
+  }
+  async skillsStatus(): Promise<SkillsStatusResponse> {
+    return this.sendRpc("skills.status") as Promise<SkillsStatusResponse>
+  }
+
+  // --- Nodes RPCs ---
+  async nodeList(): Promise<NodeListResponse> {
+    return this.sendRpc("node.list") as Promise<NodeListResponse>
+  }
+
+  // --- Logs RPCs ---
+  async logsTail(cursor?: number): Promise<LogsTailResponse> {
+    return this.sendRpc("logs.tail", cursor != null ? { cursor } : {}) as Promise<LogsTailResponse>
+  }
+
+  // --- Approvals RPCs ---
+  async execApprovalsGet(): Promise<unknown> {
+    return this.sendRpc("exec.approvals.get")
+  }
+
+  // --- Connection ---
   private doConnect() {
     if (!this.token) return
-
     const token = this.token
     const id = this.connectId
-
-    // Connect through Vite proxy at /ws -> gateway root
     const proto = location.protocol === "https:" ? "wss:" : "ws:"
     const wsUrl = `${proto}//${location.host}/ws`
     this.onStatusChange?.("connecting")
@@ -104,23 +147,20 @@ export class GatewayWebSocket {
       this.scheduleReconnect()
       return
     }
-
     this.ws = ws
 
     ws.onopen = () => {
       if (this.connectId !== id) return
     }
-
     ws.onmessage = (event) => {
       if (this.connectId !== id) return
       try {
         const frame: GatewayFrame = JSON.parse(event.data)
         this.handleFrame(frame, token)
       } catch {
-        // Ignore unparseable frames
+        // ignore
       }
     }
-
     ws.onclose = () => {
       if (this.connectId !== id) return
       this.ws = null
@@ -128,7 +168,6 @@ export class GatewayWebSocket {
       this.onStatusChange?.("disconnected")
       this.scheduleReconnect()
     }
-
     ws.onerror = () => {
       if (this.connectId !== id) return
       this.onStatusChange?.("error", "WebSocket error")
@@ -146,13 +185,19 @@ export class GatewayWebSocket {
             minProtocol: 3,
             maxProtocol: 3,
             client: {
-              id: "cli",
+              id: "openclaw-control-ui",
               version: "1.0.0",
               platform: navigator.platform,
-              mode: "webchat",
+              mode: "ui",
             },
             role: "operator",
-            scopes: ["operator.admin", "operator.approvals", "operator.pairing"],
+            scopes: [
+              "operator.admin",
+              "operator.read",
+              "operator.write",
+              "operator.approvals",
+              "operator.pairing",
+            ],
             caps: [],
             auth: { token },
             locale: navigator.language,
@@ -162,7 +207,6 @@ export class GatewayWebSocket {
         this.ws?.send(JSON.stringify(connectMsg))
         return
       }
-
       if (
         frame.event === "connect.hello" ||
         frame.event === "hello" ||
@@ -172,15 +216,18 @@ export class GatewayWebSocket {
         this.onStatusChange?.("connected")
         return
       }
-
-      // Dispatch other events
       this.onEvent?.(frame.event, frame.payload)
       return
     }
 
     if (frame.type === "response" || frame.type === "res") {
-      const res = frame as { id: string; ok?: boolean; result?: unknown; error?: { code: string; message: string } }
-
+      const res = frame as {
+        id: string
+        ok?: boolean
+        result?: unknown
+        payload?: unknown
+        error?: { code: string; message: string }
+      }
       const pending = this.pendingRpc.get(res.id)
       if (pending) {
         this.pendingRpc.delete(res.id)
@@ -188,15 +235,18 @@ export class GatewayWebSocket {
         if (res.ok === false || res.error) {
           pending.reject(new Error(`RPC error: ${res.error?.message ?? "unknown"}`))
         } else {
-          pending.resolve(res.result)
+          pending.resolve(res.result ?? res.payload)
         }
         return
       }
-
-      // If no pending RPC matched, this might be the connect response
+      // Connect response
       if (res.ok !== false) {
         this.reconnectDelay = 1000
         this.onStatusChange?.("connected")
+        const payload = res.payload as ConnectResult | undefined
+        if (payload?.snapshot) {
+          this.onConnect?.(payload)
+        }
       }
     }
   }
@@ -207,17 +257,13 @@ export class GatewayWebSocket {
         reject(new Error("Not connected"))
         return
       }
-
       const id = crypto.randomUUID()
       const timeout = setTimeout(() => {
         this.pendingRpc.delete(id)
         reject(new Error(`RPC timeout: ${method}`))
       }, 15000)
-
       this.pendingRpc.set(id, { resolve, reject, timeout })
-
-      const request = { type: "req", id, method, params }
-      this.ws.send(JSON.stringify(request))
+      this.ws.send(JSON.stringify({ type: "req", id, method, params }))
     })
   }
 
@@ -231,32 +277,47 @@ export class GatewayWebSocket {
 
   private scheduleReconnect() {
     if (!this.shouldReconnect || this.reconnectTimer) return
-
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null
       this.doConnect()
     }, this.reconnectDelay)
-
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000)
   }
 }
 
-// Singleton instance
 export const gatewayWs = new GatewayWebSocket()
 
-// Helper to dispatch WS events to stores
-export function setupEventDispatch(
-  onSystemUpdate: (data: SystemInfo) => void,
-  onCronUpdate: (jobs: CronJob[]) => void,
-) {
+export interface EventDispatchHandlers {
+  onHealth: (data: HealthPayload) => void
+  onConnect: (data: ConnectResult) => void
+  onCron: () => void
+  onSessionsChanged: () => void
+  onPresence: (payload: unknown) => void
+  onApprovalRequested: (payload: unknown) => void
+  onApprovalResolved: (payload: unknown) => void
+}
+
+export function setupEventDispatch(handlers: EventDispatchHandlers) {
+  gatewayWs.setConnectHandler(handlers.onConnect)
   gatewayWs.setEventHandler((event, payload) => {
     switch (event) {
       case "health":
-      case "system":
-        onSystemUpdate(payload as SystemInfo)
+        handlers.onHealth(payload as HealthPayload)
         break
       case "cron":
-        gatewayWs.cronList().then(onCronUpdate).catch(() => {})
+        handlers.onCron()
+        break
+      case "sessions.changed":
+        handlers.onSessionsChanged()
+        break
+      case "presence":
+        handlers.onPresence(payload)
+        break
+      case "exec.approval.requested":
+        handlers.onApprovalRequested(payload)
+        break
+      case "exec.approval.resolved":
+        handlers.onApprovalResolved(payload)
         break
     }
   })

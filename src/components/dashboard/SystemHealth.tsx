@@ -1,79 +1,103 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useSystemStore } from "@/stores/system-store"
-import { Cpu, HardDrive, MemoryStick } from "lucide-react"
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
-}
-
-function ProgressBar({ value, className = "" }: { value: number; className?: string }) {
-  return (
-    <div className={`h-2 w-full rounded-full bg-secondary ${className}`}>
-      <div
-        className="h-full rounded-full bg-primary transition-all"
-        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
-      />
-    </div>
-  )
-}
+import { Activity, Radio, Users } from "lucide-react"
 
 export function SystemHealth() {
-  const { cpu, memoryUsed, memoryTotal, diskUsed, diskTotal } = useSystemStore()
+  const { healthOk, healthCheckMs, channels, agents, totalSessions } = useSystemStore()
 
-  const memoryPercent = memoryUsed != null && memoryTotal ? (memoryUsed / memoryTotal) * 100 : 0
-  const diskPercent = diskUsed != null && diskTotal ? (diskUsed / diskTotal) * 100 : 0
+  const configuredChannels = channels.length
+  const runningChannels = channels.filter((c) => c.health.running).length
+  const probeOk = channels.every((c) => c.health.probe?.ok !== false)
+
+  const totalAgents = agents.length
+  const activeAgents = agents.filter((a) => a.sessions.count > 0).length
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
+      {/* Gateway Status */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">CPU</CardTitle>
-          <Cpu className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Gateway</CardTitle>
+          <Activity className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {cpu != null ? `${cpu.toFixed(1)}%` : "--"}
-          </div>
-          <ProgressBar value={cpu ?? 0} className="mt-2" />
+          {healthOk != null ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-2.5 w-2.5 rounded-full ${healthOk ? "bg-emerald-500" : "bg-red-500"}`}
+                />
+                <span className="text-2xl font-bold">{healthOk ? "Healthy" : "Unhealthy"}</span>
+              </div>
+              {healthCheckMs != null && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Health check: {healthCheckMs}ms
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="text-2xl font-bold">--</div>
+          )}
         </CardContent>
       </Card>
 
+      {/* Channels */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">Memory</CardTitle>
-          <MemoryStick className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Channels</CardTitle>
+          <Radio className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {memoryUsed != null ? `${memoryPercent.toFixed(1)}%` : "--"}
-          </div>
-          {memoryUsed != null && memoryTotal != null && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {formatBytes(memoryUsed)} / {formatBytes(memoryTotal)}
-            </p>
+          {configuredChannels > 0 ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-2.5 w-2.5 rounded-full ${probeOk ? "bg-emerald-500" : "bg-red-500"}`}
+                />
+                <span className="text-2xl font-bold">
+                  {runningChannels}/{configuredChannels}
+                </span>
+              </div>
+              <div className="mt-1 space-y-0.5">
+                {channels.map((ch) => (
+                  <p
+                    key={ch.key}
+                    className="text-xs text-muted-foreground flex items-center gap-1.5"
+                  >
+                    <span
+                      className={`inline-block h-1.5 w-1.5 rounded-full ${ch.health.probe?.ok ? "bg-emerald-500" : "bg-zinc-400"}`}
+                    />
+                    {ch.label}
+                    {ch.health.running ? " (running)" : ""}
+                  </p>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-2xl font-bold">--</div>
           )}
-          <ProgressBar value={memoryPercent} className="mt-2" />
         </CardContent>
       </Card>
 
+      {/* Agents / Sessions */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">Disk</CardTitle>
-          <HardDrive className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Agents</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {diskUsed != null ? `${diskPercent.toFixed(1)}%` : "--"}
-          </div>
-          {diskUsed != null && diskTotal != null && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {formatBytes(diskUsed)} / {formatBytes(diskTotal)}
-            </p>
+          {totalAgents > 0 ? (
+            <>
+              <div className="text-2xl font-bold">
+                {activeAgents}/{totalAgents}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalSessions != null ? `${totalSessions.toLocaleString()} sessions` : ""}
+              </p>
+            </>
+          ) : (
+            <div className="text-2xl font-bold">--</div>
           )}
-          <ProgressBar value={diskPercent} className="mt-2" />
         </CardContent>
       </Card>
     </div>

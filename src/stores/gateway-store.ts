@@ -22,6 +22,6 @@ export const useGatewayStore = create<GatewayState>()((set) => ({
   connectionStatus: "disconnected",
   errorMessage: null,
 
-  setConnectionStatus: (connectionStatus, errorMessage = null) =>
-    set({ connectionStatus, errorMessage }),
+  setConnectionStatus: (connectionStatus, errorMessage) =>
+    set({ connectionStatus, errorMessage: errorMessage ?? null }),
 }))

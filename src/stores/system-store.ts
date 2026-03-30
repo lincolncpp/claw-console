@@ -1,55 +1,88 @@
 import { create } from "zustand"
-import type { SystemInfo } from "@/types/gateway"
+import type { HealthPayload, ConnectResult, ChannelHealth, AgentHealth } from "@/types/gateway"
+import type { PresenceEntry } from "@/types/node"
 
 interface SystemState {
-  cpu: number | null
-  memoryUsed: number | null
-  memoryTotal: number | null
-  diskUsed: number | null
-  diskTotal: number | null
-  uptime: number | null
-  pid: number | null
   version: string | null
+  uptimeMs: number | null
+  connectedAt: number | null
+
+  healthOk: boolean | null
+  healthCheckMs: number | null
+
+  channels: { key: string; label: string; health: ChannelHealth }[]
+  agents: AgentHealth[]
+  totalSessions: number | null
+
+  presence: PresenceEntry[]
+
+  updateAvailable: {
+    currentVersion: string
+    latestVersion: string
+    channel: string
+  } | null
+
   lastUpdated: number | null
 
-  updateSystem: (data: SystemInfo) => void
+  updateFromConnect: (data: ConnectResult) => void
+  updateFromHealth: (data: HealthPayload) => void
   clear: () => void
 }
 
+function mapHealth(health: HealthPayload) {
+  const channels = health.channelOrder.map((key) => ({
+    key,
+    label: health.channelLabels[key] ?? key,
+    health: health.channels[key],
+  }))
+
+  return {
+    healthOk: health.ok,
+    healthCheckMs: health.durationMs,
+    channels,
+    agents: health.agents ?? [],
+    totalSessions: health.sessions?.count ?? null,
+    lastUpdated: Date.now(),
+  }
+}
+
 export const useSystemStore = create<SystemState>()((set) => ({
-  cpu: null,
-  memoryUsed: null,
-  memoryTotal: null,
-  diskUsed: null,
-  diskTotal: null,
-  uptime: null,
-  pid: null,
   version: null,
+  uptimeMs: null,
+  connectedAt: null,
+  healthOk: null,
+  healthCheckMs: null,
+  channels: [],
+  agents: [],
+  totalSessions: null,
+  presence: [],
+  updateAvailable: null,
   lastUpdated: null,
 
-  updateSystem: (data) =>
+  updateFromConnect: (data) =>
     set({
-      cpu: data.cpu,
-      memoryUsed: data.memory?.used ?? null,
-      memoryTotal: data.memory?.total ?? null,
-      diskUsed: data.disk?.used ?? null,
-      diskTotal: data.disk?.total ?? null,
-      uptime: data.uptime ?? null,
-      pid: data.pid ?? null,
-      version: data.version ?? null,
-      lastUpdated: Date.now(),
+      version: data.server.version,
+      uptimeMs: data.snapshot.uptimeMs,
+      connectedAt: Date.now(),
+      presence: (data.snapshot as unknown as { presence?: PresenceEntry[] }).presence ?? [],
+      updateAvailable: data.snapshot.updateAvailable ?? null,
+      ...mapHealth(data.snapshot.health),
     }),
+
+  updateFromHealth: (data) => set(mapHealth(data)),
 
   clear: () =>
     set({
-      cpu: null,
-      memoryUsed: null,
-      memoryTotal: null,
-      diskUsed: null,
-      diskTotal: null,
-      uptime: null,
-      pid: null,
       version: null,
+      uptimeMs: null,
+      connectedAt: null,
+      healthOk: null,
+      healthCheckMs: null,
+      channels: [],
+      agents: [],
+      totalSessions: null,
+      presence: [],
+      updateAvailable: null,
       lastUpdated: null,
     }),
 }))

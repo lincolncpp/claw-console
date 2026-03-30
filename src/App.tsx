@@ -1,8 +1,8 @@
 import { useEffect } from "react"
 import { Header } from "@/components/layout/Header"
 import { StatusBar } from "@/components/layout/StatusBar"
-import { SystemHealth } from "@/components/dashboard/SystemHealth"
-import { CronJobList } from "@/components/dashboard/CronJobList"
+import { Sidebar } from "@/components/layout/Sidebar"
+import { PageRouter } from "@/components/layout/PageRouter"
 import { CronJobDetail } from "@/components/dashboard/CronJobDetail"
 import { useGatewayStore } from "@/stores/gateway-store"
 import { useSystemStore } from "@/stores/system-store"
@@ -11,18 +11,30 @@ import { gatewayWs, setupEventDispatch } from "@/services/gateway-ws"
 
 function App() {
   const { token, connectionStatus, setConnectionStatus } = useGatewayStore()
-  const updateSystem = useSystemStore((s) => s.updateSystem)
+  const updateFromHealth = useSystemStore((s) => s.updateFromHealth)
+  const updateFromConnect = useSystemStore((s) => s.updateFromConnect)
   const setJobs = useCronStore((s) => s.setJobs)
 
-  // Set up WS event dispatch (once)
   useEffect(() => {
-    setupEventDispatch(updateSystem, setJobs)
+    setupEventDispatch({
+      onHealth: updateFromHealth,
+      onConnect: updateFromConnect,
+      onCron: () => {
+        gatewayWs
+          .cronList()
+          .then(setJobs)
+          .catch(() => {})
+      },
+      onSessionsChanged: () => {},
+      onPresence: () => {},
+      onApprovalRequested: () => {},
+      onApprovalResolved: () => {},
+    })
     gatewayWs.setStatusChangeHandler((status, error) => {
       setConnectionStatus(status, error)
     })
-  }, [updateSystem, setJobs, setConnectionStatus])
+  }, [updateFromHealth, updateFromConnect, setJobs, setConnectionStatus])
 
-  // Connect/disconnect when token is available
   useEffect(() => {
     if (token) {
       gatewayWs.connect(token)
@@ -30,21 +42,25 @@ function App() {
     }
   }, [token])
 
-  // On connect: fetch initial data via WS RPC
   useEffect(() => {
     if (connectionStatus === "connected") {
-      gatewayWs.cronList().then(setJobs).catch(() => {})
+      gatewayWs
+        .cronList()
+        .then(setJobs)
+        .catch(() => {})
     }
   }, [connectionStatus, setJobs])
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <Header />
-      <main className="flex-1 space-y-6 p-6">
-        <SystemHealth />
-        <CronJobList />
-      </main>
-      <StatusBar />
+    <div className="flex min-h-screen bg-background text-foreground">
+      <Sidebar />
+      <div className="flex flex-1 flex-col min-w-0">
+        <Header />
+        <main className="flex-1 overflow-y-auto p-6">
+          <PageRouter />
+        </main>
+        <StatusBar />
+      </div>
       <CronJobDetail />
     </div>
   )

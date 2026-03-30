@@ -1,0 +1,234 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { useRpc } from "@/hooks/use-rpc"
+import { useSystemStore } from "@/stores/system-store"
+import { gatewayWs } from "@/services/gateway-ws"
+import { Bot, Cpu, Wrench, Sparkles, Loader2 } from "lucide-react"
+
+function AgentCards() {
+  const snapshotAgents = useSystemStore((s) => s.agents)
+  const { data } = useRpc(() => gatewayWs.agentsList(), [])
+
+  const agents =
+    data?.agents ??
+    snapshotAgents.map((a) => ({
+      id: a.agentId,
+      name: a.name,
+      isDefault: a.isDefault,
+    }))
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {agents.map((agent) => {
+        const snapshot = snapshotAgents.find((a) => a.agentId === agent.id)
+        return (
+          <Card key={agent.id}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Bot className="h-4 w-4 text-muted-foreground" />
+                <span>{agent.name ?? agent.id}</span>
+                {(agent.isDefault || (data && agent.id === data.defaultId)) && (
+                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                    default
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-mono">{agent.id}</p>
+                {snapshot && <p>{snapshot.sessions.count.toLocaleString()} sessions</p>}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}
+
+function ModelsList() {
+  const { data, loading, scopeError } = useRpc(() => gatewayWs.modelsList(), [])
+
+  if (scopeError)
+    return <p className="text-sm text-muted-foreground py-4">Requires operator.read scope</p>
+  if (loading)
+    return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-8" />
+
+  const models = data?.models ?? []
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Model</TableHead>
+          <TableHead>Provider</TableHead>
+          <TableHead>Context</TableHead>
+          <TableHead>Capabilities</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {models.map((m) => (
+          <TableRow key={m.id}>
+            <TableCell className="font-medium">{m.name}</TableCell>
+            <TableCell>
+              <Badge variant="outline" className="text-[10px]">
+                {m.provider}
+              </Badge>
+            </TableCell>
+            <TableCell className="text-xs text-muted-foreground">
+              {m.contextWindow ? `${(m.contextWindow / 1000).toFixed(0)}k` : "--"}
+            </TableCell>
+            <TableCell>
+              <div className="flex gap-1">
+                {m.reasoning && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    reasoning
+                  </Badge>
+                )}
+                {m.input?.map((i) => (
+                  <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
+                    {i}
+                  </Badge>
+                ))}
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  )
+}
+
+function ToolsList() {
+  const { data, loading, scopeError } = useRpc(() => gatewayWs.toolsCatalog(), [])
+
+  if (scopeError)
+    return <p className="text-sm text-muted-foreground py-4">Requires operator.read scope</p>
+  if (loading)
+    return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-8" />
+
+  const tools = Array.isArray(data?.tools) ? data.tools : Array.isArray(data) ? data : []
+  return (
+    <div className="space-y-2">
+      {tools.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-4 text-center">No tools registered</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tool</TableHead>
+              <TableHead>Description</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tools.slice(0, 50).map((t: Record<string, unknown>, i: number) => (
+              <TableRow key={i}>
+                <TableCell className="font-mono text-xs font-medium">
+                  {String(t.name ?? t.id ?? "unknown")}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground truncate max-w-[400px]">
+                  {String(t.description ?? "")}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  )
+}
+
+function SkillsList() {
+  const { data, loading, scopeError } = useRpc(() => gatewayWs.skillsStatus(), [])
+
+  if (scopeError)
+    return <p className="text-sm text-muted-foreground py-4">Requires operator.read scope</p>
+  if (loading)
+    return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-8" />
+
+  const skills = Array.isArray(data?.skills) ? data.skills : Array.isArray(data) ? data : []
+  return (
+    <div className="space-y-2">
+      {skills.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-4 text-center">No skills installed</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Skill</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Version</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {skills.map((s, i) => (
+              <TableRow key={i}>
+                <TableCell className="font-medium text-sm">{s.name ?? s.id ?? "unknown"}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant={s.status === "active" ? "default" : "secondary"}
+                    className="text-[10px]"
+                  >
+                    {s.status ?? "unknown"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">{s.version ?? "--"}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  )
+}
+
+export function AgentsPage() {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold tracking-tight">Agents & Tools</h2>
+
+      <Tabs defaultValue="agents">
+        <TabsList variant="line">
+          <TabsTrigger value="agents">
+            <Bot className="h-3.5 w-3.5 mr-1.5" />
+            Agents
+          </TabsTrigger>
+          <TabsTrigger value="models">
+            <Cpu className="h-3.5 w-3.5 mr-1.5" />
+            Models
+          </TabsTrigger>
+          <TabsTrigger value="tools">
+            <Wrench className="h-3.5 w-3.5 mr-1.5" />
+            Tools
+          </TabsTrigger>
+          <TabsTrigger value="skills">
+            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+            Skills
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="agents">
+          <AgentCards />
+        </TabsContent>
+        <TabsContent value="models">
+          <ModelsList />
+        </TabsContent>
+        <TabsContent value="tools">
+          <ToolsList />
+        </TabsContent>
+        <TabsContent value="skills">
+          <SkillsList />
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}

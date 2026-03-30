@@ -1,15 +1,17 @@
 export interface WsRpcRequest {
-  type: "request"
-  id: number
+  type: "request" | "req"
+  id: string | number
   method: string
   params?: unknown
 }
 
 export interface WsRpcResponse {
-  type: "response"
-  id: number
+  type: "response" | "res"
+  id: string | number
+  ok?: boolean
   result?: unknown
-  error?: { code: number; message: string }
+  payload?: unknown
+  error?: { code: string; message: string }
 }
 
 export interface WsEvent {
@@ -17,20 +19,13 @@ export interface WsEvent {
   event: string
   payload?: unknown
   seq?: number
-  stateVersion?: number
+  stateVersion?: unknown
 }
 
 export interface WsConnectChallenge {
   type: "event"
   event: "connect.challenge"
   payload: { nonce: string; ts: number }
-}
-
-export interface WsConnectParams {
-  type: "connect"
-  token: string
-  role?: string
-  scope?: string
 }
 
 export type GatewayFrame = WsRpcRequest | WsRpcResponse | WsEvent

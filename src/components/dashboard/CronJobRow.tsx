@@ -40,10 +40,7 @@ interface CronJobRowProps {
 
 export function CronJobRow({ job, onClick }: CronJobRowProps) {
   return (
-    <TableRow
-      className="cursor-pointer hover:bg-muted/50"
-      onClick={onClick}
-    >
+    <TableRow className="cursor-pointer hover:bg-muted/50" onClick={onClick}>
       <TableCell className="font-medium">{job.jobName || job.jobId}</TableCell>
       <TableCell className="text-sm text-muted-foreground font-mono">
         {formatSchedule(job)}
