@@ -130,6 +130,14 @@ export class GatewayWebSocket {
     return this.sendRpc("exec.approvals.get")
   }
 
+  // --- Chat RPCs ---
+  async chatSend(agentId: string, session: string, body: string): Promise<unknown> {
+    return this.sendRpc("chat.send", { agentId, session, body })
+  }
+  async sessionHistory(agentId: string, session: string, limit = 200): Promise<unknown> {
+    return this.sendRpc("sessions.history", { agentId, session, limit })
+  }
+
   // --- Connection ---
   private doConnect() {
     if (!this.token) return
@@ -295,6 +303,7 @@ export interface EventDispatchHandlers {
   onPresence: (payload: unknown) => void
   onApprovalRequested: (payload: unknown) => void
   onApprovalResolved: (payload: unknown) => void
+  onChatEvent: (event: string, payload: unknown) => void
 }
 
 export function setupEventDispatch(handlers: EventDispatchHandlers) {
@@ -318,6 +327,11 @@ export function setupEventDispatch(handlers: EventDispatchHandlers) {
         break
       case "exec.approval.resolved":
         handlers.onApprovalResolved(payload)
+        break
+      default:
+        if (event.startsWith("chat.") || event.startsWith("session.")) {
+          handlers.onChatEvent(event, payload)
+        }
         break
     }
   })
