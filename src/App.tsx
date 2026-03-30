@@ -9,6 +9,7 @@ import { useGatewayStore } from "@/stores/gateway-store"
 import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
 import { gatewayWs, setupEventDispatch } from "@/services/gateway-ws"
+import { useTerminalStore } from "@/stores/terminal-store"
 
 function App() {
   const { token, connectionStatus, setConnectionStatus } = useGatewayStore()
@@ -30,7 +31,70 @@ function App() {
       onPresence: () => {},
       onApprovalRequested: () => {},
       onApprovalResolved: () => {},
-      onChatEvent: () => {},
+      onChatEvent: (event, payload) => {
+        const p = payload as Record<string, unknown>
+        const evtAgent = (p.agentId as string) ?? null
+        const evtSession = (p.session as string) ?? (p.sessionKey as string) ?? null
+        const { agentId: tAgent, sessionKey: tSession } = useTerminalStore.getState()
+
+        // Only process events for the active terminal session
+        if (evtAgent !== tAgent || evtSession !== tSession) return
+
+        if (event === "chat.delta" || event === "session.delta") {
+          const text = (p.text as string) ?? (p.content as string) ?? ""
+          const current = useTerminalStore.getState().streamingText
+          useTerminalStore.getState().updateStreamingText((current ?? "") + text)
+        } else if (event === "chat.tool.start" || event === "session.tool.start") {
+          useTerminalStore.getState().updateStreamingToolCall({
+            id: (p.toolCallId as string) ?? crypto.randomUUID(),
+            name: (p.name as string) ?? (p.tool as string) ?? "unknown",
+            args: p.args ?? p.input,
+            status: "running",
+          })
+        } else if (event === "chat.tool.end" || event === "session.tool.end") {
+          const current = useTerminalStore.getState().streamingToolCall
+          if (current) {
+            const msgs = [...useTerminalStore.getState().messages]
+            const lastMsg = msgs[msgs.length - 1]
+            const finishedTool = {
+              ...current,
+              result: p.result ?? p.output,
+              status: (p.error ? "error" : "success") as "error" | "success",
+              durationMs: p.durationMs as number | undefined,
+            }
+            if (lastMsg && lastMsg.role === "assistant") {
+              msgs[msgs.length - 1] = {
+                ...lastMsg,
+                toolCalls: [...(lastMsg.toolCalls ?? []), finishedTool],
+              }
+              useTerminalStore.getState().setMessages(msgs)
+            } else {
+              useTerminalStore.getState().appendMessage({
+                id: crypto.randomUUID(),
+                role: "assistant",
+                content: "",
+                timestamp: Date.now(),
+                toolCalls: [finishedTool],
+              })
+            }
+            useTerminalStore.setState({ streamingToolCall: null })
+          }
+        } else if (
+          event === "chat.end" ||
+          event === "session.end" ||
+          event === "chat.message.end"
+        ) {
+          useTerminalStore.getState().finalizeStreaming()
+        } else if (event === "chat.error" || event === "session.error") {
+          useTerminalStore.getState().setRunState("error")
+          useTerminalStore.getState().appendMessage({
+            id: crypto.randomUUID(),
+            role: "system",
+            content: (p.message as string) ?? (p.error as string) ?? "An error occurred.",
+            timestamp: Date.now(),
+          })
+        }
+      },
     })
     gatewayWs.setStatusChangeHandler((status, error) => {
       setConnectionStatus(status, error)
