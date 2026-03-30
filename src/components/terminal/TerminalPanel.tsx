@@ -38,6 +38,31 @@ export function TerminalPanel() {
     }
   }, [messages, streamingText])
 
+  // Load session history when session changes
+  useEffect(() => {
+    if (!isOpen || !agentId || !sessionKey) return
+    gatewayWs
+      .sessionHistory(agentId, sessionKey)
+      .then((resp) => {
+        const data = resp as {
+          messages?: Array<{ id?: string; role?: string; content?: string; timestamp?: number }>
+        }
+        if (!data.messages?.length) return
+        const { setMessages } = useTerminalStore.getState()
+        setMessages(
+          data.messages.map((m) => ({
+            id: m.id ?? crypto.randomUUID(),
+            role: (m.role as "user" | "assistant" | "system") ?? "system",
+            content: m.content ?? "",
+            timestamp: m.timestamp ?? Date.now(),
+          })),
+        )
+      })
+      .catch(() => {
+        // History loading is best-effort
+      })
+  }, [isOpen, agentId, sessionKey])
+
   // Drag resize
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
@@ -137,8 +162,10 @@ export function TerminalPanel() {
       {/* Chat log */}
       <div
         className="flex-1 overflow-y-auto py-2 font-mono text-sm"
-        onScroll={() => {
-          autoScrollRef.current = false
+        onScroll={(e) => {
+          const el = e.currentTarget
+          const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30
+          autoScrollRef.current = atBottom
         }}
       >
         {messages.length === 0 && !streamingText && (
