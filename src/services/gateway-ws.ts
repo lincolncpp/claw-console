@@ -1,6 +1,10 @@
 import type { CronJob, CronRun } from "@/types/cron"
 import type { ConnectResult, HealthPayload } from "@/types/gateway"
-import type { SessionsListResponse } from "@/types/session"
+import type {
+  SessionsListResponse,
+  SessionDeleteResponse,
+  SessionsCleanupResponse,
+} from "@/types/session"
 import type { NodeListResponse } from "@/types/node"
 import type { LogsTailResponse } from "@/types/log"
 import type {
@@ -101,6 +105,14 @@ export class GatewayWebSocket {
     return this.sendRpc("sessions.list") as Promise<SessionsListResponse>
   }
 
+  async sessionsDelete(key: string): Promise<SessionDeleteResponse> {
+    return this.sendRpc("sessions.delete", { key }) as Promise<SessionDeleteResponse>
+  }
+
+  async sessionsCleanup(): Promise<SessionsCleanupResponse> {
+    return this.sendRpc("sessions.cleanup", {}) as Promise<SessionsCleanupResponse>
+  }
+
   // --- Agents RPCs ---
   async agentsList(): Promise<AgentsListResponse> {
     return this.sendRpc("agents.list") as Promise<AgentsListResponse>
@@ -131,11 +143,15 @@ export class GatewayWebSocket {
   }
 
   // --- Chat RPCs ---
-  async chatSend(agentId: string, session: string, body: string): Promise<unknown> {
-    return this.sendRpc("chat.send", { agentId, session, body })
+  async chatSend(sessionKey: string, message: string): Promise<unknown> {
+    return this.sendRpc("chat.send", {
+      sessionKey,
+      message,
+      idempotencyKey: crypto.randomUUID(),
+    })
   }
-  async sessionHistory(agentId: string, session: string, limit = 200): Promise<unknown> {
-    return this.sendRpc("sessions.history", { agentId, session, limit })
+  async chatHistory(sessionKey: string, limit = 200): Promise<unknown> {
+    return this.sendRpc("chat.history", { sessionKey, limit })
   }
 
   // --- Connection ---

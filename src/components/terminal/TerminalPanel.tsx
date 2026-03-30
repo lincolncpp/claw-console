@@ -41,8 +41,9 @@ export function TerminalPanel() {
   // Load session history when session changes
   useEffect(() => {
     if (!isOpen || !agentId || !sessionKey) return
+    const compositeKey = `agent:${agentId}:${sessionKey}`
     gatewayWs
-      .sessionHistory(agentId, sessionKey)
+      .chatHistory(compositeKey)
       .then((resp) => {
         const data = resp as {
           messages?: Array<{ id?: string; role?: string; content?: string; timestamp?: number }>
@@ -96,11 +97,12 @@ export function TerminalPanel() {
         timestamp: Date.now(),
       }
       appendMessage(userMsg)
-      gatewayWs.chatSend(agentId, sessionKey, text).catch(() => {
+      const compositeKey = `agent:${agentId}:${sessionKey}`
+      gatewayWs.chatSend(compositeKey, text).catch((err: Error) => {
         appendMessage({
           id: crypto.randomUUID(),
           role: "system",
-          content: "Failed to send message.",
+          content: `Failed to send message: ${err.message}`,
           timestamp: Date.now(),
         })
       })

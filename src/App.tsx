@@ -10,6 +10,7 @@ import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
 import { gatewayWs, setupEventDispatch } from "@/services/gateway-ws"
 import { useTerminalStore } from "@/stores/terminal-store"
+import { notifySessionsChanged } from "@/hooks/use-sessions-refresh"
 
 function App() {
   const { token, connectionStatus, setConnectionStatus } = useGatewayStore()
@@ -27,7 +28,9 @@ function App() {
           .then(setJobs)
           .catch(() => {})
       },
-      onSessionsChanged: () => {},
+      onSessionsChanged: () => {
+        notifySessionsChanged()
+      },
       onPresence: () => {},
       onApprovalRequested: () => {},
       onApprovalResolved: () => {},
@@ -136,8 +139,9 @@ function App() {
             const skey = agentSession?.key ?? "main"
             useTerminalStore.getState().setSession(aid, skey)
             // Load session history (best-effort)
+            const compositeKey = `agent:${aid}:${skey}`
             gatewayWs
-              .sessionHistory(aid, skey)
+              .chatHistory(compositeKey)
               .then((histResp) => {
                 const data = histResp as {
                   messages?: Array<{

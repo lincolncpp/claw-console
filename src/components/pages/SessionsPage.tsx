@@ -9,9 +9,19 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useRpc } from "@/hooks/use-rpc"
+import { useSessionsRefresh } from "@/hooks/use-sessions-refresh"
 import { gatewayWs } from "@/services/gateway-ws"
-import { MessageSquare, Loader2 } from "lucide-react"
+import { MessageSquare, Loader2, Trash2, Eraser } from "lucide-react"
 import { useState } from "react"
 import type { SessionEntry } from "@/types/session"
 
@@ -52,7 +62,17 @@ function ScopeMessage() {
 
 export function SessionsPage() {
   const [filter, setFilter] = useState("")
-  const { data, loading, scopeError } = useRpc(() => gatewayWs.sessionsList(), [])
+  const { data, loading, scopeError, refetch } = useRpc(() => gatewayWs.sessionsList(), [])
+
+  useSessionsRefresh(refetch)
+
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  // Cleanup state
+  const [cleanupOpen, setCleanupOpen] = useState(false)
+  const [cleaning, setCleaning] = useState(false)
 
   if (scopeError) return <ScopeMessage />
 
@@ -60,6 +80,33 @@ export function SessionsPage() {
   const filtered = filter
     ? sessions.filter((s) => s.key.toLowerCase().includes(filter.toLowerCase()))
     : sessions
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await gatewayWs.sessionsDelete(deleteTarget)
+      refetch()
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(false)
+      setDeleteTarget(null)
+    }
+  }
+
+  const handleCleanup = async () => {
+    setCleaning(true)
+    try {
+      await gatewayWs.sessionsCleanup()
+      refetch()
+    } catch {
+      // ignore
+    } finally {
+      setCleaning(false)
+      setCleanupOpen(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -72,12 +119,23 @@ export function SessionsPage() {
             </p>
           )}
         </div>
-        <Input
-          placeholder="Filter sessions..."
-          value={filter}
-          onChange={(e) => setFilter((e.target as HTMLInputElement).value)}
-          className="w-64"
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCleanupOpen(true)}
+            disabled={cleaning}
+          >
+            <Eraser className="h-3 w-3 mr-1" />
+            Cleanup Stale
+          </Button>
+          <Input
+            placeholder="Filter sessions..."
+            value={filter}
+            onChange={(e) => setFilter((e.target as HTMLInputElement).value)}
+            className="w-64"
+          />
+        </div>
       </div>
 
       <Card>
@@ -97,6 +155,7 @@ export function SessionsPage() {
                   <TableHead>Type</TableHead>
                   <TableHead>Session Key</TableHead>
                   <TableHead className="text-right">Age</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -118,11 +177,20 @@ export function SessionsPage() {
                     <TableCell className="text-right text-xs text-muted-foreground">
                       {session.age != null ? formatAge(session.age) : "--"}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setDeleteTarget(session.key)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                       No sessions found
                     </TableCell>
                   </TableRow>
@@ -132,6 +200,60 @@ export function SessionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Session</DialogTitle>
+            <DialogDescription>
+              Permanently delete this session? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteTarget && (
+            <p className="font-mono text-xs text-muted-foreground break-all">{deleteTarget}</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cleanup confirmation dialog */}
+      <Dialog
+        open={cleanupOpen}
+        onOpenChange={(open) => {
+          if (!open) setCleanupOpen(false)
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cleanup Stale Sessions</DialogTitle>
+            <DialogDescription>
+              Remove sessions that exceed the prune threshold (30 days by default). This cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCleanupOpen(false)} disabled={cleaning}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleCleanup} disabled={cleaning}>
+              {cleaning ? "Cleaning..." : "Cleanup"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
