@@ -1,0 +1,148 @@
+<h2>Terminal Panel Design</h2>
+<p class="subtitle">Bottom-docked chat panel with drag-to-resize, hybrid styling</p>
+
+<div class="mockup">
+  <div class="mockup-header">Full Dashboard Layout with Terminal Panel</div>
+  <div class="mockup-body" style="padding:0;">
+    <div style="display:flex; height:420px; background:#0f0f0f; font-family:monospace; font-size:11px; color:#888;">
+      <!-- Sidebar -->
+      <div style="width:48px; background:#1a1a1a; border-right:1px solid #262626; display:flex; flex-direction:column; align-items:center; padding:12px 0; gap:8px;">
+        <div style="color:#ccc;font-size:8px;font-weight:bold;margin-bottom:4px;">OC</div>
+        <div style="width:28px;height:28px;background:#262626;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">📊</div>
+        <div style="width:28px;height:28px;background:#262626;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">💬</div>
+        <div style="width:28px;height:28px;background:#262626;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">🤖</div>
+        <div style="width:28px;height:28px;background:#262626;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">🖥️</div>
+        <div style="width:28px;height:28px;background:#262626;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">⏰</div>
+        <div style="width:28px;height:28px;background:#262626;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">📜</div>
+        <div style="width:28px;height:28px;background:#262626;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">✅</div>
+      </div>
+
+      <!-- Main area -->
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        <!-- Header -->
+        <div style="height:40px;background:#1a1a1a;border-bottom:1px solid #262626;display:flex;align-items:center;padding:0 16px;justify-content:space-between;">
+          <span style="color:#e5e5e5;font-size:12px;font-family:sans-serif;">Overview</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:8px;height:8px;background:#4ade80;border-radius:50%;"></span>
+            <span style="color:#888;font-size:10px;">Connected</span>
+          </div>
+        </div>
+
+        <!-- Page content area -->
+        <div style="flex:1;padding:16px;overflow:hidden;">
+          <div style="display:flex;gap:12px;margin-bottom:12px;">
+            <div style="flex:1;background:#1a1a1a;border:1px solid #262626;border-radius:8px;padding:12px;">
+              <div style="color:#888;font-size:9px;margin-bottom:4px;">SYSTEM HEALTH</div>
+              <div style="color:#4ade80;font-size:16px;">Healthy</div>
+            </div>
+            <div style="flex:1;background:#1a1a1a;border:1px solid #262626;border-radius:8px;padding:12px;">
+              <div style="color:#888;font-size:9px;margin-bottom:4px;">AGENTS</div>
+              <div style="color:#e5e5e5;font-size:16px;">3</div>
+            </div>
+            <div style="flex:1;background:#1a1a1a;border:1px solid #262626;border-radius:8px;padding:12px;">
+              <div style="color:#888;font-size:9px;margin-bottom:4px;">SESSIONS</div>
+              <div style="color:#e5e5e5;font-size:16px;">12</div>
+            </div>
+          </div>
+          <div style="background:#1a1a1a;border:1px solid #262626;border-radius:8px;height:80px;"></div>
+        </div>
+
+        <!-- TERMINAL PANEL -->
+        <div style="border-top:2px solid #333; background:#111; display:flex; flex-direction:column; height:190px;">
+          <!-- Drag handle -->
+          <div style="height:4px;background:transparent;cursor:ns-resize;display:flex;align-items:center;justify-content:center;">
+            <div style="width:32px;height:3px;background:#333;border-radius:2px;"></div>
+          </div>
+
+          <!-- Panel header -->
+          <div style="height:32px;display:flex;align-items:center;padding:0 12px;justify-content:space-between;border-bottom:1px solid #262626;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="color:#e5e5e5;font-size:11px;font-family:sans-serif;font-weight:500;">Terminal</span>
+              <span style="color:#555;font-size:10px;">|</span>
+              <span style="color:#888;font-size:10px;">agent: <span style="color:#a78bfa;">main</span></span>
+              <span style="color:#555;font-size:10px;">|</span>
+              <span style="color:#888;font-size:10px;">session: <span style="color:#a78bfa;">debug-api</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="width:6px;height:6px;background:#4ade80;border-radius:50%;"></span>
+              <span style="color:#888;font-size:9px;">idle</span>
+              <span style="color:#555;font-size:14px;cursor:pointer;margin-left:4px;">×</span>
+            </div>
+          </div>
+
+          <!-- Chat messages -->
+          <div style="flex:1;padding:8px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+            <!-- User message -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <span style="color:#a78bfa;font-size:10px;min-width:50px;text-align:right;">you</span>
+              <span style="color:#e5e5e5;font-size:11px;">check the deployment status for prod</span>
+            </div>
+
+            <!-- Tool card -->
+            <div style="margin-left:58px;background:#1a1a1a;border:1px solid #262626;border-radius:6px;border-left:2px solid #a78bfa;overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="color:#a78bfa;font-size:9px;">▶</span>
+                  <span style="color:#ccc;font-size:10px;font-family:sans-serif;">check_deploy</span>
+                  <span style="background:#1f2937;color:#4ade80;padding:1px 6px;border-radius:3px;font-size:8px;">success</span>
+                </div>
+                <span style="color:#555;font-size:8px;">1.2s</span>
+              </div>
+            </div>
+
+            <!-- Assistant message -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <span style="color:#4ade80;font-size:10px;min-width:50px;text-align:right;">assistant</span>
+              <span style="color:#e5e5e5;font-size:11px;">All services are healthy. The latest deployment <span style="background:#262626;padding:1px 4px;border-radius:3px;font-size:10px;">v2.4.1</span> was deployed 2h ago with zero errors.</span>
+            </div>
+
+            <!-- Streaming indicator -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <span style="color:#4ade80;font-size:10px;min-width:50px;text-align:right;">assistant</span>
+              <span style="color:#888;font-size:11px;">Checking staging now<span style="animation:blink 1s infinite;color:#a78bfa;">▋</span></span>
+            </div>
+          </div>
+
+          <!-- Input area -->
+          <div style="height:36px;border-top:1px solid #262626;display:flex;align-items:center;padding:0 12px;gap:8px;">
+            <span style="color:#a78bfa;font-size:11px;">❯</span>
+            <span style="color:#555;font-size:11px;">Type a message... (Enter to send)</span>
+          </div>
+        </div>
+
+        <!-- Status bar -->
+        <div style="height:22px;background:#1a1a1a;border-top:1px solid #262626;display:flex;align-items:center;padding:0 12px;justify-content:space-between;">
+          <span style="color:#555;font-size:9px;">v1.2.0</span>
+          <span style="color:#555;font-size:9px;">uptime: 3d 14h</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes blink { 0%,50% {opacity:1} 51%,100% {opacity:0} }
+</style>
+
+<div class="section" style="margin-top:24px;">
+  <h3>Component Breakdown</h3>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;">
+      <div class="label">Panel Shell</div>
+      <p style="font-size:13px;margin-top:4px;">Drag handle (top), header bar with agent/session/status info, close button. Remembers height in localStorage.</p>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;">
+      <div class="label">Chat Log</div>
+      <p style="font-size:13px;margin-top:4px;">Monospace messages with role labels. Auto-scrolls to bottom. Supports markdown in assistant replies.</p>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;">
+      <div class="label">Tool Cards</div>
+      <p style="font-size:13px;margin-top:4px;">Dashboard-style cards with collapse/expand. Shows tool name, status badge, duration. Args/results hidden by default.</p>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;">
+      <div class="label">Input Area</div>
+      <p style="font-size:13px;margin-top:4px;">Single-line input with prompt character. Enter to send. Shows streaming cursor when assistant is responding.</p>
+    </div>
+  </div>
+</div>

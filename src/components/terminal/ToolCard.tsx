@@ -13,7 +13,10 @@ export function ToolCard({ tool }: { tool: ToolCallData }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="ml-[68px] my-1 border border-border rounded-md bg-card overflow-hidden" style={{ borderLeft: "2px solid rgb(167 139 250)" }}>
+    <div
+      className="ml-[68px] my-1 border border-border rounded-md bg-card overflow-hidden"
+      style={{ borderLeft: "2px solid rgb(167 139 250)" }}
+    >
       <button
         type="button"
         className="flex items-center justify-between w-full px-3 py-1.5 text-left hover:bg-white/[0.02] transition-colors"
@@ -26,12 +29,17 @@ export function ToolCard({ tool }: { tool: ToolCallData }) {
             <ChevronRight className="h-3 w-3 text-violet-400" />
           )}
           <span className="text-xs font-mono text-foreground/80">{tool.name}</span>
-          <Badge variant={statusVariants[tool.status] ?? "secondary"} className="text-[10px] px-1.5 py-0">
+          <Badge
+            variant={statusVariants[tool.status] ?? "secondary"}
+            className="text-[10px] px-1.5 py-0"
+          >
             {tool.status}
           </Badge>
         </div>
         {tool.durationMs != null && (
-          <span className="text-[10px] text-muted-foreground">{(tool.durationMs / 1000).toFixed(1)}s</span>
+          <span className="text-[10px] text-muted-foreground">
+            {(tool.durationMs / 1000).toFixed(1)}s
+          </span>
         )}
       </button>
       {expanded && (
@@ -48,7 +56,9 @@ export function ToolCard({ tool }: { tool: ToolCallData }) {
             <div>
               <div className="text-muted-foreground text-[10px] mb-1">RESULT</div>
               <pre className="bg-zinc-900 rounded px-2 py-1 overflow-x-auto text-foreground/70 text-[11px]">
-                {typeof tool.result === "string" ? tool.result : JSON.stringify(tool.result, null, 2)}
+                {typeof tool.result === "string"
+                  ? tool.result
+                  : JSON.stringify(tool.result, null, 2)}
               </pre>
             </div>
           )}

@@ -19,3 +19,13 @@ export interface SessionsListResponse {
   }
   sessions: SessionEntry[]
 }
+
+export interface SessionDeleteResponse {
+  ok: boolean
+  key: string
+}
+
+export interface SessionsCleanupResponse {
+  ok: boolean
+  removed: number
+}

@@ -1,4 +1,5 @@
-import { useNavStore, type Page } from "@/stores/nav-store"
+import { useNavStore } from "@/stores/nav-store"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   LayoutDashboard,
@@ -12,20 +13,20 @@ import {
   PanelLeftOpen,
 } from "lucide-react"
 
-const navItems: { page: Page; label: string; icon: typeof LayoutDashboard }[] = [
-  { page: "overview", label: "Overview", icon: LayoutDashboard },
-  { page: "sessions", label: "Sessions", icon: MessageSquare },
-  { page: "agents", label: "Agents", icon: Bot },
-  { page: "nodes", label: "Nodes", icon: Server },
-  { page: "cron", label: "Cron Jobs", icon: Timer },
-  { page: "logs", label: "Logs", icon: ScrollText },
-  { page: "approvals", label: "Approvals", icon: ShieldCheck },
+const navItems: { path: string; label: string; icon: typeof LayoutDashboard }[] = [
+  { path: "/", label: "Overview", icon: LayoutDashboard },
+  { path: "/sessions", label: "Sessions", icon: MessageSquare },
+  { path: "/agents", label: "Agents", icon: Bot },
+  { path: "/nodes", label: "Nodes", icon: Server },
+  { path: "/cron", label: "Cron Jobs", icon: Timer },
+  { path: "/logs", label: "Logs", icon: ScrollText },
+  { path: "/approvals", label: "Approvals", icon: ShieldCheck },
 ]
 
 export function Sidebar() {
-  const activePage = useNavStore((s) => s.activePage)
+  const location = useLocation()
+  const navigate = useNavigate()
   const collapsed = useNavStore((s) => s.sidebarCollapsed)
-  const setPage = useNavStore((s) => s.setPage)
   const toggleSidebar = useNavStore((s) => s.toggleSidebar)
 
   return (
@@ -43,34 +44,15 @@ export function Sidebar() {
 
         {/* Nav Items */}
         <nav className="flex-1 py-2 space-y-0.5 px-2">
-          {navItems.map(({ page, label, icon: Icon }) => {
-            const active = activePage === page
-            const button = (
-              <button
-                key={page}
-                onClick={() => setPage(page)}
-                className={`
-                  group relative flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors
-                  ${
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  }
-                `}
-              >
-                {active && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-sidebar-primary" />
-                )}
-                <Icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span className="truncate">{label}</span>}
-              </button>
-            )
+          {navItems.map(({ path, label, icon: Icon }) => {
+            const active =
+              path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)
 
             if (collapsed) {
               return (
-                <Tooltip key={page}>
+                <Tooltip key={path}>
                   <TooltipTrigger
-                    onClick={() => setPage(page)}
+                    onClick={() => navigate(path)}
                     className={`
                       group relative flex w-full items-center justify-center rounded-md p-2 text-sm transition-colors
                       ${
@@ -89,7 +71,27 @@ export function Sidebar() {
                 </Tooltip>
               )
             }
-            return button
+
+            return (
+              <Link
+                key={path}
+                to={path}
+                className={`
+                  group relative flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors
+                  ${
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  }
+                `}
+              >
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-sidebar-primary" />
+                )}
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="truncate">{label}</span>
+              </Link>
+            )
           })}
         </nav>
 
