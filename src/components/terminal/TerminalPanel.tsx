@@ -6,10 +6,27 @@ import { ChatMessage } from "./ChatMessage"
 import { ToolCard } from "./ToolCard"
 import { ChatInput } from "./ChatInput"
 import { X, GripHorizontal } from "lucide-react"
-import type { ChatMessageData } from "@/types/terminal"
+import type { ChatMessageData, ToolCallData } from "@/types/terminal"
 
 const MIN_HEIGHT = 120
 const MAX_HEIGHT_RATIO = 0.6
+
+/** Extract tool calls from content block arrays in history messages. */
+function extractToolCalls(content: unknown): ToolCallData[] | undefined {
+  if (!Array.isArray(content)) return undefined
+  const tools: ToolCallData[] = []
+  for (const block of content) {
+    if (block && typeof block === "object" && block.type === "toolCall") {
+      tools.push({
+        id: block.id ?? crypto.randomUUID(),
+        name: block.name ?? "unknown",
+        args: block.arguments ?? block.args,
+        status: "success",
+      })
+    }
+  }
+  return tools.length > 0 ? tools : undefined
+}
 
 export function TerminalPanel() {
   const isOpen = useTerminalStore((s) => s.isOpen)
@@ -50,12 +67,15 @@ export function TerminalPanel() {
         if (!data.messages?.length) return
         const { setMessages } = useTerminalStore.getState()
         setMessages(
-          data.messages.map((m) => ({
-            id: m.id ?? crypto.randomUUID(),
-            role: (m.role as "user" | "assistant" | "system") ?? "system",
-            content: typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""),
-            timestamp: m.timestamp ?? Date.now(),
-          })),
+          data.messages
+            .filter((m) => m.role !== "toolResult")
+            .map((m) => ({
+              id: m.id ?? crypto.randomUUID(),
+              role: (m.role as "user" | "assistant" | "system") ?? "system",
+              content: m.content as string,
+              timestamp: m.timestamp ?? Date.now(),
+              toolCalls: extractToolCalls(m.content),
+            })),
         )
       })
       .catch(() => {

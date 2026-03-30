@@ -176,29 +176,6 @@ function App() {
               sessResp.sessions.find((s) => s.agentId === aid) ?? sessResp.sessions[0]
             const skey = agentSession?.key ?? "main"
             useTerminalStore.getState().setSession(aid, skey)
-            // Load session history (best-effort — key is already composite)
-            gatewayWs
-              .chatHistory(skey)
-              .then((histResp) => {
-                const data = histResp as {
-                  messages?: Array<{
-                    id?: string
-                    role?: string
-                    content?: unknown
-                    timestamp?: number
-                  }>
-                }
-                if (!data.messages?.length) return
-                const msgs = data.messages.map((m) => ({
-                  id: m.id ?? crypto.randomUUID(),
-                  role: (m.role as "user" | "assistant" | "system") ?? "system",
-                  content:
-                    typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""),
-                  timestamp: m.timestamp ?? Date.now(),
-                }))
-                useTerminalStore.getState().setMessages(msgs)
-              })
-              .catch(() => {})
           })
           .catch(() => {
             useTerminalStore.getState().setSession(aid, "main")
