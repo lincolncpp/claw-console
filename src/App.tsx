@@ -117,6 +117,54 @@ function App() {
     }
   }, [connectionStatus, setJobs])
 
+  useEffect(() => {
+    if (connectionStatus !== "connected") return
+    const { agentId } = useTerminalStore.getState()
+    if (agentId) return // already have a session selected
+
+    gatewayWs
+      .agentsList()
+      .then((resp) => {
+        const defaultAgent = resp.agents.find((a) => a.isDefault) ?? resp.agents[0]
+        if (!defaultAgent) return
+        const aid = defaultAgent.id
+        gatewayWs
+          .sessionsList()
+          .then((sessResp) => {
+            const agentSession =
+              sessResp.sessions.find((s) => s.agentId === aid) ?? sessResp.sessions[0]
+            const skey = agentSession?.key ?? "main"
+            useTerminalStore.getState().setSession(aid, skey)
+            // Load session history (best-effort)
+            gatewayWs
+              .sessionHistory(aid, skey)
+              .then((histResp) => {
+                const data = histResp as {
+                  messages?: Array<{
+                    id?: string
+                    role?: string
+                    content?: string
+                    timestamp?: number
+                  }>
+                }
+                if (!data.messages?.length) return
+                const msgs = data.messages.map((m) => ({
+                  id: m.id ?? crypto.randomUUID(),
+                  role: (m.role as "user" | "assistant" | "system") ?? "system",
+                  content: m.content ?? "",
+                  timestamp: m.timestamp ?? Date.now(),
+                }))
+                useTerminalStore.getState().setMessages(msgs)
+              })
+              .catch(() => {})
+          })
+          .catch(() => {
+            useTerminalStore.getState().setSession(aid, "main")
+          })
+      })
+      .catch(() => {})
+  }, [connectionStatus])
+
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar />
