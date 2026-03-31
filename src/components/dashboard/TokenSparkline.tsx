@@ -7,7 +7,7 @@ import {
 import { formatTokensCompact } from "@/lib/format"
 import { useCronStore } from "@/stores/cron-store"
 
-const DAYS = 30
+const HOURS = 7 * 24
 const COLORS = [
   "var(--chart-1)",
   "var(--chart-2)",
@@ -25,14 +25,31 @@ function getColor(index: number) {
   return COLORS[index % COLORS.length]
 }
 
-function dayKey(ms: number) {
+function hourKey(ms: number) {
   const d = new Date(ms)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}`
 }
 
-function formatDayLabel(key: string) {
-  const [, m, d] = key.split("-")
-  return `${parseInt(m)}/${parseInt(d)}`
+function formatHourLabel(key: string) {
+  const [datePart, hour] = key.split("T")
+  const [, m, d] = datePart.split("-")
+  return `${parseInt(m)}/${parseInt(d)} ${hour}:00`
+}
+
+export function useTokenTotal() {
+  const runs = useCronStore((s) => s.runs)
+  return useMemo(() => {
+    const cutoff = Date.now() - HOURS * 3_600_000
+    let total = 0
+    for (const jobRuns of Object.values(runs)) {
+      for (const run of jobRuns) {
+        if (run.runAtMs >= cutoff && run.usage?.total_tokens) {
+          total += run.usage.total_tokens
+        }
+      }
+    }
+    return total
+  }, [runs])
 }
 
 export function TokenHistogram() {
@@ -40,40 +57,40 @@ export function TokenHistogram() {
   const runs = useCronStore((s) => s.runs)
 
   const { data, jobNames, chartConfig } = useMemo(() => {
-    const cutoff = Date.now() - DAYS * 86_400_000
+    const cutoff = Date.now() - HOURS * 3_600_000
     const jobNameMap = new Map<string, string>()
     for (const job of jobs) {
       jobNameMap.set(job.id, job.name || job.id)
     }
 
-    // Build day -> jobId -> tokens map
-    const dayMap = new Map<string, Record<string, number>>()
+    // Build hour -> jobId -> tokens map
+    const hourMap = new Map<string, Record<string, number>>()
     const jobIds = new Set<string>()
 
     for (const [jobId, jobRuns] of Object.entries(runs)) {
       for (const run of jobRuns) {
         if (run.runAtMs < cutoff || !run.usage?.total_tokens) continue
-        const day = dayKey(run.runAtMs)
+        const hour = hourKey(run.runAtMs)
         jobIds.add(jobId)
-        let dayEntry = dayMap.get(day)
-        if (!dayEntry) {
-          dayEntry = {}
-          dayMap.set(day, dayEntry)
+        let hourEntry = hourMap.get(hour)
+        if (!hourEntry) {
+          hourEntry = {}
+          hourMap.set(hour, hourEntry)
         }
-        dayEntry[jobId] = (dayEntry[jobId] ?? 0) + run.usage.total_tokens
+        hourEntry[jobId] = (hourEntry[jobId] ?? 0) + run.usage.total_tokens
       }
     }
 
-    // Generate all 30 days
+    // Generate all 168 hours (7 days)
     const sortedJobIds = [...jobIds].sort()
     const rows: Record<string, unknown>[] = []
-    for (let i = DAYS - 1; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86_400_000)
-      const key = dayKey(d.getTime())
-      const entry: Record<string, unknown> = { day: formatDayLabel(key) }
-      const dayData = dayMap.get(key)
+    for (let i = HOURS - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 3_600_000)
+      const key = hourKey(d.getTime())
+      const entry: Record<string, unknown> = { day: formatHourLabel(key) }
+      const hourData = hourMap.get(key)
       for (const jid of sortedJobIds) {
-        entry[jid] = dayData?.[jid] ?? 0
+        entry[jid] = hourData?.[jid] ?? 0
       }
       rows.push(entry)
     }
@@ -87,7 +104,13 @@ export function TokenHistogram() {
       config[jid] = { label: name, color: getColor(i) }
     })
 
-    return { data: rows, jobNames: names, jobIds: sortedJobIds, chartConfig: config }
+    // Compute total tokens across all hours and jobs
+    let totalTokens = 0
+    for (const record of hourMap.values()) {
+      for (const v of Object.values(record)) totalTokens += v
+    }
+
+    return { data: rows, jobNames: names, jobIds: sortedJobIds, chartConfig: config, totalTokens }
   }, [jobs, runs])
 
   if (data.length === 0) return null
