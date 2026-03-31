@@ -36,8 +36,11 @@ export function formatSchedule(schedule: CronSchedule): string {
 
 export function formatDuration(ms: number | undefined): string {
   if (ms == null) return "--"
-  if (ms >= 60_000)
-    return `${Math.floor(ms / 60_000)}min ${Math.round((ms % 60_000) / 1000)}s`
+  if (ms >= 60_000) {
+    const mins = Math.floor(ms / 60_000)
+    const secs = Math.round((ms % 60_000) / 1000)
+    return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`
+  }
   return `${Math.round(ms / 1000)}s`
 }
 

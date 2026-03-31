@@ -1,13 +1,4 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,30 +9,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Trash2, Eraser, MessageSquare } from "lucide-react"
+import { Eraser, MessageSquare } from "lucide-react"
 import { useState } from "react"
-import { formatTimeAgo } from "@/lib/format"
-import { TokenBadge } from "@/components/shared/TokenBadge"
-import { extractAgentId, extractSessionType } from "@/lib/session-utils"
+import { extractSessionType } from "@/lib/session-utils"
 import { EmptyState } from "@/components/shared/EmptyState"
-import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { PageHeader } from "@/components/shared/PageHeader"
-import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
-import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
+import { SessionsTable } from "@/components/shared/SessionsTable"
 import { useSessions, useSessionDelete, useSessionCleanup } from "@/hooks/use-sessions"
 import { useAgents } from "@/hooks/use-agents"
 
 export function SessionsPage() {
   const [filter, setFilter] = useState("")
-  const { sessions, count, isLoading, scopeError, refetch } = useSessions()
+  const { sessions, isLoading, scopeError, refetch } = useSessions()
   const { deleteSession } = useSessionDelete(refetch)
   const { cleanup, cleaning } = useSessionCleanup(sessions, refetch)
   const { agents } = useAgents()
 
   const agentNameMap = new Map(agents.map((a) => [a.id, a.name ?? a.id]))
-
-  // Delete state
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   // Cleanup state
   const [cleanupOpen, setCleanupOpen] = useState(false)
@@ -91,75 +75,14 @@ export function SessionsPage() {
 
       <Card>
         <CardContent>
-          {isLoading ? (
-            <LoadingBlock />
-          ) : filtered.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No sessions found.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Total Tokens</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Session Key</TableHead>
-                  <TableHead className="text-right">Last Active</TableHead>
-                  <TableHead className="w-10" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.slice(0, 100).map((session) => (
-                  <TableRow key={session.key} className="hover:bg-muted/50">
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {agentNameMap.get(extractAgentId(session.key)) ?? extractAgentId(session.key)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {extractSessionType(session.key)}
-                    </TableCell>
-                    <TableCell>
-                      <TokenBadge tokens={session.totalTokens} />
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {session.model ?? "--"}
-                    </TableCell>
-                    <TableCell>
-                      <SessionKeyButton
-                        agentId={extractAgentId(session.key)}
-                        sessionKey={session.key}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
-                      {formatTimeAgo(session.updatedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setDeleteTarget(session.key)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <SessionsTable
+            sessions={filtered}
+            agentNameMap={agentNameMap}
+            deleteSession={deleteSession}
+            isLoading={isLoading}
+          />
         </CardContent>
       </Card>
-
-      {/* Delete confirmation dialog */}
-      <DeleteConfirmDialog
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteSession(deleteTarget!)}
-        targetLabel={deleteTarget ?? ""}
-      />
 
       {/* Cleanup confirmation dialog */}
       <Dialog

@@ -1,28 +1,38 @@
-import { useState } from "react"
 import { useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/shared/StatCard"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
 import { useSystemStore } from "@/stores/system-store"
-import { Bot, Cpu, FolderOpen, Hash, Trash2 } from "lucide-react"
-import { formatAge } from "@/lib/format"
-import { extractAgentId, extractSessionType } from "@/lib/session-utils"
+import {
+  Bot,
+  Cpu,
+  FolderOpen,
+  Hash,
+  MessageSquare,
+  Brain,
+  Clock,
+  Layers,
+  Search,
+  Shrink,
+  GitBranch,
+} from "lucide-react"
+import { extractAgentId } from "@/lib/session-utils"
+import { formatDuration } from "@/lib/format"
 import { BackLink } from "@/components/shared/BackLink"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { EmptyState } from "@/components/shared/EmptyState"
-import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
-import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
+import { SessionsTable } from "@/components/shared/SessionsTable"
 import { useAgents } from "@/hooks/use-agents"
 import { useSessions, useSessionDelete } from "@/hooks/use-sessions"
+
+function ConfigRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm">{children}</span>
+    </div>
+  )
+}
 
 export function AgentDetailPage() {
   const { agentId } = useParams<{ agentId: string }>()
@@ -32,7 +42,7 @@ export function AgentDetailPage() {
   const { sessions, isLoading: sessionsLoading, refetch: sessionsRefetch } = useSessions()
   const { deleteSession } = useSessionDelete(sessionsRefetch)
 
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const agentNameMap = new Map(agents.map((a) => [a.id, a.name ?? a.id]))
 
   const agent = agents.find((a) => a.id === agentId)
   const snapshot = snapshotAgents.find((a) => a.agentId === agentId)
@@ -69,8 +79,8 @@ export function AgentDetailPage() {
         <p className="text-xs text-muted-foreground font-mono mt-1">{agent.id}</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Primary Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Cpu} label="Model">
           <p className="text-sm font-medium">{agent.model ?? "default"}</p>
         </StatCard>
@@ -78,70 +88,89 @@ export function AgentDetailPage() {
           <p className="text-sm font-medium font-mono truncate">{agent.workspace ?? "--"}</p>
         </StatCard>
         <StatCard icon={Hash} label="Sessions">
-          <p className="text-sm font-medium">
-            {snapshot?.sessions.count ?? agentSessions.length}
-          </p>
+          <p className="text-sm font-medium">{snapshot?.sessions.count ?? agentSessions.length}</p>
+        </StatCard>
+        <StatCard icon={MessageSquare} label="Channels">
+          {agent.channels?.length ? (
+            <div className="flex gap-1 flex-wrap">
+              {agent.channels.map((ch) => (
+                <Badge key={ch} variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                  {ch}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">--</p>
+          )}
         </StatCard>
       </div>
+
+      {/* Configuration */}
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-sm font-medium">Configuration</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-x-8 md:grid-cols-2">
+            <div>
+              <ConfigRow label="Thinking">{agent.thinkingDefault ?? "--"}</ConfigRow>
+              <ConfigRow label="Timeout">
+                {formatDuration(agent.timeoutSeconds ? agent.timeoutSeconds * 1000 : undefined)}
+              </ConfigRow>
+              <ConfigRow label="Concurrency">{agent.maxConcurrent ?? "--"}</ConfigRow>
+              <ConfigRow label="Memory Search">
+                {agent.memorySearchEnabled != null ? (
+                  <Badge
+                    variant={agent.memorySearchEnabled ? "default" : "secondary"}
+                    className="text-[0.625rem] px-1.5 py-0"
+                  >
+                    {agent.memorySearchEnabled ? "on" : "off"}
+                  </Badge>
+                ) : (
+                  "--"
+                )}
+              </ConfigRow>
+            </div>
+            <div>
+              <ConfigRow label="Compaction">{agent.compactionMode ?? "--"}</ConfigRow>
+              <ConfigRow label="Fallback Models">
+                {agent.fallbacks?.length ? (
+                  <div className="flex gap-1 flex-wrap">
+                    {agent.fallbacks.map((f) => (
+                      <Badge key={f} variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                        {f}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  "--"
+                )}
+              </ConfigRow>
+              <ConfigRow label="Subagent Model">{agent.subagentsModel ?? "--"}</ConfigRow>
+              <ConfigRow label="Subagent Concurrency">
+                {agent.subagentsMaxConcurrent ?? "--"}
+              </ConfigRow>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Sessions */}
       <Card>
         <CardHeader className="pb-0">
           <CardTitle className="text-sm font-medium">Sessions</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          {sessionsLoading ? (
-            <LoadingBlock />
-          ) : agentSessions.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-12">
-              No sessions for this agent
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Session Key</TableHead>
-                  <TableHead className="text-right">Age</TableHead>
-                  <TableHead className="w-10" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agentSessions.map((session) => (
-                  <TableRow key={session.key}>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {extractSessionType(session.key)}
-                    </TableCell>
-                    <TableCell>
-                      <SessionKeyButton agentId={agentId!} sessionKey={session.key} />
-                    </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">
-                      {session.age != null ? formatAge(session.age) : "--"}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setDeleteTarget(session.key)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+        <CardContent>
+          <SessionsTable
+            sessions={agentSessions}
+            agentNameMap={agentNameMap}
+            deleteSession={deleteSession}
+            isLoading={sessionsLoading}
+            emptyMessage="No sessions for this agent"
+            hideAgentColumn
+          />
         </CardContent>
       </Card>
-
-      {/* Delete confirmation dialog */}
-      <DeleteConfirmDialog
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteSession(deleteTarget!)}
-        targetLabel={deleteTarget ?? ""}
-      />
     </div>
   )
 }

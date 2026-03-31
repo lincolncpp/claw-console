@@ -12,6 +12,7 @@ import type {
   ModelsListResponse,
   ToolsCatalogResponse,
   SkillsStatusResponse,
+  ConfigGetResponse,
 } from "@/types/agent"
 import type { GatewayFrame } from "@/types/ws"
 
@@ -124,6 +125,9 @@ export class GatewayWebSocket {
   // --- Agents RPCs ---
   async agentsList(): Promise<AgentsListResponse> {
     return this.sendRpc("agents.list") as Promise<AgentsListResponse>
+  }
+  async configGet(): Promise<ConfigGetResponse> {
+    return this.sendRpc("config.get") as Promise<ConfigGetResponse>
   }
   async modelsList(): Promise<ModelsListResponse> {
     return this.sendRpc("models.list") as Promise<ModelsListResponse>

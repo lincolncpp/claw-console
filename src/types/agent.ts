@@ -4,6 +4,15 @@ export interface AgentEntry {
   isDefault?: boolean
   model?: string
   workspace?: string
+  channels?: string[]
+  thinkingDefault?: string
+  timeoutSeconds?: number
+  maxConcurrent?: number
+  memorySearchEnabled?: boolean
+  fallbacks?: string[]
+  compactionMode?: string
+  subagentsMaxConcurrent?: number
+  subagentsModel?: string
 }
 
 export interface AgentsListResponse {
@@ -46,4 +55,52 @@ export interface SkillEntry {
 
 export interface SkillsStatusResponse {
   skills: SkillEntry[]
+}
+
+export interface ConfigGetResponse {
+  path: string
+  exists: boolean
+  raw: string
+  parsed?: ParsedConfig
+}
+
+export interface ConfigAgentEntry {
+  id: string
+  name?: string
+  workspace?: string
+  model?: string
+  thinkingDefault?: string
+  timeoutSeconds?: number
+  maxConcurrent?: number
+  memorySearch?: { enabled?: boolean }
+}
+
+export interface ConfigBinding {
+  agentId: string
+  match?: { channel?: string }
+}
+
+export interface GlobalConfig {
+  toolExecSecurity?: string
+  toolAskMode?: string
+  cronMaxConcurrentRuns?: number
+}
+
+export interface ParsedConfig {
+  agents?: {
+    defaults?: {
+      workspace?: string
+      model?: { primary?: string; fallbacks?: string[] }
+      thinkingDefault?: string
+      timeoutSeconds?: number
+      maxConcurrent?: number
+      memorySearch?: { enabled?: boolean }
+      compaction?: { mode?: string }
+      subagents?: { maxConcurrent?: number; model?: string }
+    }
+    list?: ConfigAgentEntry[]
+  }
+  bindings?: ConfigBinding[]
+  tools?: { exec?: { security?: string; ask?: string } }
+  cron?: { maxConcurrentRuns?: number }
 }
