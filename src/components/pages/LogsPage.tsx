@@ -31,6 +31,12 @@ export function LogsPage() {
     }
   }, [lineCount])
 
+  useEffect(() => {
+    if (!isLoading) {
+      requestAnimationFrame(() => bottomRef.current?.scrollIntoView())
+    }
+  }, [isLoading])
+
   if (scopeError) return <EmptyState scope="operator.read" icon={ScrollText} title="" />
 
   const filtered = lines.filter((l) => {
