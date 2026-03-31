@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/dialog"
 import { MessageSquare, Trash2, Eraser } from "lucide-react"
 import { useState } from "react"
-import { formatAge } from "@/lib/format"
+import { formatTimeAgo, formatTokensCompact } from "@/lib/format"
+import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
 import { extractAgentId, extractSessionType } from "@/lib/session-utils"
 import { ScopeMessage } from "@/components/shared/ScopeMessage"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
@@ -92,30 +93,57 @@ export function SessionsPage() {
             {filtered.length} session{filtered.length !== 1 ? "s" : ""}
           </span>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           {isLoading ? (
             <LoadingBlock />
+          ) : filtered.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No sessions found.
+            </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Agent</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Total Tokens</TableHead>
+                  <TableHead>Model</TableHead>
                   <TableHead>Session Key</TableHead>
-                  <TableHead className="text-right">Age</TableHead>
+                  <TableHead className="text-right">Last Active</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.slice(0, 100).map((session) => (
-                  <TableRow key={session.key}>
+                  <TableRow key={session.key} className="hover:bg-muted/50">
                     <TableCell>
                       <Badge variant="outline" className="font-mono text-xs">
                         {extractAgentId(session.key)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground">
                       {extractSessionType(session.key)}
+                    </TableCell>
+                    <TableCell>
+                      {session.totalTokens != null ? (
+                        <span className="flex items-center gap-1.5 text-sm">
+                          <span className="text-muted-foreground">{formatTokensCompact(session.totalTokens)}</span>
+                          {(() => {
+                            const level = classifyTokenConsumption(session.totalTokens)
+                            const props = tokenLevelBadgeProps[level]
+                            return (
+                              <Badge variant={props.variant} className={props.className}>
+                                {props.label}
+                              </Badge>
+                            )
+                          })()}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">--</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {session.model ?? "--"}
                     </TableCell>
                     <TableCell>
                       <SessionKeyButton
@@ -123,8 +151,8 @@ export function SessionsPage() {
                         sessionKey={session.key}
                       />
                     </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">
-                      {session.age != null ? formatAge(session.age) : "--"}
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {formatTimeAgo(session.updatedAt)}
                     </TableCell>
                     <TableCell>
                       <Button
@@ -137,13 +165,6 @@ export function SessionsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No sessions found
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           )}

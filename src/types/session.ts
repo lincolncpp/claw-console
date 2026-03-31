@@ -6,6 +6,10 @@ export interface SessionEntry {
   messageCount?: number
   model?: string
   label?: string
+  inputTokens?: number
+  outputTokens?: number
+  totalTokens?: number
+  contextTokens?: number
 }
 
 export interface SessionsListResponse {
