@@ -7,11 +7,10 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useCronStore } from "@/stores/cron-store"
 import { CronJobRow } from "./CronJobRow"
 import { useCronTokens } from "@/hooks/use-all-cron-runs"
-import { Timer } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 export function CronJobList() {
@@ -38,15 +37,6 @@ export function CronJobList() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Timer className="h-4 w-4 text-muted-foreground" />
-          <CardTitle className="text-sm font-medium">Cron Jobs</CardTitle>
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {jobs.length} job{jobs.length !== 1 ? "s" : ""}
-        </span>
-      </CardHeader>
       <CardContent>
         {jobs.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">

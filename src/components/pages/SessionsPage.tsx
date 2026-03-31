@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { MessageSquare, Trash2, Eraser } from "lucide-react"
+import { Trash2, Eraser, MessageSquare } from "lucide-react"
 import { useState } from "react"
 import { formatTimeAgo } from "@/lib/format"
 import { TokenBadge } from "@/components/shared/TokenBadge"
@@ -67,7 +67,7 @@ export function SessionsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Sessions"
-        subtitle={count > 0 ? `${count} total across all agents` : undefined}
+        subtitle={nonCron.length > 0 ? `${nonCron.length} total across all agents` : undefined}
         actions={
           <>
             <Button
@@ -90,15 +90,6 @@ export function SessionsPage() {
       />
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-sm font-medium">Session List</CardTitle>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {filtered.length} session{filtered.length !== 1 ? "s" : ""}
-          </span>
-        </CardHeader>
         <CardContent>
           {isLoading ? (
             <LoadingBlock />

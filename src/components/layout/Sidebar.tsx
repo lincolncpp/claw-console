@@ -36,9 +36,10 @@ export function Sidebar() {
         style={{ width: collapsed ? "3rem" : "13.75rem" }}
       >
         {/* Logo / Title */}
-        <div className="flex h-14 items-center border-b border-sidebar-border px-3">
+        <div className="flex h-12 items-center border-b border-sidebar-border px-3">
+          <span className="text-lg shrink-0" role="img" aria-label="Claw Console logo">🦞</span>
           {!collapsed && (
-            <span className="text-sm font-semibold tracking-tight truncate">Claw Console</span>
+            <span className="text-sm font-semibold tracking-tight truncate ml-2">Claw Console</span>
           )}
         </div>
 
@@ -96,7 +97,7 @@ export function Sidebar() {
         </nav>
 
         {/* Collapse toggle */}
-        <div className="flex h-12 items-center border-t border-sidebar-border px-2">
+        <div className="flex h-8 items-center border-t border-sidebar-border px-2">
           <div
             role="button"
             tabIndex={0}

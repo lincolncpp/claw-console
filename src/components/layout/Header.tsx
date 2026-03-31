@@ -19,8 +19,8 @@ export function Header() {
   const host = useGatewayStore((s) => s.host)
 
   return (
-    <header className="flex h-14 items-center justify-between border-b px-6">
-      <h1 className="text-xl font-semibold tracking-tight">Claw Console</h1>
+    <header className="flex h-12 items-center justify-between border-b px-6">
+      <div />
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <div className={`h-2.5 w-2.5 rounded-full ${statusColors[connectionStatus]}`} />
         <span>{statusLabels[connectionStatus]}</span>

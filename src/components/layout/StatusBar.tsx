@@ -15,7 +15,7 @@ export function StatusBar() {
   if (connectionStatus !== "connected") return null
 
   return (
-    <footer className="flex h-12 items-center gap-6 border-t px-6 text-xs text-muted-foreground">
+    <footer className="flex h-8 items-center gap-6 border-t px-6 text-xs text-muted-foreground">
       {version && <span>Version: {version}</span>}
       {uptimeMs != null && connectedAt != null && (
         <span>Uptime: {formatUptime(uptimeMs, connectedAt)}</span>
