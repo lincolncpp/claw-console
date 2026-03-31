@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CronJobList } from "@/components/dashboard/CronJobList"
+import { RecentCronRuns } from "@/components/dashboard/RecentCronRuns"
 import { TokenHistogram, useTokenTotal } from "@/components/dashboard/TokenSparkline"
 import { formatTokensCompact } from "@/lib/format"
 import { useCronStore } from "@/stores/cron-store"
@@ -22,6 +23,7 @@ export function CronPage() {
           </CardContent>
         </Card>
       )}
+      <RecentCronRuns />
       <CronJobList />
     </div>
   )
