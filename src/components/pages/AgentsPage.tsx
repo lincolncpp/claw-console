@@ -180,7 +180,7 @@ export function AgentsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Agents"
+        breadcrumbs={[{ label: "Agents" }]}
         subtitle={agents.length > 0 ? `${agents.length} registered` : undefined}
         actions={
           <Input

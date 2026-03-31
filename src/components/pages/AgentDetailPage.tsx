@@ -19,7 +19,7 @@ import { extractAgentId } from "@/lib/session-utils"
 import { formatDuration } from "@/lib/format"
 import { formatRpcError } from "@/lib/errors"
 import { gatewayWs } from "@/services/gateway-ws"
-import { BackLink } from "@/components/shared/BackLink"
+import { Breadcrumb } from "@/components/shared/Breadcrumb"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { SessionsTable } from "@/components/shared/SessionsTable"
@@ -183,7 +183,7 @@ export function AgentDetailPage() {
   if (!agent) {
     return (
       <div className="space-y-4">
-        <BackLink to="/agents" label="Agents" />
+        <Breadcrumb items={[{ label: "Agents", to: "/agents" }, { label: agentId ?? "Unknown" }]} />
         <EmptyState icon={Bot} title={`Agent ${agentId} not found`} />
       </div>
     )
@@ -193,16 +193,15 @@ export function AgentDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <BackLink to="/agents" label="Agents" />
-        <div className="flex items-center gap-3 mt-3">
-          <h2 className="text-lg font-semibold tracking-tight">{agent.name ?? agent.id}</h2>
+        <Breadcrumb items={[{ label: "Agents", to: "/agents" }, { label: agent.name ?? agent.id }]} />
+        <div className="flex items-center gap-2 mt-1">
           {isDefault && (
             <Badge variant="default" className="text-[0.625rem] px-1.5 py-0">
               default
             </Badge>
           )}
+          <p className="text-xs text-muted-foreground font-mono">{agent.id}</p>
         </div>
-        <p className="text-xs text-muted-foreground font-mono mt-1">{agent.id}</p>
       </div>
 
       {/* Primary Stats */}

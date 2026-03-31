@@ -8,7 +8,7 @@ export function CronPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Cron Jobs"
+        breadcrumbs={[{ label: "Cron Jobs" }]}
         subtitle={jobCount > 0 ? `${jobCount} job${jobCount !== 1 ? "s" : ""} across all agents` : undefined}
       />
       <CronJobList />

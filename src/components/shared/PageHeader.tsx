@@ -1,19 +1,20 @@
 import type { ReactNode } from "react"
+import { Breadcrumb, type BreadcrumbItem } from "./Breadcrumb"
 
 interface PageHeaderProps {
-  title: string
   subtitle?: ReactNode
   actions?: ReactNode
+  breadcrumbs?: BreadcrumbItem[]
 }
 
-export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
+export function PageHeader({ subtitle, actions, breadcrumbs }: PageHeaderProps) {
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+    <div className="space-y-2">
+      {breadcrumbs && <Breadcrumb items={breadcrumbs} />}
+      <div className="flex items-center justify-between">
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
   )
 }

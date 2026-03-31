@@ -12,11 +12,20 @@ export function useAgents() {
 
   const agents = useMemo(() => {
     const base = data?.agents ?? []
-    if (!parsed) return base
 
-    const configList = parsed.agents?.list ?? []
-    const defaults = parsed.agents?.defaults
-    const bindings = parsed.bindings ?? []
+    const configList = parsed?.agents?.list ?? []
+    const defaults = parsed?.agents?.defaults
+    const bindings = parsed?.bindings ?? []
+
+    // Normalize model field — gateway may return it as {primary, fallbacks} object
+    const normalizeModel = (model: unknown): string | undefined => {
+      if (!model) return undefined
+      if (typeof model === "string") return model
+      if (typeof model === "object" && model !== null && "primary" in model) {
+        return (model as { primary?: string }).primary
+      }
+      return undefined
+    }
 
     return base.map((agent): AgentEntry => {
       const cfg = configList.find((c) => c.id === agent.id)
@@ -28,7 +37,7 @@ export function useAgents() {
       return {
         ...agent,
         workspace: cfg?.workspace ?? defaults?.workspace,
-        model: cfg?.model ?? defaults?.model?.primary,
+        model: cfg?.model ?? defaults?.model?.primary ?? normalizeModel(agent.model),
         channels: uniqueChannels.length > 0 ? uniqueChannels : undefined,
         thinkingDefault: cfg?.thinkingDefault ?? defaults?.thinkingDefault,
         timeoutSeconds: cfg?.timeoutSeconds ?? defaults?.timeoutSeconds,

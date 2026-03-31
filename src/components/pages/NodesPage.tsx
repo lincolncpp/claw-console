@@ -58,7 +58,7 @@ export function NodesPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Nodes & Presence"
+        breadcrumbs={[{ label: "Nodes" }]}
         subtitle={subtitle}
         actions={
           <Input

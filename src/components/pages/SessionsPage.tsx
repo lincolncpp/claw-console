@@ -47,7 +47,7 @@ export function SessionsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Sessions"
+        breadcrumbs={[{ label: "Sessions" }]}
         subtitle={sessions.length > 0 ? `${sessions.length} total across all agents` : undefined}
         actions={
           <>

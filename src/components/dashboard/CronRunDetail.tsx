@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { StatCard } from "@/components/shared/StatCard"
-import { BackLink } from "@/components/shared/BackLink"
+import { Breadcrumb } from "@/components/shared/Breadcrumb"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
 import { useCronStore } from "@/stores/cron-store"
@@ -31,7 +31,11 @@ export function CronRunDetail() {
   if (!run) {
     return (
       <div className="space-y-4">
-        <BackLink to={`/cron/${jobId}`} label={job?.name ?? jobId} />
+        <Breadcrumb items={[
+          { label: "Cron Jobs", to: "/cron" },
+          { label: job?.name ?? jobId!, to: `/cron/${jobId}` },
+          { label: "Run not found" },
+        ]} />
         <p className="py-16 text-center text-sm text-muted-foreground">Run not found.</p>
       </div>
     )
@@ -43,14 +47,13 @@ export function CronRunDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <div className="mb-3">
-          <BackLink to={`/cron/${jobId}`} label={job?.name ?? jobId} />
-        </div>
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">
-            Run at {new Date(run.runAtMs).toLocaleString()}
-          </h2>
+      <div className="space-y-1">
+        <Breadcrumb items={[
+          { label: "Cron Jobs", to: "/cron" },
+          { label: job?.name ?? jobId!, to: `/cron/${jobId}` },
+          { label: `Run at ${new Date(run.runAtMs).toLocaleString()}` },
+        ]} />
+        <div className="flex items-center gap-2">
           <StatusBadge status={run.status} />
         </div>
       </div>

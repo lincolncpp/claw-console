@@ -49,7 +49,7 @@ export function LogsPage() {
     <div className="flex flex-col h-full">
       <div className="mb-3">
         <PageHeader
-          title="Logs"
+          breadcrumbs={[{ label: "Logs" }]}
           subtitle={`${lines.length} lines loaded`}
           actions={
             <>

@@ -14,7 +14,7 @@ export function ApprovalsPage() {
   if (error) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Approvals" subtitle="Pending tool execution approval requests" />
+        <PageHeader breadcrumbs={[{ label: "Approvals" }]} subtitle="Pending tool execution approval requests" />
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-sm text-status-error">Failed to load approvals: {error.message}</p>
@@ -26,7 +26,7 @@ export function ApprovalsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Approvals" subtitle="Pending tool execution approval requests" />
+      <PageHeader breadcrumbs={[{ label: "Approvals" }]} subtitle="Pending tool execution approval requests" />
 
       {isLoading ? (
         <LoadingBlock />

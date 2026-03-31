@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { BackLink } from "@/components/shared/BackLink"
+import { Breadcrumb } from "@/components/shared/Breadcrumb"
 import { useCronStore } from "@/stores/cron-store"
 import { useCronRuns } from "@/hooks/use-cron-runs"
 import { useCronRunNow, useCronToggle, useCronUpdateInstructions } from "@/hooks/use-cron-actions"
@@ -42,7 +42,7 @@ export function CronJobDetail() {
   if (!job) {
     return (
       <div className="space-y-4">
-        <BackLink to="/cron" label="Back" />
+        <Breadcrumb items={[{ label: "Cron Jobs", to: "/cron" }, { label: jobId }]} />
         <p className="py-8 text-center text-sm text-muted-foreground">Job not found.</p>
       </div>
     )
@@ -50,9 +50,7 @@ export function CronJobDetail() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <BackLink to="/cron" label="Back" />
-      </div>
+      <Breadcrumb items={[{ label: "Cron Jobs", to: "/cron" }, { label: job.name || jobId }]} />
 
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
