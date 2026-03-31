@@ -62,6 +62,7 @@ export interface ConfigGetResponse {
   exists: boolean
   raw: string
   parsed?: ParsedConfig
+  hash?: string
 }
 
 export interface ConfigAgentEntry {

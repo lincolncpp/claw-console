@@ -26,6 +26,7 @@ interface SystemState {
 
   updateFromConnect: (data: ConnectResult) => void
   updateFromHealth: (data: HealthPayload) => void
+  updateAgentSessionCounts: (counts: Record<string, number>) => void
   clear: () => void
 }
 
@@ -70,6 +71,15 @@ export const useSystemStore = create<SystemState>()((set) => ({
     }),
 
   updateFromHealth: (data) => set(mapHealth(data)),
+
+  updateAgentSessionCounts: (counts) =>
+    set((state) => ({
+      agents: state.agents.map((a) => ({
+        ...a,
+        sessions: { count: counts[a.agentId] ?? a.sessions.count },
+      })),
+      totalSessions: Object.values(counts).reduce((sum, n) => sum + n, 0),
+    })),
 
   clear: () =>
     set({

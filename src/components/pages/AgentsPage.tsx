@@ -8,22 +8,155 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Bot } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Bot, Settings, TriangleAlert } from "lucide-react"
 import { formatDuration } from "@/lib/format"
-import { useState } from "react"
+import { formatRpcError } from "@/lib/errors"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAgents } from "@/hooks/use-agents"
 import { useSystemStore } from "@/stores/system-store"
+import { useErrorToastStore } from "@/stores/error-toast-store"
+import { gatewayWs } from "@/services/gateway-ws"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { PageHeader } from "@/components/shared/PageHeader"
+import { useSessions } from "@/hooks/use-sessions"
+import { extractAgentId } from "@/lib/session-utils"
+import type { GlobalConfig } from "@/types/agent"
+
+function GlobalConfigDialog({
+  open,
+  onClose,
+  config,
+  configHash,
+  onSaved,
+}: {
+  open: boolean
+  onClose: () => void
+  config: GlobalConfig
+  configHash?: string
+  onSaved: () => void
+}) {
+  const [toolSecurity, setToolSecurity] = useState(config.toolExecSecurity ?? "")
+  const [toolAsk, setToolAsk] = useState(config.toolAskMode ?? "")
+  const [cronConcurrency, setCronConcurrency] = useState(String(config.cronMaxConcurrentRuns ?? ""))
+  const [saving, setSaving] = useState(false)
+  const addToast = useErrorToastStore((s) => s.addToast)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await gatewayWs.configPatch(
+        {
+          tools: { exec: { security: toolSecurity, ask: toolAsk } },
+          cron: { maxConcurrentRuns: parseInt(cronConcurrency, 10) || undefined },
+        },
+        configHash,
+      )
+      onSaved()
+      onClose()
+    } catch (err) {
+      addToast(`Failed to update config: ${formatRpcError(err)}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Global Configuration</DialogTitle>
+          <DialogDescription>
+            These settings apply to all agents unless overridden per-agent.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted-foreground">Tool Exec Security</label>
+            <select
+              value={toolSecurity}
+              onChange={(e) => setToolSecurity(e.target.value)}
+              className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
+            >
+              <option value="deny">deny</option>
+              <option value="allowlist">allowlist</option>
+              <option value="full">full</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Tool Ask Mode</label>
+            <select
+              value={toolAsk}
+              onChange={(e) => setToolAsk(e.target.value)}
+              className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
+            >
+              <option value="off">off</option>
+              <option value="on-miss">on-miss</option>
+              <option value="always">always</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Cron Max Concurrent Runs</label>
+            <Input
+              type="number"
+              min="1"
+              value={cronConcurrency}
+              onChange={(e) => setCronConcurrency((e.target as HTMLInputElement).value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <div className="flex items-center gap-1.5 text-xs text-warning mr-auto">
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+            <span>Saving restarts the gateway</span>
+          </div>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export function AgentsPage() {
   const [filter, setFilter] = useState("")
+  const [configOpen, setConfigOpen] = useState(false)
   const navigate = useNavigate()
   const snapshotAgents = useSystemStore((s) => s.agents)
-  const { agents: rpcAgents, defaultId, globalConfig, isLoading, scopeError } = useAgents()
+  const {
+    agents: rpcAgents,
+    defaultId,
+    globalConfig,
+    configHash,
+    isLoading,
+    scopeError,
+    refetch,
+  } = useAgents()
+
+  const { sessions } = useSessions()
+  const sessionCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of sessions) {
+      const aid = extractAgentId(s.key)
+      counts[aid] = (counts[aid] ?? 0) + 1
+    }
+    return counts
+  }, [sessions])
 
   const agents =
     rpcAgents.length > 0
@@ -86,6 +219,14 @@ export function AgentsPage() {
               </Badge>
             </span>
           )}
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setConfigOpen(true)}
+            className="ml-1"
+          >
+            <Settings className="h-3 w-3" />
+          </Button>
         </div>
       )}
 
@@ -114,7 +255,6 @@ export function AgentsPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((agent) => {
-                  const snapshot = snapshotAgents.find((a) => a.agentId === agent.id)
                   return (
                     <TableRow
                       key={agent.id}
@@ -178,7 +318,7 @@ export function AgentsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
-                        {snapshot ? snapshot.sessions.count.toLocaleString() : "--"}
+                        {(sessionCounts[agent.id] ?? 0).toLocaleString()}
                       </TableCell>
                     </TableRow>
                   )
@@ -188,6 +328,16 @@ export function AgentsPage() {
           )}
         </CardContent>
       </Card>
+
+      {globalConfig && (
+        <GlobalConfigDialog
+          open={configOpen}
+          onClose={() => setConfigOpen(false)}
+          config={globalConfig}
+          configHash={configHash}
+          onSaved={refetch}
+        />
+      )}
     </div>
   )
 }

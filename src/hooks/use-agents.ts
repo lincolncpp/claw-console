@@ -8,6 +8,7 @@ export function useAgents() {
   const { data: configData } = useRpc(() => gatewayWs.configGet(), [])
 
   const parsed: ParsedConfig | undefined = configData?.parsed
+  const configHash: string | undefined = configData?.hash
 
   const agents = useMemo(() => {
     const base = data?.agents ?? []
@@ -54,6 +55,7 @@ export function useAgents() {
     agents,
     defaultId: data?.defaultId,
     globalConfig,
+    configHash,
     isLoading,
     error,
     scopeError,

@@ -129,6 +129,9 @@ export class GatewayWebSocket {
   async configGet(): Promise<ConfigGetResponse> {
     return this.sendRpc("config.get") as Promise<ConfigGetResponse>
   }
+  async configPatch(patch: Record<string, unknown>, baseHash?: string): Promise<unknown> {
+    return this.sendRpc("config.patch", { raw: JSON.stringify(patch), baseHash })
+  }
   async modelsList(): Promise<ModelsListResponse> {
     return this.sendRpc("models.list") as Promise<ModelsListResponse>
   }

@@ -1,20 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useSystemStore } from "@/stores/system-store"
-import { useRpc } from "@/hooks/use-rpc"
-import { gatewayWs } from "@/services/gateway-ws"
+import { useSessions } from "@/hooks/use-sessions"
+import { extractAgentId } from "@/lib/session-utils"
 import { Activity, Radio, Users } from "lucide-react"
 
 export function SystemHealth() {
   const { healthOk, healthCheckMs, channels, agents } = useSystemStore()
-  const { data: sessionsData } = useRpc(() => gatewayWs.sessionsList(), [])
+  const { sessions } = useSessions()
 
   const configuredChannels = channels.length
   const runningChannels = channels.filter((c) => c.health.running).length
   const probeOk = channels.every((c) => c.health.probe?.ok !== false)
 
   const totalAgents = agents.length
-  const activeAgents = agents.filter((a) => a.sessions.count > 0).length
-  const totalSessions = sessionsData?.count ?? null
+  const agentIdsWithSessions = new Set(sessions.map((s) => extractAgentId(s.key)))
+  const activeAgents = agents.filter((a) => agentIdsWithSessions.has(a.agentId)).length
+  const totalSessions = sessions.length
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -93,7 +94,7 @@ export function SystemHealth() {
                 {activeAgents}/{totalAgents}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalSessions != null ? `${totalSessions.toLocaleString()} sessions` : ""}
+                {`${totalSessions.toLocaleString()} sessions`}
               </p>
             </>
           ) : (

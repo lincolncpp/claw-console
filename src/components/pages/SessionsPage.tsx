@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog"
 import { Eraser, MessageSquare } from "lucide-react"
 import { useState } from "react"
-import { extractSessionType } from "@/lib/session-utils"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { SessionsTable } from "@/components/shared/SessionsTable"
@@ -33,11 +32,9 @@ export function SessionsPage() {
 
   if (scopeError) return <EmptyState scope="operator.read" icon={MessageSquare} title="" />
 
-  const nonCron = sessions.filter((s) => extractSessionType(s.key) !== "cron")
-
   const filtered = filter
-    ? nonCron.filter((s) => s.key.toLowerCase().includes(filter.toLowerCase()))
-    : nonCron
+    ? sessions.filter((s) => s.key.toLowerCase().includes(filter.toLowerCase()))
+    : sessions
 
   const handleCleanup = () => {
     const days = parseInt(cleanupDays, 10)
@@ -51,7 +48,7 @@ export function SessionsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Sessions"
-        subtitle={nonCron.length > 0 ? `${nonCron.length} total across all agents` : undefined}
+        subtitle={sessions.length > 0 ? `${sessions.length} total across all agents` : undefined}
         actions={
           <>
             <Button

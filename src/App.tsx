@@ -13,12 +13,14 @@ import { useTerminalStore } from "@/stores/terminal-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { notifySessionsChanged } from "@/hooks/use-sessions-refresh"
 import { formatRpcError } from "@/lib/errors"
+import { extractAgentId } from "@/lib/session-utils"
 import { useFetchAllCronRuns } from "@/hooks/use-all-cron-runs"
 
 function App() {
   const { token, connectionStatus, setConnectionStatus } = useGatewayStore()
   const updateFromHealth = useSystemStore((s) => s.updateFromHealth)
   const updateFromConnect = useSystemStore((s) => s.updateFromConnect)
+  const updateAgentSessionCounts = useSystemStore((s) => s.updateAgentSessionCounts)
   const setJobs = useCronStore((s) => s.setJobs)
   const addToast = useErrorToastStore((s) => s.addToast)
 
@@ -36,6 +38,17 @@ function App() {
       },
       onSessionsChanged: () => {
         notifySessionsChanged()
+        gatewayWs
+          .sessionsList()
+          .then((resp) => {
+            const counts: Record<string, number> = {}
+            for (const s of resp.sessions) {
+              const aid = extractAgentId(s.key)
+              counts[aid] = (counts[aid] ?? 0) + 1
+            }
+            updateAgentSessionCounts(counts)
+          })
+          .catch(() => {})
       },
       onPresence: () => {},
       onApprovalRequested: () => {},
