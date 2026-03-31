@@ -8,17 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 import { useSystemStore } from "@/stores/system-store"
 import { useRpc } from "@/hooks/use-rpc"
 import { gatewayWs } from "@/services/gateway-ws"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { Server } from "lucide-react"
-import { useState } from "react"
 
 export function NodesPage() {
-  const [filter, setFilter] = useState("")
   const presence = useSystemStore((s) => s.presence)
   const { data: nodeData } = useRpc(() => gatewayWs.nodeList(), [])
 
@@ -40,14 +37,6 @@ export function NodesPage() {
   const connected = entries.filter((p) => p.reason !== "disconnect")
   const disconnected = entries.filter((p) => p.reason === "disconnect")
 
-  const filtered = filter
-    ? entries.filter(
-        (e) =>
-          e.host.toLowerCase().includes(filter.toLowerCase()) ||
-          e.ip.toLowerCase().includes(filter.toLowerCase()),
-      )
-    : entries
-
   const subtitle = (
     <>
       {connected.length} online &middot; {disconnected.length} offline
@@ -60,24 +49,13 @@ export function NodesPage() {
       <PageHeader
         breadcrumbs={[{ label: "Nodes" }]}
         subtitle={subtitle}
-        actions={
-          <Input
-            placeholder="Filter nodes..."
-            value={filter}
-            onChange={(e) => setFilter((e.target as HTMLInputElement).value)}
-            className="w-64"
-          />
-        }
+        actions={undefined}
       />
 
       <Card>
         <CardContent>
           {entries.length === 0 ? (
             <EmptyState icon={Server} title="No presence data available" />
-          ) : filtered.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No nodes match your filter.
-            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -92,7 +70,7 @@ export function NodesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((entry, i) => {
+                {entries.map((entry, i) => {
                   const isOnline = entry.reason !== "disconnect"
                   return (
                     <TableRow key={i} className={!isOnline ? "opacity-50" : undefined}>

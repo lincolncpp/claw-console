@@ -191,18 +191,7 @@ export function AgentDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <Breadcrumb items={[{ label: "Agents", to: "/agents" }, { label: agent.name ?? agent.id }]} />
-        <div className="flex items-center gap-2 mt-1">
-          {isDefault && (
-            <Badge variant="default" className="text-[0.625rem] px-1.5 py-0">
-              default
-            </Badge>
-          )}
-          <p className="text-xs text-muted-foreground font-mono">{agent.id}</p>
-        </div>
-      </div>
+      <Breadcrumb items={[{ label: "Agents", to: "/agents" }, { label: agent.name ?? agent.id }]} />
 
       {/* Primary Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

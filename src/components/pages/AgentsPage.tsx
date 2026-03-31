@@ -28,6 +28,7 @@ import { useSystemStore } from "@/stores/system-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { gatewayWs } from "@/services/gateway-ws"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { TableFooter } from "@/components/shared/TableFooter"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { useSessions } from "@/hooks/use-sessions"
@@ -134,7 +135,6 @@ function GlobalConfigDialog({
 }
 
 export function AgentsPage() {
-  const [filter, setFilter] = useState("")
   const [configOpen, setConfigOpen] = useState(false)
   const navigate = useNavigate()
   const snapshotAgents = useSystemStore((s) => s.agents)
@@ -167,14 +167,6 @@ export function AgentsPage() {
           isDefault: a.isDefault,
         }))
 
-  const filtered = filter
-    ? agents.filter(
-        (a) =>
-          (a.name ?? "").toLowerCase().includes(filter.toLowerCase()) ||
-          a.id.toLowerCase().includes(filter.toLowerCase()),
-      )
-    : agents
-
   if (scopeError) return <EmptyState scope="operator.read" icon={Bot} title="" />
 
   return (
@@ -182,61 +174,16 @@ export function AgentsPage() {
       <PageHeader
         breadcrumbs={[{ label: "Agents" }]}
         subtitle={agents.length > 0 ? `${agents.length} registered` : undefined}
-        actions={
-          <Input
-            placeholder="Filter agents..."
-            value={filter}
-            onChange={(e) => setFilter((e.target as HTMLInputElement).value)}
-            className="w-64"
-          />
-        }
+        actions={undefined}
       />
-
-      {globalConfig && (
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span>Global:</span>
-          {globalConfig.toolExecSecurity && (
-            <span className="flex items-center gap-1">
-              Tool Security
-              <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                {globalConfig.toolExecSecurity}
-              </Badge>
-            </span>
-          )}
-          {globalConfig.toolAskMode && (
-            <span className="flex items-center gap-1">
-              Tool Ask
-              <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                {globalConfig.toolAskMode}
-              </Badge>
-            </span>
-          )}
-          {globalConfig.cronMaxConcurrentRuns != null && (
-            <span className="flex items-center gap-1">
-              Cron Concurrency
-              <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                {globalConfig.cronMaxConcurrentRuns}
-              </Badge>
-            </span>
-          )}
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setConfigOpen(true)}
-            className="ml-1"
-          >
-            <Settings className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
 
       <Card>
         <CardContent>
           {isLoading ? (
             <LoadingBlock />
-          ) : filtered.length === 0 ? (
+          ) : agents.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              {filter ? "No agents match your filter." : "No agents registered."}
+              No agents registered.
             </p>
           ) : (
             <Table>
@@ -254,7 +201,7 @@ export function AgentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((agent) => {
+                {agents.map((agent) => {
                   return (
                     <TableRow
                       key={agent.id}
@@ -325,6 +272,44 @@ export function AgentsPage() {
                 })}
               </TableBody>
             </Table>
+          )}
+          {globalConfig && (
+            <TableFooter className="gap-3 text-xs">
+              <span className="text-muted-foreground">Global:</span>
+              {globalConfig.toolExecSecurity && (
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  Tool Security
+                  <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                    {globalConfig.toolExecSecurity}
+                  </Badge>
+                </span>
+              )}
+              {globalConfig.toolAskMode && (
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  Tool Ask
+                  <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                    {globalConfig.toolAskMode}
+                  </Badge>
+                </span>
+              )}
+              {globalConfig.cronMaxConcurrentRuns != null && (
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  Cron Concurrency
+                  <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                    {globalConfig.cronMaxConcurrentRuns}
+                  </Badge>
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfigOpen(true)}
+                className="ml-auto"
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Edit Config
+              </Button>
+            </TableFooter>
           )}
         </CardContent>
       </Card>

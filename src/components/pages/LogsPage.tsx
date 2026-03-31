@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { PageHeader } from "@/components/shared/PageHeader"
+import { TableFooter } from "@/components/shared/TableFooter"
 import { useLogs } from "@/hooks/use-logs"
 import { ScrollText, Pause, Play, ArrowDown } from "lucide-react"
 
@@ -51,45 +52,10 @@ export function LogsPage() {
         <PageHeader
           breadcrumbs={[{ label: "Logs" }]}
           subtitle={`${lines.length} lines loaded`}
-          actions={
-            <>
-              <div className="flex gap-1">
-                {["error", "warn", "info", "debug"].map((level) => (
-                  <Badge
-                    key={level}
-                    variant={levelFilter === level ? "default" : "outline"}
-                    className="cursor-pointer text-[0.625rem] px-1.5 py-0"
-                    onClick={() => setLevelFilter(levelFilter === level ? null : level)}
-                  >
-                    {level}
-                  </Badge>
-                ))}
-              </div>
-              <Input
-                placeholder="Filter..."
-                value={filter}
-                onChange={(e) => setFilter((e.target as HTMLInputElement).value)}
-                className="w-48 h-8 text-xs"
-              />
-              <Button variant="outline" size="xs" onClick={() => setPaused(!paused)}>
-                {paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => {
-                  autoScrollRef.current = true
-                  bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-                }}
-              >
-                <ArrowDown className="h-3 w-3" />
-              </Button>
-            </>
-          }
         />
       </div>
 
-      <div className="flex-1 rounded-lg border bg-card overflow-hidden">
+      <div className="flex-1 flex flex-col rounded-xl border bg-card overflow-hidden">
         {isLoading ? (
           <LoadingBlock className="h-full" />
         ) : (
@@ -124,6 +90,39 @@ export function LogsPage() {
             </div>
           </ScrollArea>
         )}
+        <TableFooter className="gap-3 shrink-0 rounded-t-none mt-0 -mx-0 -mb-0 px-3 py-2">
+          <div className="flex gap-1">
+            {["error", "warn", "info", "debug"].map((level) => (
+              <Badge
+                key={level}
+                variant={levelFilter === level ? "default" : "outline"}
+                className="cursor-pointer text-[0.625rem] px-1.5 py-0"
+                onClick={() => setLevelFilter(levelFilter === level ? null : level)}
+              >
+                {level}
+              </Badge>
+            ))}
+          </div>
+          <Input
+            placeholder="Filter..."
+            value={filter}
+            onChange={(e) => setFilter((e.target as HTMLInputElement).value)}
+            className="w-48 h-7 text-xs ml-auto"
+          />
+          <Button variant="outline" size="xs" onClick={() => setPaused(!paused)}>
+            {paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => {
+              autoScrollRef.current = true
+              bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+            }}
+          >
+            <ArrowDown className="h-3 w-3" />
+          </Button>
+        </TableFooter>
       </div>
     </div>
   )

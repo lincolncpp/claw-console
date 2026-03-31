@@ -1,6 +1,15 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import {
   Table,
   TableBody,
   TableCell,
@@ -9,11 +18,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Trash2 } from "lucide-react"
+import { Eraser, Trash2 } from "lucide-react"
 import { formatTimeAgo } from "@/lib/format"
 import { TokenBadge } from "@/components/shared/TokenBadge"
 import { extractAgentId, extractSessionType } from "@/lib/session-utils"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { TableFooter } from "@/components/shared/TableFooter"
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
 import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
 import type { SessionEntry } from "@/types/session"
@@ -26,6 +36,8 @@ interface SessionsTableProps {
   emptyMessage?: string
   maxRows?: number
   hideAgentColumn?: boolean
+  cleanup?: (days: number) => Promise<void>
+  cleaning?: boolean
 }
 
 export function SessionsTable({
@@ -36,8 +48,12 @@ export function SessionsTable({
   emptyMessage = "No sessions found.",
   maxRows = 100,
   hideAgentColumn,
+  cleanup,
+  cleaning,
 }: SessionsTableProps) {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [cleanupOpen, setCleanupOpen] = useState(false)
+  const [cleanupDays, setCleanupDays] = useState("30")
 
   if (isLoading) return <LoadingBlock />
 
@@ -47,6 +63,14 @@ export function SessionsTable({
         {emptyMessage}
       </p>
     )
+  }
+
+  const handleCleanup = () => {
+    const days = parseInt(cleanupDays, 10)
+    if (isNaN(days) || days < 1 || !cleanup) return
+    cleanup(days)
+      .then(() => setCleanupOpen(false))
+      .catch(() => {})
   }
 
   return (
@@ -105,12 +129,63 @@ export function SessionsTable({
         </TableBody>
       </Table>
 
+      {cleanup && (
+        <TableFooter className="justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCleanupOpen(true)}
+            disabled={cleaning}
+          >
+            <Eraser className="h-3 w-3 mr-1" />
+            Cleanup Stale
+          </Button>
+        </TableFooter>
+      )}
+
       <DeleteConfirmDialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteSession(deleteTarget!)}
         targetLabel={deleteTarget ?? ""}
       />
+
+      {cleanup && (
+        <Dialog
+          open={cleanupOpen}
+          onOpenChange={(open) => {
+            if (!open) setCleanupOpen(false)
+          }}
+        >
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Cleanup Stale Sessions</DialogTitle>
+              <DialogDescription>
+                Remove sessions older than the specified number of days. This cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Older than</span>
+              <Input
+                type="number"
+                min="1"
+                value={cleanupDays}
+                onChange={(e) => setCleanupDays((e.target as HTMLInputElement).value)}
+                className="w-20"
+              />
+              <span className="text-sm text-muted-foreground">days</span>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCleanupOpen(false)} disabled={cleaning}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleCleanup} disabled={cleaning}>
+                {cleaning ? "Cleaning..." : "Cleanup"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }
