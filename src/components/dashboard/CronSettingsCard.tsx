@@ -43,7 +43,7 @@ export function CronSettingsCard() {
           </div>
         </CardContent>
       </Card>
-      <CronSettingsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      {dialogOpen && <CronSettingsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />}
     </>
   )
 }
