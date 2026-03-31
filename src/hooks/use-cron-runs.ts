@@ -8,7 +8,7 @@ export function useCronRuns(jobId: string | undefined) {
   const setRuns = useCronStore((s) => s.setRuns)
 
   const { data, isLoading, error, refetch } = useRpc(
-    () => (jobId ? gatewayWs.cronRuns(jobId) : Promise.resolve([])),
+    () => (jobId ? gatewayWs.cronRuns(jobId).then(({ runs }) => runs) : Promise.resolve([])),
     [jobId],
     { enabled: !!jobId },
   )

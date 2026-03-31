@@ -12,6 +12,7 @@ const AVG_RUN_COUNT = 10
 export function useFetchAllCronRuns() {
   const jobs = useCronStore((s) => s.jobs)
   const setRuns = useCronStore((s) => s.setRuns)
+  const setRunTotals = useCronStore((s) => s.setRunTotals)
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const fetchedRef = useRef<Set<string>>(new Set())
   const fetchingRef = useRef(false)
@@ -30,9 +31,10 @@ export function useFetchAllCronRuns() {
       for (const job of toFetch) {
         if (cancelled || !gatewayWs.isConnected) break
         try {
-          const r = await gatewayWs.cronRuns(job.id)
+          const { runs, total } = await gatewayWs.cronRuns(job.id)
           fetchedRef.current.add(job.id)
-          setRuns(job.id, r)
+          setRuns(job.id, runs)
+          setRunTotals(job.id, total)
         } catch {
           // Will retry on next connection
           break
@@ -43,7 +45,7 @@ export function useFetchAllCronRuns() {
 
     fetchSequential()
     return () => { cancelled = true }
-  }, [connectionStatus, jobs, setRuns])
+  }, [connectionStatus, jobs, setRuns, setRunTotals])
 }
 
 /**
