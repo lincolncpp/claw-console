@@ -103,5 +103,12 @@ export interface ParsedConfig {
   }
   bindings?: ConfigBinding[]
   tools?: { exec?: { security?: string; ask?: string } }
-  cron?: { maxConcurrentRuns?: number }
+  cron?: {
+    maxConcurrentRuns?: number
+    sessionRetention?: string | false
+    runLog?: {
+      maxBytes?: string
+      keepLines?: number
+    }
+  }
 }
