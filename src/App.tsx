@@ -4,18 +4,25 @@ import { StatusBar } from "@/components/layout/StatusBar"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { PageRouter } from "@/components/layout/PageRouter"
 import { TerminalPanel } from "@/components/terminal/TerminalPanel"
+import { ErrorToasts } from "@/components/shared/ErrorToasts"
 import { useGatewayStore } from "@/stores/gateway-store"
 import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
 import { gatewayWs, setupEventDispatch } from "@/services/gateway-ws"
 import { useTerminalStore } from "@/stores/terminal-store"
+import { useErrorToastStore } from "@/stores/error-toast-store"
 import { notifySessionsChanged } from "@/hooks/use-sessions-refresh"
+import { formatRpcError } from "@/lib/errors"
+import { useFetchAllCronRuns } from "@/hooks/use-all-cron-runs"
 
 function App() {
   const { token, connectionStatus, setConnectionStatus } = useGatewayStore()
   const updateFromHealth = useSystemStore((s) => s.updateFromHealth)
   const updateFromConnect = useSystemStore((s) => s.updateFromConnect)
   const setJobs = useCronStore((s) => s.setJobs)
+  const addToast = useErrorToastStore((s) => s.addToast)
+
+  useFetchAllCronRuns()
 
   useEffect(() => {
     setupEventDispatch({
@@ -25,7 +32,7 @@ function App() {
         gatewayWs
           .cronList()
           .then(setJobs)
-          .catch(() => {})
+          .catch((err) => addToast(formatRpcError(err)))
       },
       onSessionsChanged: () => {
         notifySessionsChanged()
@@ -38,10 +45,8 @@ function App() {
         const evtSession = (p.sessionKey as string) ?? (p.session as string) ?? null
         const { sessionKey: tSession } = useTerminalStore.getState()
 
-        // Only process events for the active terminal session
         if (evtSession && tSession && evtSession !== tSession) return
 
-        // Gateway sends "agent" events with stream/data sub-structure
         if (event === "agent") {
           const stream = p.stream as string | undefined
           const data = p.data as Record<string, unknown> | undefined
@@ -114,7 +119,6 @@ function App() {
           return
         }
 
-        // Fallback: handle chat.*/session.* events (alternative event format)
         if (event === "chat.delta" || event === "session.delta") {
           const text = (p.text as string) ?? (p.content as string) ?? ""
           const current = useTerminalStore.getState().streamingText
@@ -139,7 +143,7 @@ function App() {
     gatewayWs.setStatusChangeHandler((status, error) => {
       setConnectionStatus(status, error)
     })
-  }, [updateFromHealth, updateFromConnect, setJobs, setConnectionStatus])
+  }, [updateFromHealth, updateFromConnect, setJobs, setConnectionStatus, addToast])
 
   useEffect(() => {
     if (token) {
@@ -153,14 +157,14 @@ function App() {
       gatewayWs
         .cronList()
         .then(setJobs)
-        .catch(() => {})
+        .catch((err) => addToast(formatRpcError(err)))
     }
-  }, [connectionStatus, setJobs])
+  }, [connectionStatus, setJobs, addToast])
 
   useEffect(() => {
     if (connectionStatus !== "connected") return
     const { agentId } = useTerminalStore.getState()
-    if (agentId) return // already have a session selected
+    if (agentId) return
 
     gatewayWs
       .agentsList()
@@ -176,24 +180,29 @@ function App() {
             const skey = agentSession?.key ?? "main"
             useTerminalStore.getState().setSession(aid, skey)
           })
-          .catch(() => {
+          .catch((err) => {
+            addToast(
+              `Could not load sessions list, using default: ${formatRpcError(err)}`,
+              "warning",
+            )
             useTerminalStore.getState().setSession(aid, "main")
           })
       })
-      .catch(() => {})
-  }, [connectionStatus])
+      .catch((err) => addToast(`Failed to load agents: ${formatRpcError(err)}`))
+  }, [connectionStatus, addToast])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <Sidebar />
       <div className="flex flex-1 flex-col min-w-0 h-full">
         <Header />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 min-h-0 overflow-y-auto p-6">
           <PageRouter />
         </main>
         <TerminalPanel />
         <StatusBar />
       </div>
+      <ErrorToasts />
     </div>
   )
 }

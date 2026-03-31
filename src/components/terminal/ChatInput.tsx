@@ -18,7 +18,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   return (
     <div className="flex items-center gap-2 border-t border-border px-3 h-9 shrink-0 bg-transparent">
-      <span className="text-violet-400 text-sm font-mono">❯</span>
+      <span className="text-primary text-sm font-mono">❯</span>
       <input
         ref={inputRef}
         type="text"
@@ -32,7 +32,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         }}
         disabled={disabled}
         placeholder={disabled ? "Disconnected..." : "Type a message... (Enter to send)"}
-        className="flex-1 bg-transparent text-[13px] font-mono text-foreground outline-none placeholder:text-muted-foreground/50"
+        className="flex-1 bg-transparent text-[0.8125rem] font-mono text-foreground outline-none placeholder:text-muted-foreground/50"
       />
     </div>
   )

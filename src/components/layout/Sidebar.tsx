@@ -33,7 +33,7 @@ export function Sidebar() {
     <TooltipProvider delay={0}>
       <aside
         className="flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-in-out"
-        style={{ width: collapsed ? 48 : 220 }}
+        style={{ width: collapsed ? "3rem" : "13.75rem" }}
       >
         {/* Logo / Title */}
         <div className="flex h-14 items-center border-b border-sidebar-border px-3">
@@ -96,7 +96,7 @@ export function Sidebar() {
         </nav>
 
         {/* Collapse toggle */}
-        <div className="border-t border-sidebar-border p-2">
+        <div className="flex h-12 items-center border-t border-sidebar-border px-2">
           <div
             role="button"
             tabIndex={0}

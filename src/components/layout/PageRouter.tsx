@@ -8,6 +8,7 @@ import { AgentsPage } from "@/components/pages/AgentsPage"
 import { AgentDetailPage } from "@/components/pages/AgentDetailPage"
 import { CronPage } from "@/components/pages/CronPage"
 import { CronJobDetail } from "@/components/dashboard/CronJobDetail"
+import { CronRunDetail } from "@/components/dashboard/CronRunDetail"
 
 export function PageRouter() {
   return (
@@ -18,6 +19,7 @@ export function PageRouter() {
       <Route path="/agents" element={<AgentsPage />} />
       <Route path="/nodes" element={<NodesPage />} />
       <Route path="/cron" element={<CronPage />} />
+      <Route path="/cron/:jobId/runs/:runTs" element={<CronRunDetail />} />
       <Route path="/cron/:jobId" element={<CronJobDetail />} />
       <Route path="/logs" element={<LogsPage />} />
       <Route path="/approvals" element={<ApprovalsPage />} />

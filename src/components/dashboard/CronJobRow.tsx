@@ -2,58 +2,28 @@ import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
+import { StatusBadge } from "@/components/shared/StatusBadge"
+import { formatSchedule, formatTimeAgo, formatTokensCompact } from "@/lib/format"
+import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
+import { useCronToggle } from "@/hooks/use-cron-actions"
 import type { CronJob } from "@/types/cron"
-import { gatewayWs } from "@/services/gateway-ws"
-import { useCronStore } from "@/stores/cron-store"
-
-function formatSchedule(job: CronJob): string {
-  const { schedule } = job
-  switch (schedule.kind) {
-    case "cron":
-      return schedule.expr + (schedule.tz ? ` (${schedule.tz})` : "")
-    case "every": {
-      const ms = schedule.everyMs
-      if (ms < 60_000) return `Every ${ms / 1000}s`
-      if (ms < 3_600_000) return `Every ${ms / 60_000}m`
-      if (ms < 86_400_000) return `Every ${ms / 3_600_000}h`
-      return `Every ${ms / 86_400_000}d`
-    }
-    case "at":
-      return `Once at ${new Date(schedule.atMs).toLocaleString()}`
-    default:
-      return "Unknown"
-  }
-}
-
-function formatTimeAgo(epochMs?: number): string {
-  if (!epochMs) return "--"
-  const s = Math.floor((Date.now() - epochMs) / 1000)
-  if (s < 60) return `${s}s ago`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  return `${d}d ago`
-}
-
-const statusVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  ok: "default",
-  success: "default",
-  running: "secondary",
-  error: "destructive",
-  failed: "destructive",
-  timeout: "destructive",
-}
 
 interface CronJobRowProps {
   job: CronJob
+  recentStatuses: string[]
+  avgTokens?: number
   onClick: () => void
 }
 
-export function CronJobRow({ job, onClick }: CronJobRowProps) {
+function dotColor(status: string) {
+  if (status === "ok" || status === "success") return "bg-emerald-500"
+  if (status === "error" || status === "failed" || status === "timeout") return "bg-red-500"
+  return "bg-muted-foreground/40"
+}
+
+export function CronJobRow({ job, recentStatuses, avgTokens, onClick }: CronJobRowProps) {
   const [, tick] = useState(0)
-  const updateJob = useCronStore((s) => s.updateJob)
+  const { toggle } = useCronToggle()
 
   useEffect(() => {
     const id = setInterval(() => tick((t) => t + 1), 1000)
@@ -62,18 +32,14 @@ export function CronJobRow({ job, onClick }: CronJobRowProps) {
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const newEnabled = !job.enabled
-    updateJob(job.id, { enabled: newEnabled })
-    gatewayWs.cronUpdate(job.id, { enabled: newEnabled }).catch(() => {
-      updateJob(job.id, { enabled: !newEnabled })
-    })
+    toggle(job.id, job.enabled)
   }
 
   return (
     <TableRow className="cursor-pointer hover:bg-muted/50" onClick={onClick}>
       <TableCell className="font-medium">{job.name || job.id}</TableCell>
       <TableCell className="text-sm text-muted-foreground font-mono">
-        {formatSchedule(job)}
+        {formatSchedule(job.schedule)}
       </TableCell>
       <TableCell>{job.sessionTarget}</TableCell>
       <TableCell>
@@ -85,19 +51,40 @@ export function CronJobRow({ job, onClick }: CronJobRowProps) {
         </div>
       </TableCell>
       <TableCell>
-        {job.state?.lastRunStatus ? (
-          <Badge
-            variant={statusVariants[job.state.lastRunStatus] ?? "outline"}
-            className={job.state.lastRunStatus === "ok" ? "bg-emerald-500/15 text-emerald-500 border-transparent" : undefined}
-          >
-            {job.state.lastRunStatus}
+        {job.state?.runningAtMs ? (
+          <Badge variant="secondary" className="animate-pulse">
+            running
           </Badge>
+        ) : job.state?.lastRunStatus ? (
+          <StatusBadge status={job.state.lastRunStatus} />
         ) : (
           <span className="text-sm text-muted-foreground">--</span>
         )}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {formatTimeAgo(job.state?.lastRunAtMs)}
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          {recentStatuses.map((s, i) => (
+            <span
+              key={i}
+              className={`rounded-full ${dotColor(s)} ${i === recentStatuses.length - 1 ? "h-2.5 w-2.5" : "h-2 w-2"}`}
+            />
+          ))}
+        </div>
+      </TableCell>
+      <TableCell className="text-right">
+        {avgTokens != null ? (() => {
+          const level = classifyTokenConsumption(avgTokens)
+          const props = tokenLevelBadgeProps[level]
+          return (
+            <span className="flex items-center justify-end gap-1.5 text-sm">
+              <span className="text-muted-foreground">{formatTokensCompact(avgTokens)}</span>
+              <Badge variant={props.variant} className={props.className}>{props.label}</Badge>
+            </span>
+          )
+        })() : <span className="text-sm text-muted-foreground">--</span>}
       </TableCell>
     </TableRow>
   )

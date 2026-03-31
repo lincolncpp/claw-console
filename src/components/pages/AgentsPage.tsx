@@ -9,23 +9,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useRpc } from "@/hooks/use-rpc"
+import { useAgents, useModels, useTools, useSkills } from "@/hooks/use-agents"
 import { useSystemStore } from "@/stores/system-store"
-import { gatewayWs } from "@/services/gateway-ws"
+import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { ScopeMessage } from "@/components/shared/ScopeMessage"
 import { Link } from "react-router-dom"
-import { Bot, Cpu, Wrench, Sparkles, Loader2 } from "lucide-react"
+import { Bot, Cpu, Wrench, Sparkles } from "lucide-react"
 
 function AgentCards() {
   const snapshotAgents = useSystemStore((s) => s.agents)
-  const { data } = useRpc(() => gatewayWs.agentsList(), [])
+  const { agents: rpcAgents, defaultId } = useAgents()
 
   const agents =
-    data?.agents ??
-    snapshotAgents.map((a) => ({
-      id: a.agentId,
-      name: a.name,
-      isDefault: a.isDefault,
-    }))
+    rpcAgents.length > 0
+      ? rpcAgents
+      : snapshotAgents.map((a) => ({
+          id: a.agentId,
+          name: a.name,
+          isDefault: a.isDefault,
+        }))
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -38,8 +40,8 @@ function AgentCards() {
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <Bot className="h-4 w-4 text-muted-foreground" />
                   <span>{agent.name ?? agent.id}</span>
-                  {(agent.isDefault || (data && agent.id === data.defaultId)) && (
-                    <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                  {(agent.isDefault || agent.id === defaultId) && (
+                    <Badge variant="default" className="text-[0.625rem] px-1.5 py-0">
                       default
                     </Badge>
                   )}
@@ -60,14 +62,11 @@ function AgentCards() {
 }
 
 function ModelsList() {
-  const { data, loading, scopeError } = useRpc(() => gatewayWs.modelsList(), [])
+  const { models, isLoading, scopeError } = useModels()
 
-  if (scopeError)
-    return <p className="text-sm text-muted-foreground py-4">Requires operator.read scope</p>
-  if (loading)
-    return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-8" />
+  if (scopeError) return <ScopeMessage scope="operator.read" icon={Cpu} />
+  if (isLoading) return <LoadingBlock />
 
-  const models = data?.models ?? []
   return (
     <Table>
       <TableHeader>
@@ -83,7 +82,7 @@ function ModelsList() {
           <TableRow key={m.id}>
             <TableCell className="font-medium">{m.name}</TableCell>
             <TableCell>
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-[0.625rem]">
                 {m.provider}
               </Badge>
             </TableCell>
@@ -93,12 +92,12 @@ function ModelsList() {
             <TableCell>
               <div className="flex gap-1">
                 {m.reasoning && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">
                     reasoning
                   </Badge>
                 )}
                 {m.input?.map((i) => (
-                  <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Badge key={i} variant="secondary" className="text-[0.625rem] px-1.5 py-0">
                     {i}
                   </Badge>
                 ))}
@@ -112,14 +111,11 @@ function ModelsList() {
 }
 
 function ToolsList() {
-  const { data, loading, scopeError } = useRpc(() => gatewayWs.toolsCatalog(), [])
+  const { tools, isLoading, scopeError } = useTools()
 
-  if (scopeError)
-    return <p className="text-sm text-muted-foreground py-4">Requires operator.read scope</p>
-  if (loading)
-    return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-8" />
+  if (scopeError) return <ScopeMessage scope="operator.read" icon={Wrench} />
+  if (isLoading) return <LoadingBlock />
 
-  const tools = Array.isArray(data?.tools) ? data.tools : Array.isArray(data) ? data : []
   return (
     <div className="space-y-2">
       {tools.length === 0 ? (
@@ -151,14 +147,11 @@ function ToolsList() {
 }
 
 function SkillsList() {
-  const { data, loading, scopeError } = useRpc(() => gatewayWs.skillsStatus(), [])
+  const { skills, isLoading, scopeError } = useSkills()
 
-  if (scopeError)
-    return <p className="text-sm text-muted-foreground py-4">Requires operator.read scope</p>
-  if (loading)
-    return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto my-8" />
+  if (scopeError) return <ScopeMessage scope="operator.read" icon={Sparkles} />
+  if (isLoading) return <LoadingBlock />
 
-  const skills = Array.isArray(data?.skills) ? data.skills : Array.isArray(data) ? data : []
   return (
     <div className="space-y-2">
       {skills.length === 0 ? (
@@ -179,7 +172,7 @@ function SkillsList() {
                 <TableCell>
                   <Badge
                     variant={s.status === "active" ? "default" : "secondary"}
-                    className="text-[10px]"
+                    className="text-[0.625rem]"
                   >
                     {s.status ?? "unknown"}
                   </Badge>

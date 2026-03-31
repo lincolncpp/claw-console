@@ -1,20 +1,16 @@
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { SystemHealth } from "@/components/dashboard/SystemHealth"
 import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
+import { gatewayWs } from "@/services/gateway-ws"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/shared/StatusBadge"
+import { formatTimeAgo } from "@/lib/format"
 import { ArrowUpCircle, Globe, Timer } from "lucide-react"
-
-function formatAge(ms: number): string {
-  const s = Math.floor(ms / 1000)
-  if (s < 60) return `${s}s ago`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  return `${d}d ago`
-}
+import { useErrorToastStore } from "@/stores/error-toast-store"
+import { formatRpcError } from "@/lib/errors"
+import type { CronRun } from "@/types/cron"
 
 function PresenceCards() {
   const presence = useSystemStore((s) => s.presence)
@@ -42,17 +38,13 @@ function PresenceCards() {
           {entries.map((p, i) => (
             <div key={i} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <div className="h-2 w-2 rounded-full bg-status-success" />
                 <span className="font-medium">{p.host}</span>
                 <span className="text-muted-foreground text-xs">{p.ip}</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {p.platform && <span>{p.platform}</span>}
-                {p.mode && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                    {p.mode}
-                  </Badge>
-                )}
+                {p.mode && <StatusBadge status={p.mode} className="text-[0.625rem] px-1.5 py-0" />}
               </div>
             </div>
           ))}
@@ -79,17 +71,51 @@ function UpdateBanner() {
 
 function RecentCronActivity() {
   const jobs = useCronStore((s) => s.jobs)
-  const lastUpdated = useSystemStore((s) => s.lastUpdated)
-  if (!Array.isArray(jobs)) return null
-  const recentJobs = jobs
-    .filter((j) => j.state?.lastRunAtMs)
-    .sort((a, b) => (b.state?.lastRunAtMs ?? 0) - (a.state?.lastRunAtMs ?? 0))
-    .slice(0, 5)
+  const navigate = useNavigate()
+  const addToast = useErrorToastStore((s) => s.addToast)
+  const [recentRuns, setRecentRuns] = useState<CronRun[]>([])
 
-  if (recentJobs.length === 0) return null
+  const activeJobIds = useMemo(() => {
+    if (!Array.isArray(jobs)) return []
+    return jobs
+      .filter((j) => j.state?.lastRunAtMs)
+      .sort((a, b) => (b.state?.lastRunAtMs ?? 0) - (a.state?.lastRunAtMs ?? 0))
+      .slice(0, 5)
+      .map((j) => j.id)
+  }, [jobs])
 
-  // Use lastUpdated as a stable reference time
-  const referenceTime = lastUpdated ?? 0
+  const jobNames = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const j of jobs) map.set(j.id, j.name || j.id)
+    return map
+  }, [jobs])
+
+  useEffect(() => {
+    if (activeJobIds.length === 0) return
+    let cancelled = false
+    Promise.all(
+      activeJobIds.map((id) =>
+        gatewayWs.cronRuns(id, 5).catch((err) => {
+          addToast(formatRpcError(err), "warning")
+          return [] as CronRun[]
+        }),
+      ),
+    ).then((results) => {
+      if (cancelled) return
+      const merged = results
+        .flat()
+        .sort((a, b) => b.runAtMs - a.runAtMs)
+        .slice(0, 8)
+      setRecentRuns(merged)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [activeJobIds, addToast])
+
+  const recentRunsList = activeJobIds.length === 0 ? [] : recentRuns
+
+  if (recentRunsList.length === 0) return null
 
   return (
     <Card>
@@ -101,35 +127,24 @@ function RecentCronActivity() {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {recentJobs.map((job) => {
-            const state = job.state!
-            const time = state.lastRunAtMs ?? 0
-            const status = state.lastRunStatus ?? "unknown"
-            return (
-              <div key={job.id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant={
-                      status === "ok"
-                        ? "default"
-                        : status === "running"
-                          ? "secondary"
-                          : "destructive"
-                    }
-                    className={`text-[10px] px-1.5 py-0 ${status === "ok" ? "bg-emerald-500/15 text-emerald-500 border-transparent" : ""}`}
-                  >
-                    {status}
-                  </Badge>
-                  <span className="truncate max-w-[200px]">{job.name || job.id}</span>
-                </div>
-                {time > 0 && referenceTime > time && (
-                  <span className="text-xs text-muted-foreground">
-                    {formatAge(referenceTime - time)}
-                  </span>
-                )}
+          {recentRunsList.map((run, i) => (
+            <div
+              key={`${run.jobId}-${run.ts}-${i}`}
+              className="flex items-center justify-between text-sm cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5"
+              onClick={() => navigate(`/cron/${run.jobId}`)}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <StatusBadge status={run.status} className="text-[0.625rem] px-1.5 py-0 shrink-0" />
+                <span className="truncate max-w-[200px]">
+                  {jobNames.get(run.jobId) ?? run.jobId}
+                </span>
               </div>
-            )
-          })}
+              <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                {run.durationMs != null && <span>{(run.durationMs / 1000).toFixed(1)}s</span>}
+                <span>{formatTimeAgo(run.runAtMs)}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>

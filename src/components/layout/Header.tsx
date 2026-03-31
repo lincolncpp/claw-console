@@ -1,10 +1,10 @@
 import { useGatewayStore, type ConnectionStatus } from "@/stores/gateway-store"
 
 const statusColors: Record<ConnectionStatus, string> = {
-  connected: "bg-emerald-500",
-  connecting: "bg-yellow-500 animate-pulse",
-  disconnected: "bg-zinc-400",
-  error: "bg-red-500",
+  connected: "bg-status-success",
+  connecting: "bg-status-warning animate-pulse",
+  disconnected: "bg-muted-foreground",
+  error: "bg-status-error",
 }
 
 const statusLabels: Record<ConnectionStatus, string> = {
@@ -19,7 +19,7 @@ export function Header() {
   const host = useGatewayStore((s) => s.host)
 
   return (
-    <header className="flex items-center justify-between border-b px-6 py-4">
+    <header className="flex h-14 items-center justify-between border-b px-6">
       <h1 className="text-xl font-semibold tracking-tight">OpenClaw Dashboard</h1>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <div className={`h-2.5 w-2.5 rounded-full ${statusColors[connectionStatus]}`} />

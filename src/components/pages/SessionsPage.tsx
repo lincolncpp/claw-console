@@ -18,150 +18,83 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useRpc } from "@/hooks/use-rpc"
-import { useSessionsRefresh } from "@/hooks/use-sessions-refresh"
-import { gatewayWs } from "@/services/gateway-ws"
-import { MessageSquare, Loader2, Trash2, Eraser } from "lucide-react"
+import { MessageSquare, Trash2, Eraser } from "lucide-react"
 import { useState } from "react"
-import { useTerminalStore } from "@/stores/terminal-store"
-import type { SessionEntry } from "@/types/session"
-
-function formatAge(ms: number): string {
-  const s = Math.floor(ms / 1000)
-  if (s < 60) return `${s}s`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h`
-  const d = Math.floor(h / 24)
-  return `${d}d`
-}
-
-function extractAgentId(key: string): string {
-  const parts = key.split(":")
-  return parts[1] ?? "unknown"
-}
-
-function extractSessionType(key: string): string {
-  const parts = key.split(":")
-  return parts[2] ?? "session"
-}
-
-function ScopeMessage() {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-      <MessageSquare className="h-8 w-8 mb-3 opacity-50" />
-      <p className="text-sm">
-        Requires <code className="bg-muted px-1.5 py-0.5 rounded text-xs">operator.read</code> scope
-      </p>
-      <p className="text-xs mt-1 opacity-70">
-        Update your gateway token configuration to enable this section.
-      </p>
-    </div>
-  )
-}
+import { formatAge } from "@/lib/format"
+import { extractAgentId, extractSessionType } from "@/lib/session-utils"
+import { ScopeMessage } from "@/components/shared/ScopeMessage"
+import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { PageHeader } from "@/components/shared/PageHeader"
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
+import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
+import { useSessions, useSessionDelete, useSessionCleanup } from "@/hooks/use-sessions"
 
 export function SessionsPage() {
   const [filter, setFilter] = useState("")
-  const { data, loading, scopeError, refetch } = useRpc(() => gatewayWs.sessionsList(), [])
-
-  useSessionsRefresh(refetch)
+  const { sessions, count, isLoading, scopeError, refetch } = useSessions()
+  const { deleteSession } = useSessionDelete(refetch)
+  const { cleanup, cleaning } = useSessionCleanup(sessions, refetch)
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
 
   // Cleanup state
   const [cleanupOpen, setCleanupOpen] = useState(false)
-  const [cleaning, setCleaning] = useState(false)
   const [cleanupDays, setCleanupDays] = useState("30")
 
-  if (scopeError) return <ScopeMessage />
+  if (scopeError) return <ScopeMessage scope="operator.read" icon={MessageSquare} />
 
-  const sessions: SessionEntry[] = data?.sessions ?? []
   const filtered = filter
     ? sessions.filter((s) => s.key.toLowerCase().includes(filter.toLowerCase()))
     : sessions
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      await gatewayWs.sessionsDelete(deleteTarget)
-      refetch()
-    } catch {
-      // ignore
-    } finally {
-      setDeleting(false)
-      setDeleteTarget(null)
-    }
-  }
-
   const handleCleanup = async () => {
     const days = parseInt(cleanupDays, 10)
     if (isNaN(days) || days < 1) return
-    const maxAgeMs = days * 24 * 60 * 60 * 1000
-    const stale = sessions.filter((s) => {
-      const age = s.age ?? (s.updatedAt != null ? Date.now() - s.updatedAt : null)
-      return age != null && age > maxAgeMs
-    })
-    if (stale.length === 0) {
-      setCleanupOpen(false)
-      return
-    }
-    setCleaning(true)
-    try {
-      for (const s of stale) {
-        await gatewayWs.sessionsDelete(s.key)
-      }
-      refetch()
-    } catch {
-      // ignore
-    } finally {
-      setCleaning(false)
-      setCleanupOpen(false)
-    }
+    cleanup(days)
+      .then(() => setCleanupOpen(false))
+      .catch(() => {}) // hook already toasts errors
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Sessions</h2>
-          {data && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {data.count} total across all agents
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCleanupOpen(true)}
-            disabled={cleaning}
-          >
-            <Eraser className="h-3 w-3 mr-1" />
-            Cleanup Stale
-          </Button>
-          <Input
-            placeholder="Filter sessions..."
-            value={filter}
-            onChange={(e) => setFilter((e.target as HTMLInputElement).value)}
-            className="w-64"
-          />
-        </div>
-      </div>
+      <PageHeader
+        title="Sessions"
+        subtitle={count > 0 ? `${count} total across all agents` : undefined}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCleanupOpen(true)}
+              disabled={cleaning}
+            >
+              <Eraser className="h-3 w-3 mr-1" />
+              Cleanup Stale
+            </Button>
+            <Input
+              placeholder="Filter sessions..."
+              value={filter}
+              onChange={(e) => setFilter((e.target as HTMLInputElement).value)}
+              className="w-64"
+            />
+          </>
+        }
+      />
 
       <Card>
-        <CardHeader className="pb-0">
-          <CardTitle className="sr-only">Session List</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Session List</CardTitle>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {filtered.length} session{filtered.length !== 1 ? "s" : ""}
+          </span>
         </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
+          {isLoading ? (
+            <LoadingBlock />
           ) : (
             <Table>
               <TableHeader>
@@ -185,24 +118,13 @@ export function SessionsPage() {
                       {extractSessionType(session.key)}
                     </TableCell>
                     <TableCell>
-                      <button
-                        className="font-mono text-xs text-muted-foreground truncate block max-w-[400px] hover:text-foreground hover:underline cursor-pointer text-left"
-                        onClick={() => {
-                          useTerminalStore
-                            .getState()
-                            .setSession(extractAgentId(session.key), session.key)
-                          useTerminalStore.getState().open()
-                        }}
-                      >
-                        {session.key}
-                      </button>
+                      <SessionKeyButton
+                        agentId={extractAgentId(session.key)}
+                        sessionKey={session.key}
+                      />
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground">
-                      {session.age != null
-                        ? formatAge(session.age)
-                        : session.updatedAt != null
-                          ? formatAge(Date.now() - session.updatedAt)
-                          : "--"}
+                      {session.age != null ? formatAge(session.age) : "--"}
                     </TableCell>
                     <TableCell>
                       <Button
@@ -229,32 +151,12 @@ export function SessionsPage() {
       </Card>
 
       {/* Delete confirmation dialog */}
-      <Dialog
+      <DeleteConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete Session</DialogTitle>
-            <DialogDescription>
-              Permanently delete this session? This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteTarget && (
-            <p className="font-mono text-xs text-muted-foreground break-all">{deleteTarget}</p>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteSession(deleteTarget!)}
+        targetLabel={deleteTarget ?? ""}
+      />
 
       {/* Cleanup confirmation dialog */}
       <Dialog

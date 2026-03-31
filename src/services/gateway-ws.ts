@@ -93,9 +93,7 @@ export class GatewayWebSocket {
     return Array.isArray(res) ? res : (res?.jobs ?? [])
   }
   async cronRuns(jobId: string, limit = 50): Promise<CronRun[]> {
-    const res = (await this.sendRpc("cron.runs", { jobId, limit })) as
-      | CronRunsResponse
-      | CronRun[]
+    const res = (await this.sendRpc("cron.runs", { jobId, limit })) as CronRunsResponse | CronRun[]
     return Array.isArray(res) ? res : (res?.entries ?? [])
   }
   async cronRun(jobId: string): Promise<void> {

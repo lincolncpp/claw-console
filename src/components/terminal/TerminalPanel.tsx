@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef } from "react"
 import { useTerminalStore } from "@/stores/terminal-store"
 import { useGatewayStore } from "@/stores/gateway-store"
+import { useErrorToastStore } from "@/stores/error-toast-store"
 import { gatewayWs } from "@/services/gateway-ws"
+import { formatRpcError } from "@/lib/errors"
 import { ChatMessage } from "./ChatMessage"
 import { ToolCard } from "./ToolCard"
 import { ChatInput } from "./ChatInput"
@@ -11,7 +13,6 @@ import type { ChatMessageData, ToolCallData } from "@/types/terminal"
 const MIN_HEIGHT = 120
 const MAX_HEIGHT_RATIO = 0.6
 
-/** Extract tool calls from content block arrays in history messages. */
 function extractToolCalls(content: unknown): ToolCallData[] | undefined {
   if (!Array.isArray(content)) return undefined
   const tools: ToolCallData[] = []
@@ -40,6 +41,7 @@ export function TerminalPanel() {
   const close = useTerminalStore((s) => s.close)
   const setPanelHeight = useTerminalStore((s) => s.setPanelHeight)
   const appendMessage = useTerminalStore((s) => s.appendMessage)
+  const addToast = useErrorToastStore((s) => s.addToast)
 
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const connected = connectionStatus === "connected"
@@ -48,14 +50,12 @@ export function TerminalPanel() {
   const autoScrollRef = useRef(true)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll on new messages
   useEffect(() => {
     if (autoScrollRef.current) {
       requestAnimationFrame(() => bottomRef.current?.scrollIntoView())
     }
   }, [messages, streamingText])
 
-  // Load session history when session changes
   useEffect(() => {
     if (!isOpen || !agentId || !sessionKey) return
     gatewayWs
@@ -78,12 +78,11 @@ export function TerminalPanel() {
             })),
         )
       })
-      .catch(() => {
-        // History loading is best-effort
+      .catch((err) => {
+        addToast(`Failed to load chat history: ${formatRpcError(err)}`)
       })
-  }, [isOpen, agentId, sessionKey])
+  }, [isOpen, agentId, sessionKey, addToast])
 
-  // Drag resize
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -105,7 +104,6 @@ export function TerminalPanel() {
     [panelHeight, setPanelHeight],
   )
 
-  // Send message
   const handleSend = useCallback(
     (text: string) => {
       if (!agentId || !sessionKey) return
@@ -132,47 +130,51 @@ export function TerminalPanel() {
 
   const statusColor =
     runState === "streaming"
-      ? "text-amber-400"
+      ? "text-status-warning"
       : runState === "error"
-        ? "text-red-400"
-        : "text-green-400"
+        ? "text-status-error"
+        : "text-status-success"
   const statusDot =
-    runState === "streaming" ? "bg-amber-400" : runState === "error" ? "bg-red-400" : "bg-green-400"
+    runState === "streaming"
+      ? "bg-status-warning"
+      : runState === "error"
+        ? "bg-status-error"
+        : "bg-status-success"
 
   return (
     <div
       ref={panelRef}
-      className="flex flex-col border-t-2 border-zinc-700 bg-[#111]"
+      className="flex flex-col border-t-2 border-border bg-terminal-bg"
       style={{ height: panelHeight }}
     >
       {/* Drag handle */}
       <div
-        className="flex items-center justify-center h-1.5 cursor-ns-resize hover:bg-zinc-700/50 transition-colors"
+        className="flex items-center justify-center h-1.5 cursor-ns-resize hover:bg-muted/50 transition-colors"
         onMouseDown={handleDragStart}
       >
-        <GripHorizontal className="h-3 w-3 text-zinc-600" />
+        <GripHorizontal className="h-3 w-3 text-muted-foreground/40" />
       </div>
 
       {/* Header */}
       <div className="flex items-center justify-between px-3 h-8 border-b border-border shrink-0">
         <div className="flex items-center gap-2.5 text-xs">
           <span className="font-medium text-foreground">Terminal</span>
-          <span className="text-zinc-600">|</span>
+          <span className="text-muted-foreground/40">|</span>
           <span className="text-muted-foreground">
-            agent: <span className="text-violet-400">{agentId ?? "none"}</span>
+            agent: <span className="text-primary">{agentId ?? "none"}</span>
           </span>
-          <span className="text-zinc-600">|</span>
+          <span className="text-muted-foreground/40">|</span>
           <span className="text-muted-foreground">
-            session: <span className="text-violet-400">{sessionKey ?? "none"}</span>
+            session: <span className="text-primary">{sessionKey ?? "none"}</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
-          <span className={`text-[10px] ${statusColor}`}>{runState}</span>
+          <span className={`text-[0.625rem] ${statusColor}`}>{runState}</span>
           <button
             type="button"
             onClick={close}
-            className="text-zinc-500 hover:text-foreground transition-colors ml-1"
+            className="text-muted-foreground/50 hover:text-foreground transition-colors ml-1"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -206,12 +208,12 @@ export function TerminalPanel() {
         {streamingToolCall && <ToolCard tool={streamingToolCall} />}
         {streamingText != null && (
           <div className="flex gap-3 items-start px-2 py-0.5">
-            <span className="shrink-0 w-14 text-right text-[11px] font-mono pt-px text-green-400">
+            <span className="shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px text-status-success">
               assistant
             </span>
-            <span className="text-[13px] font-mono text-foreground/90 break-words min-w-0 leading-5">
+            <span className="text-[0.8125rem] font-mono text-foreground/90 break-words min-w-0 leading-5">
               {streamingText}
-              <span className="animate-pulse text-violet-400">▋</span>
+              <span className="animate-pulse text-primary">▋</span>
             </span>
           </div>
         )}

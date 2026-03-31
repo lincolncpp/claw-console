@@ -1,54 +1,40 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { useRpc } from "@/hooks/use-rpc"
-import { gatewayWs } from "@/services/gateway-ws"
-import { ShieldCheck, Loader2 } from "lucide-react"
-
-function ScopeMessage() {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-      <ShieldCheck className="h-8 w-8 mb-3 opacity-50" />
-      <p className="text-sm">
-        Requires <code className="bg-muted px-1.5 py-0.5 rounded text-xs">operator.admin</code>{" "}
-        scope
-      </p>
-      <p className="text-xs mt-1 opacity-70">
-        Update your gateway token configuration to enable this section.
-      </p>
-    </div>
-  )
-}
+import { ScopeMessage } from "@/components/shared/ScopeMessage"
+import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { EmptyState } from "@/components/shared/EmptyState"
+import { PageHeader } from "@/components/shared/PageHeader"
+import { StatusBadge } from "@/components/shared/StatusBadge"
+import { useApprovals } from "@/hooks/use-approvals"
+import { ShieldCheck } from "lucide-react"
 
 export function ApprovalsPage() {
-  const { data, loading, scopeError } = useRpc(() => gatewayWs.execApprovalsGet(), [])
+  const { approvals, isLoading, error, scopeError } = useApprovals()
 
-  if (scopeError) return <ScopeMessage />
+  if (scopeError) return <ScopeMessage scope="operator.admin" icon={ShieldCheck} />
 
-  // The approvals response shape varies — handle both formats
-  const approvals = Array.isArray(data)
-    ? data
-    : data && typeof data === "object" && "approvals" in (data as Record<string, unknown>)
-      ? (data as Record<string, unknown[]>).approvals
-      : []
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Approvals" subtitle="Pending tool execution approval requests" />
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-sm text-status-error">Failed to load approvals: {error.message}</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">Approvals</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Pending tool execution approval requests
-        </p>
-      </div>
+      <PageHeader title="Approvals" subtitle="Pending tool execution approval requests" />
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
+      {isLoading ? (
+        <LoadingBlock />
       ) : approvals.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <ShieldCheck className="h-8 w-8 text-muted-foreground/50 mb-3" />
-            <p className="text-sm text-muted-foreground">No pending approvals</p>
+          <CardContent className="py-0">
+            <EmptyState icon={ShieldCheck} title="No pending approvals" />
           </CardContent>
         </Card>
       ) : (
@@ -57,18 +43,10 @@ export function ApprovalsPage() {
             <Card key={(approval.id as string) ?? i}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Badge
-                    variant={
-                      approval.status === "pending"
-                        ? "secondary"
-                        : approval.status === "approved"
-                          ? "default"
-                          : "destructive"
-                    }
-                    className="text-[10px]"
-                  >
-                    {String(approval.status ?? "pending")}
-                  </Badge>
+                  <StatusBadge
+                    status={String(approval.status ?? "pending")}
+                    className="text-[0.625rem]"
+                  />
                   <span className="truncate">
                     {String(
                       approval.tool ??

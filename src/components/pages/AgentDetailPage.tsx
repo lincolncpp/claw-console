@@ -1,4 +1,5 @@
-import { useParams, Link } from "react-router-dom"
+import { useState } from "react"
+import { useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -10,112 +11,43 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { useRpc } from "@/hooks/use-rpc"
-import { useSessionsRefresh } from "@/hooks/use-sessions-refresh"
 import { useSystemStore } from "@/stores/system-store"
-import { gatewayWs } from "@/services/gateway-ws"
-import { useTerminalStore } from "@/stores/terminal-store"
-import { ArrowLeft, Bot, Cpu, FolderOpen, Hash, Loader2, Trash2 } from "lucide-react"
-import { useState } from "react"
-import type { SessionEntry } from "@/types/session"
-
-function formatAge(ms: number): string {
-  const s = Math.floor(ms / 1000)
-  if (s < 60) return `${s}s`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h`
-  const d = Math.floor(h / 24)
-  return `${d}d`
-}
-
-function extractAgentId(key: string): string {
-  const parts = key.split(":")
-  return parts[1] ?? "unknown"
-}
-
-function extractSessionType(key: string): string {
-  const parts = key.split(":")
-  return parts[2] ?? "session"
-}
+import { Bot, Cpu, FolderOpen, Hash, Trash2 } from "lucide-react"
+import { formatAge } from "@/lib/format"
+import { extractAgentId, extractSessionType } from "@/lib/session-utils"
+import { BackLink } from "@/components/shared/BackLink"
+import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { EmptyState } from "@/components/shared/EmptyState"
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
+import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
+import { useAgents } from "@/hooks/use-agents"
+import { useSessions, useSessionDelete } from "@/hooks/use-sessions"
 
 export function AgentDetailPage() {
   const { agentId } = useParams<{ agentId: string }>()
   const snapshotAgents = useSystemStore((s) => s.agents)
 
-  const { data: agentsData, loading: agentsLoading } = useRpc(
-    () => gatewayWs.agentsList(),
-    [],
-  )
-  const {
-    data: sessionsData,
-    loading: sessionsLoading,
-    refetch: sessionsRefetch,
-  } = useRpc(() => gatewayWs.sessionsList(), [])
-
-  useSessionsRefresh(sessionsRefetch)
+  const { agents, defaultId, isLoading: agentsLoading } = useAgents()
+  const { sessions, isLoading: sessionsLoading, refetch: sessionsRefetch } = useSessions()
+  const { deleteSession } = useSessionDelete(sessionsRefetch)
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
 
-  const agent = agentsData?.agents.find((a) => a.id === agentId)
+  const agent = agents.find((a) => a.id === agentId)
   const snapshot = snapshotAgents.find((a) => a.agentId === agentId)
-  const isDefault =
-    agent?.isDefault || (agentsData != null && agent?.id === agentsData.defaultId)
+  const isDefault = agent?.isDefault || (agents.length > 0 && agent?.id === defaultId)
 
-  const allSessions: SessionEntry[] = sessionsData?.sessions ?? []
-  const agentSessions = allSessions.filter(
-    (s) => extractAgentId(s.key) === agentId,
-  )
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      await gatewayWs.sessionsDelete(deleteTarget)
-      sessionsRefetch()
-    } catch {
-      // ignore
-    } finally {
-      setDeleting(false)
-      setDeleteTarget(null)
-    }
-  }
+  const agentSessions = sessions.filter((s) => extractAgentId(s.key) === agentId)
 
   if (agentsLoading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <LoadingBlock className="py-24" />
   }
 
   if (!agent) {
     return (
       <div className="space-y-4">
-        <Link
-          to="/agents"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Agents
-        </Link>
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Bot className="h-8 w-8 mb-3 opacity-50" />
-          <p className="text-sm">
-            Agent <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{agentId}</code> not
-            found
-          </p>
-        </div>
+        <BackLink to="/agents" label="Agents" />
+        <EmptyState icon={Bot} title={`Agent ${agentId} not found`} />
       </div>
     )
   }
@@ -124,19 +56,11 @@ export function AgentDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <Link
-          to="/agents"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Agents
-        </Link>
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">
-            {agent.name ?? agent.id}
-          </h2>
+        <BackLink to="/agents" label="Agents" />
+        <div className="flex items-center gap-3 mt-3">
+          <h2 className="text-lg font-semibold tracking-tight">{agent.name ?? agent.id}</h2>
           {isDefault && (
-            <Badge variant="default" className="text-[10px] px-1.5 py-0">
+            <Badge variant="default" className="text-[0.625rem] px-1.5 py-0">
               default
             </Badge>
           )}
@@ -165,9 +89,7 @@ export function AgentDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm font-medium font-mono truncate">
-              {agent.workspace ?? "--"}
-            </p>
+            <p className="text-sm font-medium font-mono truncate">{agent.workspace ?? "--"}</p>
           </CardContent>
         </Card>
         <Card>
@@ -192,9 +114,7 @@ export function AgentDetailPage() {
         </CardHeader>
         <CardContent className="p-0">
           {sessionsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
+            <LoadingBlock />
           ) : agentSessions.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-12">
               No sessions for this agent
@@ -216,22 +136,10 @@ export function AgentDetailPage() {
                       {extractSessionType(session.key)}
                     </TableCell>
                     <TableCell>
-                      <button
-                        className="font-mono text-xs text-muted-foreground truncate block max-w-[400px] hover:text-foreground hover:underline cursor-pointer text-left"
-                        onClick={() => {
-                          useTerminalStore.getState().setSession(agentId!, session.key)
-                          useTerminalStore.getState().open()
-                        }}
-                      >
-                        {session.key}
-                      </button>
+                      <SessionKeyButton agentId={agentId!} sessionKey={session.key} />
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground">
-                      {session.age != null
-                        ? formatAge(session.age)
-                        : session.updatedAt != null
-                          ? formatAge(Date.now() - session.updatedAt)
-                          : "--"}
+                      {session.age != null ? formatAge(session.age) : "--"}
                     </TableCell>
                     <TableCell>
                       <Button
@@ -251,38 +159,12 @@ export function AgentDetailPage() {
       </Card>
 
       {/* Delete confirmation dialog */}
-      <Dialog
+      <DeleteConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete Session</DialogTitle>
-            <DialogDescription>
-              Permanently delete this session? This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteTarget && (
-            <p className="font-mono text-xs text-muted-foreground break-all">
-              {deleteTarget}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteSession(deleteTarget!)}
+        targetLabel={deleteTarget ?? ""}
+      />
     </div>
   )
 }

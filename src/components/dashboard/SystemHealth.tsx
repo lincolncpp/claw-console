@@ -18,7 +18,6 @@ export function SystemHealth() {
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      {/* Gateway Status */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">Gateway</CardTitle>
@@ -29,7 +28,7 @@ export function SystemHealth() {
             <>
               <div className="flex items-center gap-2">
                 <div
-                  className={`h-2.5 w-2.5 rounded-full ${healthOk ? "bg-emerald-500" : "bg-red-500"}`}
+                  className={`h-2.5 w-2.5 rounded-full ${healthOk ? "bg-status-success" : "bg-status-error"}`}
                 />
                 <span className="text-2xl font-bold">{healthOk ? "Healthy" : "Unhealthy"}</span>
               </div>
@@ -45,7 +44,6 @@ export function SystemHealth() {
         </CardContent>
       </Card>
 
-      {/* Channels */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">Channels</CardTitle>
@@ -56,7 +54,7 @@ export function SystemHealth() {
             <>
               <div className="flex items-center gap-2">
                 <div
-                  className={`h-2.5 w-2.5 rounded-full ${probeOk ? "bg-emerald-500" : "bg-red-500"}`}
+                  className={`h-2.5 w-2.5 rounded-full ${probeOk ? "bg-status-success" : "bg-status-error"}`}
                 />
                 <span className="text-2xl font-bold">
                   {runningChannels}/{configuredChannels}
@@ -69,7 +67,7 @@ export function SystemHealth() {
                     className="text-xs text-muted-foreground flex items-center gap-1.5"
                   >
                     <span
-                      className={`inline-block h-1.5 w-1.5 rounded-full ${ch.health.probe?.ok ? "bg-emerald-500" : "bg-zinc-400"}`}
+                      className={`inline-block h-1.5 w-1.5 rounded-full ${ch.health.probe?.ok ? "bg-status-success" : "bg-muted-foreground"}`}
                     />
                     {ch.label}
                     {ch.health.running ? " (running)" : ""}
@@ -83,7 +81,6 @@ export function SystemHealth() {
         </CardContent>
       </Card>
 
-      {/* Agents / Sessions */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">Agents</CardTitle>
