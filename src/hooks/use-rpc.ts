@@ -12,8 +12,6 @@ interface RpcResult<T> {
   isLoading: boolean
   /** True during any fetch (including refetch with stale data) */
   isFetching: boolean
-  /** @deprecated Use isLoading — kept for backward compatibility */
-  loading: boolean
   error: Error | null
   scopeError: boolean
   refetch: () => void
@@ -72,5 +70,5 @@ export function useRpc<T>(
 
   const isLoading = isFetching && !hasFetchedRef.current
 
-  return { data, isLoading, isFetching, loading: isLoading, error, scopeError, refetch: doFetch }
+  return { data, isLoading, isFetching, error, scopeError, refetch: doFetch }
 }

@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/shared/StatusBadge"
+import { StatCard } from "@/components/shared/StatCard"
 import { BackLink } from "@/components/shared/BackLink"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
@@ -14,7 +15,7 @@ import { Clock, Coins, Cpu } from "lucide-react"
 export function CronRunDetail() {
   const { jobId, runTs } = useParams<{ jobId: string; runTs: string }>()
   const jobs = useCronStore((s) => s.jobs)
-  const { runs: jobRuns, loading } = useCronRuns(jobId)
+  const { runs: jobRuns, isLoading } = useCronRuns(jobId)
 
   const job = jobs.find((j) => j.id === jobId)
   const run = jobRuns.find((r) => String(r.ts) === runTs)
@@ -23,7 +24,7 @@ export function CronRunDetail() {
     return <p className="py-8 text-center text-sm text-muted-foreground">No job selected.</p>
   }
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingBlock />
   }
 
@@ -56,46 +57,22 @@ export function CronRunDetail() {
 
       {/* Stat cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              Duration
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm font-medium">
-              {run.durationMs != null ? `${(run.durationMs / 1000).toFixed(1)}s` : "--"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Cpu className="h-3.5 w-3.5" />
-              Model
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm font-medium">
-              {run.model ?? "--"}
-              {run.provider && <span className="text-muted-foreground"> ({run.provider})</span>}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Coins className="h-3.5 w-3.5" />
-              Cost
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={badgeProps.variant} className={badgeProps.className}>
-              {cost}
-            </Badge>
-          </CardContent>
-        </Card>
+        <StatCard icon={Clock} label="Duration">
+          <p className="text-sm font-medium">
+            {run.durationMs != null ? `${(run.durationMs / 1000).toFixed(1)}s` : "--"}
+          </p>
+        </StatCard>
+        <StatCard icon={Cpu} label="Model">
+          <p className="text-sm font-medium">
+            {run.model ?? "--"}
+            {run.provider && <span className="text-muted-foreground"> ({run.provider})</span>}
+          </p>
+        </StatCard>
+        <StatCard icon={Coins} label="Cost">
+          <Badge variant={badgeProps.variant} className={badgeProps.className}>
+            {cost}
+          </Badge>
+        </StatCard>
       </div>
 
       {/* Token Usage */}

@@ -50,7 +50,7 @@ interface UseLogsOptions {
 export function useLogs(options?: UseLogsOptions) {
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const [lines, setLines] = useState<LogLine[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [scopeError, setScopeError] = useState(false)
   const [lineCount, setLineCount] = useState(0)
   const cursorRef = useRef<number | undefined>(undefined)
@@ -71,11 +71,11 @@ export function useLogs(options?: UseLogsOptions) {
         setLineCount((c) => c + resp.lines.length)
       }
       cursorRef.current = resp.cursor
-      setLoading(false)
+      setIsLoading(false)
     } catch (err: unknown) {
       if (isScopeError(err)) {
         setScopeError(true)
-        setLoading(false)
+        setIsLoading(false)
       }
     }
   }, [connectionStatus, paused])
@@ -89,5 +89,5 @@ export function useLogs(options?: UseLogsOptions) {
     }
   }, [fetchLogs, connectionStatus])
 
-  return { lines, loading, scopeError, lineCount }
+  return { lines, isLoading, scopeError, lineCount }
 }

@@ -104,13 +104,7 @@ export function TokenHistogram() {
       config[jid] = { label: name, color: getColor(i) }
     })
 
-    // Compute total tokens across all hours and jobs
-    let totalTokens = 0
-    for (const record of hourMap.values()) {
-      for (const v of Object.values(record)) totalTokens += v
-    }
-
-    return { data: rows, jobNames: names, jobIds: sortedJobIds, chartConfig: config, totalTokens }
+    return { data: rows, jobNames: names, chartConfig: config }
   }, [jobs, runs])
 
   if (data.length === 0) return null

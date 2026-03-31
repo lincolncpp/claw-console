@@ -8,7 +8,6 @@ interface CronState {
   setJobs: (jobs: CronJob[]) => void
   setRuns: (jobId: string, runs: CronRun[]) => void
   updateJob: (jobId: string, patch: Partial<CronJob>) => void
-  clear: () => void
 }
 
 export const useCronStore = create<CronState>()((set) => ({
@@ -26,6 +25,4 @@ export const useCronStore = create<CronState>()((set) => ({
     set((state) => ({
       jobs: state.jobs.map((j) => (j.id === jobId ? { ...j, ...patch } : j)),
     })),
-
-  clear: () => set({ jobs: [], runs: {} }),
 }))

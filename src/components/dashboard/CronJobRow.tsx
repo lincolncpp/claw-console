@@ -3,8 +3,8 @@ import { Badge } from "@/components/ui/badge"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
 import { StatusBadge } from "@/components/shared/StatusBadge"
-import { formatSchedule, formatTimeAgo, formatTokensCompact } from "@/lib/format"
-import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
+import { TokenBadge } from "@/components/shared/TokenBadge"
+import { formatSchedule, formatTimeAgo } from "@/lib/format"
 import { useCronToggle } from "@/hooks/use-cron-actions"
 import type { CronJob } from "@/types/cron"
 
@@ -75,16 +75,9 @@ export function CronJobRow({ job, recentStatuses, avgTokens, onClick }: CronJobR
         </div>
       </TableCell>
       <TableCell className="text-right">
-        {avgTokens != null ? (() => {
-          const level = classifyTokenConsumption(avgTokens)
-          const props = tokenLevelBadgeProps[level]
-          return (
-            <span className="flex items-center justify-end gap-1.5 text-sm">
-              <span className="text-muted-foreground">{formatTokensCompact(avgTokens)}</span>
-              <Badge variant={props.variant} className={props.className}>{props.label}</Badge>
-            </span>
-          )
-        })() : <span className="text-sm text-muted-foreground">--</span>}
+        <div className="flex justify-end">
+          <TokenBadge tokens={avgTokens} />
+        </div>
       </TableCell>
     </TableRow>
   )

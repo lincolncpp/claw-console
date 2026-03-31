@@ -39,6 +39,15 @@ export function CronJobDetail() {
     return <p className="py-8 text-center text-sm text-muted-foreground">No job selected.</p>
   }
 
+  if (!job) {
+    return (
+      <div className="space-y-4">
+        <BackLink to="/cron" label="Back" />
+        <p className="py-8 text-center text-sm text-muted-foreground">Job not found.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -48,19 +57,17 @@ export function CronJobDetail() {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-            <CardTitle>{job?.name || jobId}</CardTitle>
-            {job?.agentId && <p className="text-sm text-muted-foreground">Agent: {job.agentId}</p>}
+            <CardTitle>{job.name || jobId}</CardTitle>
+            {job.agentId && <p className="text-sm text-muted-foreground">Agent: {job.agentId}</p>}
           </div>
           <div className="flex items-center gap-3">
-            {job && (
-              <div className="flex items-center gap-2 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggle(job.id, job.enabled) }}>
-                <Switch checked={job.enabled} size="sm" className="pointer-events-none" />
-                <span className="text-xs text-muted-foreground">
-                  {job.enabled ? "Enabled" : "Disabled"}
-                </span>
-              </div>
-            )}
-            <Button size="sm" variant="outline" onClick={() => runNow(jobId)} disabled={running || !job?.enabled}>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggle(job.id, job.enabled) }}>
+              <Switch checked={job.enabled} size="sm" className="pointer-events-none" />
+              <span className="text-xs text-muted-foreground">
+                {job.enabled ? "Enabled" : "Disabled"}
+              </span>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => runNow(jobId)} disabled={running || !job.enabled}>
               <Play className="h-3 w-3 mr-1" />
               {running ? "Running..." : "Run Now"}
             </Button>
@@ -68,13 +75,11 @@ export function CronJobDetail() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 mb-4">
-            {job && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Target: {job.sessionTarget}</span>
-                <span className="font-mono">{formatSchedule(job.schedule)}</span>
-              </div>
-            )}
-            {job?.payload?.message != null && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Target: {job.sessionTarget}</span>
+              <span className="font-mono">{formatSchedule(job.schedule)}</span>
+            </div>
+            {job.payload?.message != null && (
               <div className="rounded-md border border-border bg-muted/30 p-3">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium text-muted-foreground">Instructions</p>

@@ -13,14 +13,7 @@ export function formatAge(ms: number, options?: { suffix?: boolean }): string {
 
 export function formatTimeAgo(epochMs: number | undefined): string {
   if (!epochMs) return "--"
-  const s = Math.floor((Date.now() - epochMs) / 1000)
-  if (s < 60) return `${s}s ago`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  return `${d}d ago`
+  return formatAge(Date.now() - epochMs, { suffix: true })
 }
 
 export function formatSchedule(schedule: CronSchedule): string {
@@ -39,6 +32,13 @@ export function formatSchedule(schedule: CronSchedule): string {
     default:
       return "Unknown"
   }
+}
+
+export function formatDuration(ms: number | undefined): string {
+  if (ms == null) return "--"
+  if (ms >= 60_000)
+    return `${Math.floor(ms / 60_000)}min ${Math.round((ms % 60_000) / 1000)}s`
+  return `${Math.round(ms / 1000)}s`
 }
 
 export function formatUptime(ms: number, connectedAt: number): string {

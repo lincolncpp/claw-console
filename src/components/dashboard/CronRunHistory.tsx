@@ -7,12 +7,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
-import { formatTimeAgo, formatTokensCompact } from "@/lib/format"
-import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
+import { TokenBadge } from "@/components/shared/TokenBadge"
+import { formatTimeAgo, formatDuration } from "@/lib/format"
 import { History } from "lucide-react"
 import type { CronRun } from "@/types/cron"
 
@@ -61,11 +60,7 @@ export function CronRunHistory({ jobId, runs }: CronRunHistoryProps) {
             onClick={() => navigate(`/cron/${jobId}/runs/${run.ts}`)}
           >
             <TableCell className="text-sm">
-              {run.durationMs != null
-                ? run.durationMs >= 60_000
-                  ? `${Math.floor(run.durationMs / 60_000)}min ${Math.round((run.durationMs % 60_000) / 1000)}s`
-                  : `${Math.round(run.durationMs / 1000)}s`
-                : "--"}
+              {formatDuration(run.durationMs)}
             </TableCell>
             <TableCell>
               <StatusBadge status={run.status} />
@@ -74,22 +69,7 @@ export function CronRunHistory({ jobId, runs }: CronRunHistoryProps) {
               {run.model ?? "--"}
             </TableCell>
             <TableCell>
-              {run.usage?.total_tokens != null ? (
-                <span className="flex items-center gap-1.5 text-sm">
-                  <span className="text-muted-foreground">{formatTokensCompact(run.usage.total_tokens)}</span>
-                  {(() => {
-                    const level = classifyTokenConsumption(run.usage.total_tokens)
-                    const props = tokenLevelBadgeProps[level]
-                    return (
-                      <Badge variant={props.variant} className={props.className}>
-                        {props.label}
-                      </Badge>
-                    )
-                  })()}
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground">--</span>
-              )}
+              <TokenBadge tokens={run.usage?.total_tokens} />
             </TableCell>
             <TableCell>
               {run.sessionKey ? (

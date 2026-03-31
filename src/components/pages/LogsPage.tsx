@@ -3,7 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ScopeMessage } from "@/components/shared/ScopeMessage"
+import { EmptyState } from "@/components/shared/EmptyState"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { useLogs } from "@/hooks/use-logs"
@@ -23,7 +23,7 @@ export function LogsPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
 
-  const { lines, loading, scopeError, lineCount } = useLogs({ paused })
+  const { lines, isLoading, scopeError, lineCount } = useLogs({ paused })
 
   useEffect(() => {
     if (autoScrollRef.current) {
@@ -31,7 +31,7 @@ export function LogsPage() {
     }
   }, [lineCount])
 
-  if (scopeError) return <ScopeMessage scope="operator.read" icon={ScrollText} />
+  if (scopeError) return <EmptyState scope="operator.read" icon={ScrollText} title="" />
 
   const filtered = lines.filter((l) => {
     if (levelFilter && l.level !== levelFilter) return false
@@ -84,7 +84,7 @@ export function LogsPage() {
       </div>
 
       <div className="flex-1 rounded-lg border bg-card overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <LoadingBlock className="h-full" />
         ) : (
           <ScrollArea

@@ -23,7 +23,7 @@ export function useCronRuns(jobId: string | undefined) {
 
   return {
     runs: jobRuns,
-    loading: isLoading,
+    isLoading,
     error: error?.message ?? null,
     refetch,
   }

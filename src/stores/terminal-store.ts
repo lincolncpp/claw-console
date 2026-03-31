@@ -44,7 +44,6 @@ interface TerminalState {
   updateStreamingToolCall: (tool: ToolCallData) => void
   finalizeStreaming: () => void
   setRunState: (state: RunState) => void
-  clearMessages: () => void
 }
 
 export const useTerminalStore = create<TerminalState>()((set) => ({
@@ -114,7 +113,4 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
     }),
 
   setRunState: (runState) => set({ runState }),
-
-  clearMessages: () =>
-    set({ messages: [], streamingText: null, streamingToolCall: null, runState: "idle" }),
 }))

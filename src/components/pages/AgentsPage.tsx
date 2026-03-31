@@ -12,7 +12,7 @@ import {
 import { useAgents, useModels, useTools, useSkills } from "@/hooks/use-agents"
 import { useSystemStore } from "@/stores/system-store"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
-import { ScopeMessage } from "@/components/shared/ScopeMessage"
+import { EmptyState } from "@/components/shared/EmptyState"
 import { Link } from "react-router-dom"
 import { Bot, Cpu, Wrench, Sparkles } from "lucide-react"
 
@@ -64,7 +64,7 @@ function AgentCards() {
 function ModelsList() {
   const { models, isLoading, scopeError } = useModels()
 
-  if (scopeError) return <ScopeMessage scope="operator.read" icon={Cpu} />
+  if (scopeError) return <EmptyState scope="operator.read" title="" icon={Cpu} />
   if (isLoading) return <LoadingBlock />
 
   return (
@@ -113,7 +113,7 @@ function ModelsList() {
 function ToolsList() {
   const { tools, isLoading, scopeError } = useTools()
 
-  if (scopeError) return <ScopeMessage scope="operator.read" icon={Wrench} />
+  if (scopeError) return <EmptyState scope="operator.read" title="" icon={Wrench} />
   if (isLoading) return <LoadingBlock />
 
   return (
@@ -149,7 +149,7 @@ function ToolsList() {
 function SkillsList() {
   const { skills, isLoading, scopeError } = useSkills()
 
-  if (scopeError) return <ScopeMessage scope="operator.read" icon={Sparkles} />
+  if (scopeError) return <EmptyState scope="operator.read" title="" icon={Sparkles} />
   if (isLoading) return <LoadingBlock />
 
   return (

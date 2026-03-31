@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScopeMessage } from "@/components/shared/ScopeMessage"
-import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { useApprovals } from "@/hooks/use-approvals"
@@ -10,7 +9,7 @@ import { ShieldCheck } from "lucide-react"
 export function ApprovalsPage() {
   const { approvals, isLoading, error, scopeError } = useApprovals()
 
-  if (scopeError) return <ScopeMessage scope="operator.admin" icon={ShieldCheck} />
+  if (scopeError) return <EmptyState scope="operator.admin" icon={ShieldCheck} title="" />
 
   if (error) {
     return (

@@ -20,21 +20,25 @@ import {
 } from "@/components/ui/dialog"
 import { MessageSquare, Trash2, Eraser } from "lucide-react"
 import { useState } from "react"
-import { formatTimeAgo, formatTokensCompact } from "@/lib/format"
-import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
+import { formatTimeAgo } from "@/lib/format"
+import { TokenBadge } from "@/components/shared/TokenBadge"
 import { extractAgentId, extractSessionType } from "@/lib/session-utils"
-import { ScopeMessage } from "@/components/shared/ScopeMessage"
+import { EmptyState } from "@/components/shared/EmptyState"
 import { LoadingBlock } from "@/components/shared/LoadingSpinner"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
 import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
 import { useSessions, useSessionDelete, useSessionCleanup } from "@/hooks/use-sessions"
+import { useAgents } from "@/hooks/use-agents"
 
 export function SessionsPage() {
   const [filter, setFilter] = useState("")
   const { sessions, count, isLoading, scopeError, refetch } = useSessions()
   const { deleteSession } = useSessionDelete(refetch)
   const { cleanup, cleaning } = useSessionCleanup(sessions, refetch)
+  const { agents } = useAgents()
+
+  const agentNameMap = new Map(agents.map((a) => [a.id, a.name ?? a.id]))
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -43,13 +47,15 @@ export function SessionsPage() {
   const [cleanupOpen, setCleanupOpen] = useState(false)
   const [cleanupDays, setCleanupDays] = useState("30")
 
-  if (scopeError) return <ScopeMessage scope="operator.read" icon={MessageSquare} />
+  if (scopeError) return <EmptyState scope="operator.read" icon={MessageSquare} title="" />
+
+  const nonCron = sessions.filter((s) => extractSessionType(s.key) !== "cron")
 
   const filtered = filter
-    ? sessions.filter((s) => s.key.toLowerCase().includes(filter.toLowerCase()))
-    : sessions
+    ? nonCron.filter((s) => s.key.toLowerCase().includes(filter.toLowerCase()))
+    : nonCron
 
-  const handleCleanup = async () => {
+  const handleCleanup = () => {
     const days = parseInt(cleanupDays, 10)
     if (isNaN(days) || days < 1) return
     cleanup(days)
@@ -118,29 +124,14 @@ export function SessionsPage() {
                   <TableRow key={session.key} className="hover:bg-muted/50">
                     <TableCell>
                       <Badge variant="outline" className="font-mono text-xs">
-                        {extractAgentId(session.key)}
+                        {agentNameMap.get(extractAgentId(session.key)) ?? extractAgentId(session.key)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {extractSessionType(session.key)}
                     </TableCell>
                     <TableCell>
-                      {session.totalTokens != null ? (
-                        <span className="flex items-center gap-1.5 text-sm">
-                          <span className="text-muted-foreground">{formatTokensCompact(session.totalTokens)}</span>
-                          {(() => {
-                            const level = classifyTokenConsumption(session.totalTokens)
-                            const props = tokenLevelBadgeProps[level]
-                            return (
-                              <Badge variant={props.variant} className={props.className}>
-                                {props.label}
-                              </Badge>
-                            )
-                          })()}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">--</span>
-                      )}
+                      <TokenBadge tokens={session.totalTokens} />
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {session.model ?? "--"}

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { StatCard } from "@/components/shared/StatCard"
 import {
   Table,
   TableBody,
@@ -70,41 +71,17 @@ export function AgentDetailPage() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Cpu className="h-3.5 w-3.5" />
-              Model
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm font-medium">{agent.model ?? "default"}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <FolderOpen className="h-3.5 w-3.5" />
-              Workspace
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm font-medium font-mono truncate">{agent.workspace ?? "--"}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Hash className="h-3.5 w-3.5" />
-              Sessions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm font-medium">
-              {snapshot?.sessions.count ?? agentSessions.length}
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard icon={Cpu} label="Model">
+          <p className="text-sm font-medium">{agent.model ?? "default"}</p>
+        </StatCard>
+        <StatCard icon={FolderOpen} label="Workspace">
+          <p className="text-sm font-medium font-mono truncate">{agent.workspace ?? "--"}</p>
+        </StatCard>
+        <StatCard icon={Hash} label="Sessions">
+          <p className="text-sm font-medium">
+            {snapshot?.sessions.count ?? agentSessions.length}
+          </p>
+        </StatCard>
       </div>
 
       {/* Sessions */}
