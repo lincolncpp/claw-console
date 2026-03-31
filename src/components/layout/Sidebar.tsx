@@ -38,7 +38,7 @@ export function Sidebar() {
         {/* Logo / Title */}
         <div className="flex h-14 items-center border-b border-sidebar-border px-3">
           {!collapsed && (
-            <span className="text-sm font-semibold tracking-tight truncate">OpenClaw</span>
+            <span className="text-sm font-semibold tracking-tight truncate">Claw Console</span>
           )}
         </div>
 

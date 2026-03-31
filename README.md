@@ -1,6 +1,6 @@
-# OpenClaw Dashboard
+# Claw Console
 
-A web-based control UI for the [OpenClaw](https://openclaw.ai/) Gateway. Monitor system health, manage AI agent sessions, chat with agents in real time, and administer cron jobs, logs, and approvals — all from your browser.
+The web console for the [OpenClaw](https://openclaw.ai/) Gateway. Monitor system health, manage AI agent sessions, chat with agents in real time, and administer cron jobs, logs, and approvals — all from your browser.
 
 ## Features
 

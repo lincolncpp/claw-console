@@ -20,7 +20,7 @@ export function Header() {
 
   return (
     <header className="flex h-14 items-center justify-between border-b px-6">
-      <h1 className="text-xl font-semibold tracking-tight">OpenClaw Dashboard</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Claw Console</h1>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <div className={`h-2.5 w-2.5 rounded-full ${statusColors[connectionStatus]}`} />
         <span>{statusLabels[connectionStatus]}</span>
