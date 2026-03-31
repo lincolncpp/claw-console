@@ -1,14 +1,12 @@
 import { useMemo } from "react"
 import { useRpc } from "./use-rpc"
+import { useConfig } from "./use-config"
 import { gatewayWs } from "@/services/gateway-ws"
 import type { AgentEntry, GlobalConfig, ParsedConfig } from "@/types/agent"
 
 export function useAgents() {
   const { data, isLoading, error, scopeError, refetch } = useRpc(() => gatewayWs.agentsList(), [])
-  const { data: configData } = useRpc(() => gatewayWs.configGet(), [])
-
-  const parsed: ParsedConfig | undefined = configData?.parsed
-  const configHash: string | undefined = configData?.hash
+  const { parsed, configHash } = useConfig()
 
   const agents = useMemo(() => {
     const base = data?.agents ?? []
