@@ -23,19 +23,20 @@ Remove the `StatCard` grid entirely. Sessions count is no longer a stat card —
 
 ### Edit Modal (AgentConfigDialog)
 
-Expand from 4 fields to 11 fields. Widen dialog from `sm:max-w-sm` to `sm:max-w-md`.
+Expand from 4 fields to 10 fields. Widen dialog from `sm:max-w-sm` to `sm:max-w-md`.
+
+Workspace is **not editable** — it's the core of the agent, set at creation time only.
 
 **Fields:**
 1. Name — text input
-2. Workspace — text input (monospace placeholder)
-3. Model — select dropdown (from `useModels()`, with "Use default" option)
-4. Thinking Default — select dropdown (off/minimal/low/medium/high/xhigh/adaptive, with "Use default" option)
-5. Timeout (seconds) / Max Concurrent — 2-column grid, number inputs
-6. Memory Search / Compaction Mode — 2-column grid, select dropdowns
+2. Model — select dropdown (from `useModels()`, with "Use default" option)
+3. Thinking Default — select dropdown (off/minimal/low/medium/high/xhigh/adaptive, with "Use default" option)
+4. Timeout (seconds) / Max Concurrent — 2-column grid, number inputs
+5. Memory Search / Compaction Mode — 2-column grid, select dropdowns
    - Memory Search: "Use default", "enabled", "disabled"
    - Compaction: "Use default", "auto", "full", "none" (values from gateway)
-7. Fallback Models — multi-value: select dropdown to add + removable badges for each
-8. Subagent Model / Subagent Concurrency — 2-column grid
+6. Fallback Models — multi-value: select dropdown to add + removable badges for each
+7. Subagent Model / Subagent Concurrency — 2-column grid
 
 **Per-agent config patching:**
 Change `handleSave` to patch the specific agent entry in `agents.list` instead of `agents.defaults`. Find the agent by ID in the current `parsed.agents.list`, merge the changes, and patch the full list back.
