@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
+import { Link } from "react-router-dom"
 import {
   Dialog,
   DialogContent,
@@ -91,10 +91,10 @@ export function SessionsTable({
           {sessions.slice(0, maxRows).map((session) => (
             <TableRow key={session.key} className="hover:bg-muted/50">
               {!hideAgentColumn && (
-                <TableCell>
-                  <Badge variant="outline" className="font-mono text-xs">
+                <TableCell className="text-sm">
+                  <Link to={`/agents/${extractAgentId(session.key)}`} className="text-foreground hover:underline">
                     {agentNameMap.get(extractAgentId(session.key)) ?? extractAgentId(session.key)}
-                  </Badge>
+                  </Link>
                 </TableCell>
               )}
               <TableCell className="text-sm text-muted-foreground">

@@ -4,6 +4,7 @@ import { TokenHistogram, useTokenTotal } from "@/components/dashboard/TokenSpark
 import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { formatTokensCompact } from "@/lib/format"
 import { ArrowUpCircle, ExternalLink } from "lucide-react"
@@ -46,7 +47,7 @@ export function OverviewPage() {
   const totalTokens = useTokenTotal()
 
   return (
-    <div className="space-y-6">
+    <PageContent>
       <PageHeader breadcrumbs={[{ label: "Overview" }]} />
       <UpdateBanner />
       <SystemHealth />
@@ -62,6 +63,6 @@ export function OverviewPage() {
         </Card>
       )}
       <RecentCronRuns />
-    </div>
+    </PageContent>
   )
 }

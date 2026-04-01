@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/shared/EmptyState"
-import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { PageLoading } from "@/components/shared/LoadingSpinner"
+import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { TableFooter } from "@/components/shared/TableFooter"
 import { useLogs } from "@/hooks/use-logs"
@@ -32,13 +33,9 @@ export function LogsPage() {
     }
   }, [lineCount])
 
-  useEffect(() => {
-    if (!isLoading) {
-      requestAnimationFrame(() => bottomRef.current?.scrollIntoView())
-    }
-  }, [isLoading])
 
   if (scopeError) return <EmptyState scope="operator.read" icon={ScrollText} title="" />
+  if (isLoading) return <PageLoading />
 
   const filtered = lines.filter((l) => {
     if (levelFilter && l.level !== levelFilter) return false
@@ -47,19 +44,14 @@ export function LogsPage() {
   })
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="mb-3">
-        <PageHeader
-          breadcrumbs={[{ label: "Logs" }]}
-          subtitle={`${lines.length} lines loaded`}
-        />
-      </div>
+    <PageContent className="h-full">
+      <PageHeader
+        breadcrumbs={[{ label: "Logs" }]}
+        subtitle={`${lines.length} lines loaded`}
+      />
 
       <div className="flex-1 flex flex-col rounded-xl border bg-card overflow-hidden">
-        {isLoading ? (
-          <LoadingBlock className="h-full" />
-        ) : (
-          <ScrollArea
+        <ScrollArea
             className="h-full"
             onScrollCapture={() => {
               autoScrollRef.current = false
@@ -89,7 +81,6 @@ export function LogsPage() {
               <div ref={bottomRef} />
             </div>
           </ScrollArea>
-        )}
         <TableFooter className="gap-3 shrink-0 rounded-t-none mt-0 -mx-0 -mb-0 px-3 py-2">
           <div className="flex gap-1">
             {["error", "warn", "info", "debug"].map((level) => (
@@ -124,6 +115,6 @@ export function LogsPage() {
           </Button>
         </TableFooter>
       </div>
-    </div>
+    </PageContent>
   )
 }

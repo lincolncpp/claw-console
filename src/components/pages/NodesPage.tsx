@@ -12,6 +12,7 @@ import { useSystemStore } from "@/stores/system-store"
 import { useRpc } from "@/hooks/use-rpc"
 import { gatewayWs } from "@/services/gateway-ws"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { Server } from "lucide-react"
 
@@ -45,7 +46,7 @@ export function NodesPage() {
   )
 
   return (
-    <div className="space-y-4">
+    <PageContent>
       <PageHeader
         breadcrumbs={[{ label: "Nodes" }]}
         subtitle={subtitle}
@@ -124,6 +125,6 @@ export function NodesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageContent>
   )
 }

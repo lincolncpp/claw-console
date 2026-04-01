@@ -1,10 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { MessageSquare } from "lucide-react"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { SessionsTable } from "@/components/shared/SessionsTable"
 import { useSessions, useSessionDelete, useSessionCleanup } from "@/hooks/use-sessions"
 import { useAgents } from "@/hooks/use-agents"
+import { PageLoading } from "@/components/shared/LoadingSpinner"
 
 export function SessionsPage() {
   const { sessions, isLoading, scopeError, refetch } = useSessions()
@@ -15,9 +17,10 @@ export function SessionsPage() {
   const agentNameMap = new Map(agents.map((a) => [a.id, a.name ?? a.id]))
 
   if (scopeError) return <EmptyState scope="operator.read" icon={MessageSquare} title="" />
+  if (isLoading) return <PageLoading />
 
   return (
-    <div className="space-y-4">
+    <PageContent>
       <PageHeader
         breadcrumbs={[{ label: "Sessions" }]}
         subtitle={sessions.length > 0 ? `${sessions.length} total across all agents` : undefined}
@@ -35,6 +38,6 @@ export function SessionsPage() {
           />
         </CardContent>
       </Card>
-    </div>
+    </PageContent>
   )
 }

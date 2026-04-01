@@ -1,15 +1,14 @@
 import { useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { StatusBadge } from "@/components/shared/StatusBadge"
 import { StatCard } from "@/components/shared/StatCard"
 import { Breadcrumb } from "@/components/shared/Breadcrumb"
-import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { PageLoading } from "@/components/shared/LoadingSpinner"
 import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
 import { useCronStore } from "@/stores/cron-store"
 import { useCronRuns } from "@/hooks/use-cron-runs"
-import { classifyCost, costBadgeProps } from "@/lib/status"
-import { formatTokens } from "@/lib/format"
+import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
+import { formatDuration, formatTokens } from "@/lib/format"
 import { Clock, Coins, Cpu } from "lucide-react"
 
 export function CronRunDetail() {
@@ -24,9 +23,7 @@ export function CronRunDetail() {
     return <p className="py-8 text-center text-sm text-muted-foreground">No job selected.</p>
   }
 
-  if (isLoading) {
-    return <LoadingBlock />
-  }
+  if (isLoading) return <PageLoading />
 
   if (!run) {
     return (
@@ -41,28 +38,22 @@ export function CronRunDetail() {
     )
   }
 
-  const cost = classifyCost(run, jobRuns)
-  const badgeProps = costBadgeProps[cost]
+  const tokenLevel = classifyTokenConsumption(run.usage?.total_tokens)
+  const badgeProps = tokenLevelBadgeProps[tokenLevel]
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-1">
-        <Breadcrumb items={[
-          { label: "Cron Jobs", to: "/cron" },
-          { label: job?.name ?? jobId!, to: `/cron/${jobId}` },
-          { label: `Run at ${new Date(run.runAtMs).toLocaleString()}` },
-        ]} />
-        <div className="flex items-center gap-2">
-          <StatusBadge status={run.status} />
-        </div>
-      </div>
+      <Breadcrumb items={[
+        { label: "Cron Jobs", to: "/cron" },
+        { label: job?.name ?? jobId!, to: `/cron/${jobId}` },
+        { label: `Run at ${new Date(run.runAtMs).toLocaleString()}` },
+      ]} />
 
       {/* Stat cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard icon={Clock} label="Duration">
           <p className="text-sm font-medium">
-            {run.durationMs != null ? `${(run.durationMs / 1000).toFixed(1)}s` : "--"}
+            {formatDuration(run.durationMs)}
           </p>
         </StatCard>
         <StatCard icon={Cpu} label="Model">
@@ -71,41 +62,17 @@ export function CronRunDetail() {
             {run.provider && <span className="text-muted-foreground"> ({run.provider})</span>}
           </p>
         </StatCard>
-        <StatCard icon={Coins} label="Cost">
-          <Badge variant={badgeProps.variant} className={badgeProps.className}>
-            {cost}
-          </Badge>
+        <StatCard icon={Coins} label="Total Tokens">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium font-mono">
+              {formatTokens(run.usage?.total_tokens)}
+            </p>
+            <Badge variant={badgeProps.variant} className={badgeProps.className}>
+              {badgeProps.label}
+            </Badge>
+          </div>
         </StatCard>
       </div>
-
-      {/* Token Usage */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Token Usage</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-xs text-muted-foreground">Input Tokens</p>
-              <p className="text-sm font-medium font-mono">
-                {formatTokens(run.usage?.input_tokens)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Output Tokens</p>
-              <p className="text-sm font-medium font-mono">
-                {formatTokens(run.usage?.output_tokens)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total Tokens</p>
-              <p className="text-sm font-medium font-mono">
-                {formatTokens(run.usage?.total_tokens)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Run Details */}
       <Card>

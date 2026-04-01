@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/shared/EmptyState"
-import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { PageLoading } from "@/components/shared/LoadingSpinner"
+import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { useApprovals } from "@/hooks/use-approvals"
@@ -13,24 +14,24 @@ export function ApprovalsPage() {
 
   if (error) {
     return (
-      <div className="space-y-4">
+      <PageContent>
         <PageHeader breadcrumbs={[{ label: "Approvals" }]} subtitle="Pending tool execution approval requests" />
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-sm text-status-error">Failed to load approvals: {error.message}</p>
           </CardContent>
         </Card>
-      </div>
+      </PageContent>
     )
   }
 
+  if (isLoading) return <PageLoading />
+
   return (
-    <div className="space-y-4">
+    <PageContent>
       <PageHeader breadcrumbs={[{ label: "Approvals" }]} subtitle="Pending tool execution approval requests" />
 
-      {isLoading ? (
-        <LoadingBlock />
-      ) : approvals.length === 0 ? (
+      {approvals.length === 0 ? (
         <Card>
           <CardContent className="py-0">
             <EmptyState icon={ShieldCheck} title="No pending approvals" />
@@ -70,6 +71,6 @@ export function ApprovalsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageContent>
   )
 }

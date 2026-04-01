@@ -27,9 +27,10 @@ import { useAgents } from "@/hooks/use-agents"
 import { useSystemStore } from "@/stores/system-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { gatewayWs } from "@/services/gateway-ws"
-import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { PageLoading } from "@/components/shared/LoadingSpinner"
 import { TableFooter } from "@/components/shared/TableFooter"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { useSessions } from "@/hooks/use-sessions"
 import { extractAgentId } from "@/lib/session-utils"
@@ -168,9 +169,10 @@ export function AgentsPage() {
         }))
 
   if (scopeError) return <EmptyState scope="operator.read" icon={Bot} title="" />
+  if (isLoading) return <PageLoading />
 
   return (
-    <div className="space-y-4">
+    <PageContent>
       <PageHeader
         breadcrumbs={[{ label: "Agents" }]}
         subtitle={agents.length > 0 ? `${agents.length} registered` : undefined}
@@ -179,9 +181,7 @@ export function AgentsPage() {
 
       <Card>
         <CardContent>
-          {isLoading ? (
-            <LoadingBlock />
-          ) : agents.length === 0 ? (
+          {agents.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               No agents registered.
             </p>
@@ -323,6 +323,6 @@ export function AgentsPage() {
           onSaved={refetch}
         />
       )}
-    </div>
+    </PageContent>
   )
 }

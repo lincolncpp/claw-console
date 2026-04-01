@@ -8,8 +8,12 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ subtitle, actions, breadcrumbs }: PageHeaderProps) {
+  const hasSecondRow = subtitle || actions
+  if (!hasSecondRow) {
+    return breadcrumbs ? <Breadcrumb items={breadcrumbs} /> : null
+  }
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {breadcrumbs && <Breadcrumb items={breadcrumbs} />}
       <div className="flex items-center justify-between">
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}

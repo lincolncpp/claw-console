@@ -20,7 +20,8 @@ import { formatDuration } from "@/lib/format"
 import { formatRpcError } from "@/lib/errors"
 import { gatewayWs } from "@/services/gateway-ws"
 import { Breadcrumb } from "@/components/shared/Breadcrumb"
-import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { PageContent } from "@/components/shared/PageContent"
+import { PageLoading } from "@/components/shared/LoadingSpinner"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { SessionsTable } from "@/components/shared/SessionsTable"
 import { useAgents, useModels } from "@/hooks/use-agents"
@@ -176,21 +177,19 @@ export function AgentDetailPage() {
 
   const agentSessions = sessions.filter((s) => extractAgentId(s.key) === agentId)
 
-  if (agentsLoading) {
-    return <LoadingBlock className="py-24" />
-  }
+  if (agentsLoading) return <PageLoading />
 
   if (!agent) {
     return (
-      <div className="space-y-4">
+      <PageContent>
         <Breadcrumb items={[{ label: "Agents", to: "/agents" }, { label: agentId ?? "Unknown" }]} />
         <EmptyState icon={Bot} title={`Agent ${agentId} not found`} />
-      </div>
+      </PageContent>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <PageContent>
       <Breadcrumb items={[{ label: "Agents", to: "/agents" }, { label: agent.name ?? agent.id }]} />
 
       {/* Primary Stats */}
@@ -298,6 +297,6 @@ export function AgentDetailPage() {
         configHash={configHash}
         onSaved={refetch}
       />
-    </div>
+    </PageContent>
   )
 }
