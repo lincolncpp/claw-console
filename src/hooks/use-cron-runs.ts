@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { useCronStore } from "@/stores/cron-store"
 import { useRpc } from "./use-rpc"
+import { useCronRunsRefresh } from "./use-cron-runs-refresh"
 import { gatewayWs } from "@/services/gateway-ws"
 
 export function useCronRuns(jobId: string | undefined) {
@@ -12,6 +13,8 @@ export function useCronRuns(jobId: string | undefined) {
     [jobId],
     { enabled: !!jobId },
   )
+
+  useCronRunsRefresh(refetch)
 
   useEffect(() => {
     if (data && jobId) {

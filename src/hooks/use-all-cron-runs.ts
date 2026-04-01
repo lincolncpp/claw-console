@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import { useCronStore } from "@/stores/cron-store"
 import { useGatewayStore } from "@/stores/gateway-store"
+import { useCronRunsRefresh } from "./use-cron-runs-refresh"
 import { gatewayWs } from "@/services/gateway-ws"
 
 const AVG_RUN_COUNT = 10
@@ -16,6 +17,11 @@ export function useFetchAllCronRuns() {
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const fetchedRef = useRef<Set<string>>(new Set())
   const fetchingRef = useRef(false)
+
+  const clearFetched = useCallback(() => {
+    fetchedRef.current.clear()
+  }, [])
+  useCronRunsRefresh(clearFetched)
 
   useEffect(() => {
     if (connectionStatus !== "connected" || jobs.length === 0) return

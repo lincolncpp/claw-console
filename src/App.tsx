@@ -13,6 +13,7 @@ import { gatewayWs, setupEventDispatch } from "@/services/gateway-ws"
 import { useTerminalStore } from "@/stores/terminal-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { notifySessionsChanged } from "@/hooks/use-sessions-refresh"
+import { notifyCronRunsChanged } from "@/hooks/use-cron-runs-refresh"
 import { formatRpcError } from "@/lib/errors"
 import { extractAgentId } from "@/lib/session-utils"
 import { useFetchAllCronRuns } from "@/hooks/use-all-cron-runs"
@@ -32,6 +33,7 @@ function App() {
       onHealth: updateFromHealth,
       onConnect: updateFromConnect,
       onCron: () => {
+        notifyCronRunsChanged()
         gatewayWs
           .cronList()
           .then(setJobs)
