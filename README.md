@@ -1,6 +1,8 @@
-# Claw Console
-
+# 🦞 Claw Console
 The web console for the [OpenClaw](https://openclaw.ai/) Gateway. Monitor system health, manage AI agent sessions, chat with agents in real time, and administer cron jobs, logs, and approvals.
+
+
+<img width="1902" height="1078" alt="Screenshot from 2026-03-31 21-55-05" src="https://github.com/user-attachments/assets/11768e0a-e71c-47c4-81a6-97e32c5e00a8" />
 
 ## Getting Started
 
