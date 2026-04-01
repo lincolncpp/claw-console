@@ -57,16 +57,6 @@ openclaw config set gateway.auth.token "your-token-here"
 
 Then paste the same token into your `.env` as `VITE_GATEWAY_TOKEN`. See the [Gateway Security docs](https://docs.openclaw.ai/gateway/security) for details.
 
-### Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start Vite dev server with HMR |
-| `npm run build` | Type-check (`tsc`) and build for production |
-| `npm run preview` | Serve the production build locally |
-| `npm run check` | Run format check, lint, and build in sequence |
-| `npm test` | Run tests once with Vitest |
-| `npm run test:watch` | Run tests in watch mode |
 
 ## License
 
