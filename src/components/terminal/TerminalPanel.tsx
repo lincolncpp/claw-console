@@ -88,15 +88,25 @@ export function TerminalPanel() {
       })
   }, [isOpen, agentId, sessionKey, addToast])
 
-  // Poll chat history while waiting for agent response (fallback when WS events don't arrive)
+  // Poll chat history as fallback when WS events stall (covers both "waiting" and "streaming")
   useEffect(() => {
-    if (runState !== "waiting" || !sessionKey) return
+    if ((runState !== "waiting" && runState !== "streaming") || !sessionKey) return
     let active = true
+
+    const WAITING_INITIAL_DELAY = 1500
+    const WAITING_INTERVAL = 3000
+    const STREAMING_STALE_THRESHOLD = 8000
+    const STREAMING_POLL_INTERVAL = 5000
 
     const poll = () => {
       if (!active) return
-      const { runState: rs } = useTerminalStore.getState()
-      if (rs !== "waiting") return
+      const { runState: rs, messages: currentMsgs, lastEventAt } = useTerminalStore.getState()
+
+      if (rs === "streaming") {
+        if (Date.now() - lastEventAt < STREAMING_STALE_THRESHOLD) return
+      } else if (rs !== "waiting") {
+        return
+      }
 
       gatewayWs
         .chatHistory(sessionKey)
@@ -107,11 +117,11 @@ export function TerminalPanel() {
           }
           if (!data.messages?.length) return
 
-          const { runState: currentRs, messages: currentMsgs } = useTerminalStore.getState()
-          if (currentRs !== "waiting") return
+          const { runState: currentRs, messages: nowMsgs } = useTerminalStore.getState()
+          if (currentRs !== "waiting" && currentRs !== "streaming") return
 
           const serverMsgs = data.messages.filter((m) => m.role !== "toolResult")
-          if (serverMsgs.length <= currentMsgs.length) return
+          if (serverMsgs.length <= nowMsgs.length) return
 
           useTerminalStore.getState().setMessages(
             serverMsgs.map((m) => ({
@@ -122,15 +132,22 @@ export function TerminalPanel() {
               toolCalls: extractToolCalls(m.content),
             })),
           )
-          useTerminalStore.getState().setRunState("idle")
+          if (currentRs === "streaming") {
+            useTerminalStore.getState().resetStreaming()
+          } else {
+            useTerminalStore.getState().setRunState("idle")
+          }
         })
         .catch((err) => {
           console.warn("Chat history poll failed:", err)
         })
     }
 
-    const initial = setTimeout(poll, 1500)
-    const interval = setInterval(poll, 3000)
+    const initialDelay = runState === "waiting" ? WAITING_INITIAL_DELAY : STREAMING_STALE_THRESHOLD
+    const pollInterval = runState === "waiting" ? WAITING_INTERVAL : STREAMING_POLL_INTERVAL
+
+    const initial = setTimeout(poll, initialDelay)
+    const interval = setInterval(poll, pollInterval)
 
     return () => {
       active = false
@@ -172,13 +189,18 @@ export function TerminalPanel() {
       appendMessage(userMsg)
       useTerminalStore.getState().setRunState("waiting")
       gatewayWs.chatSend(sessionKey, text).catch((err: Error) => {
-        useTerminalStore.getState().setRunState("error")
-        appendMessage({
-          id: crypto.randomUUID(),
-          role: "system",
-          content: `Failed to send message: ${err.message}`,
-          timestamp: Date.now(),
-        })
+        const { runState: currentState } = useTerminalStore.getState()
+        if (currentState === "waiting" || currentState === "error") {
+          useTerminalStore.getState().setRunState("error")
+          appendMessage({
+            id: crypto.randomUUID(),
+            role: "system",
+            content: `Failed to send message: ${err.message}`,
+            timestamp: Date.now(),
+          })
+        } else {
+          console.warn("chatSend RPC failed after streaming started:", err.message)
+        }
       })
     },
     [agentId, sessionKey, appendMessage],

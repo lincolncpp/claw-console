@@ -32,6 +32,7 @@ interface TerminalState {
 
   // Status
   runState: RunState
+  lastEventAt: number
 
   // Actions
   open: () => void
@@ -44,6 +45,7 @@ interface TerminalState {
   updateStreamingToolCall: (tool: ToolCallData) => void
   completeToolCall: (finishedTool: ToolCallData) => void
   finalizeStreaming: () => void
+  resetStreaming: () => void
   setRunState: (state: RunState) => void
 }
 
@@ -59,6 +61,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   streamingToolCall: null,
 
   runState: "idle",
+  lastEventAt: 0,
 
   open: () => set({ isOpen: true }),
   close: () => set({ isOpen: false }),
@@ -80,6 +83,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
       streamingText: null,
       streamingToolCall: null,
       runState: "idle",
+      lastEventAt: 0,
     }),
 
   appendMessage: (msg) =>
@@ -94,9 +98,11 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
     set((s) => ({
       streamingText: typeof updater === "function" ? updater(s.streamingText) : updater,
       runState: "streaming",
+      lastEventAt: Date.now(),
     })),
 
-  updateStreamingToolCall: (streamingToolCall) => set({ streamingToolCall, runState: "streaming" }),
+  updateStreamingToolCall: (streamingToolCall) =>
+    set({ streamingToolCall, runState: "streaming", lastEventAt: Date.now() }),
 
   completeToolCall: (finishedTool) =>
     set((s) => {
@@ -119,6 +125,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
       return {
         messages: msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs,
         streamingToolCall: null,
+        lastEventAt: Date.now(),
       }
     }),
 
@@ -140,6 +147,8 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
         runState: "idle",
       }
     }),
+
+  resetStreaming: () => set({ streamingText: null, streamingToolCall: null, runState: "idle" }),
 
   setRunState: (runState) => set({ runState }),
 }))

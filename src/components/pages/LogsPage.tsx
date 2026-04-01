@@ -48,7 +48,7 @@ export function LogsPage() {
 
       <div className="flex-1 flex flex-col rounded-xl border bg-card overflow-hidden">
         <ScrollArea
-          className="h-full"
+          className="flex-1 min-h-0"
           onScrollCapture={() => {
             autoScrollRef.current = false
           }}

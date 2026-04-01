@@ -175,11 +175,11 @@ export class GatewayWebSocket {
 
   // --- Chat RPCs ---
   async chatSend(sessionKey: string, message: string): Promise<unknown> {
-    return this.sendRpc("chat.send", {
-      sessionKey,
-      message,
-      idempotencyKey: crypto.randomUUID(),
-    })
+    return this.sendRpc(
+      "chat.send",
+      { sessionKey, message, idempotencyKey: crypto.randomUUID() },
+      45000,
+    )
   }
   async chatHistory(sessionKey: string, limit = 200): Promise<unknown> {
     return this.sendRpc("chat.history", { sessionKey, limit })
@@ -209,11 +209,17 @@ export class GatewayWebSocket {
     }
     ws.onmessage = (event) => {
       if (this.connectId !== id) return
+      let frame: GatewayFrame
       try {
-        const frame: GatewayFrame = JSON.parse(event.data)
-        this.handleFrame(frame, token)
+        frame = JSON.parse(event.data)
       } catch {
-        // ignore
+        console.warn("[gw-ws] Failed to parse frame:", event.data?.slice?.(0, 200))
+        return
+      }
+      try {
+        this.handleFrame(frame, token)
+      } catch (err) {
+        console.error("[gw-ws] Error handling frame:", err, frame)
       }
     }
     ws.onclose = () => {
@@ -307,7 +313,7 @@ export class GatewayWebSocket {
     }
   }
 
-  private sendRpc(method: string, params?: unknown): Promise<unknown> {
+  private sendRpc(method: string, params?: unknown, timeoutMs = 15000): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
         reject(new Error("Not connected"))
@@ -317,7 +323,7 @@ export class GatewayWebSocket {
       const timeout = setTimeout(() => {
         this.pendingRpc.delete(id)
         reject(new Error(`RPC timeout: ${method}`))
-      }, 15000)
+      }, timeoutMs)
       this.pendingRpc.set(id, { resolve, reject, timeout })
       this.ws.send(JSON.stringify({ type: "req", id, method, params }))
     })
