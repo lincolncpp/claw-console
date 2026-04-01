@@ -7,8 +7,8 @@ The web console for the [OpenClaw](https://openclaw.ai/) Gateway. Monitor system
 **Prerequisites:** [Node.js](https://nodejs.org/) 20+ and a running [OpenClaw Gateway](https://docs.openclaw.ai)
 
 ```bash
-git clone https://github.com/lincolncpp/ai-dashboard.git
-cd ai-dashboard
+git clone https://github.com/lincolncpp/claw-console.git
+cd claw-console
 npm install
 cp .env.example .env   # then edit .env with your gateway host/port/token
 npm run dev
