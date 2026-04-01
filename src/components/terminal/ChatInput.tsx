@@ -3,9 +3,10 @@ import { useState, useRef } from "react"
 interface ChatInputProps {
   onSend: (text: string) => void
   disabled: boolean
+  placeholder?: string
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
   const [value, setValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -31,7 +32,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           }
         }}
         disabled={disabled}
-        placeholder={disabled ? "Disconnected..." : "Type a message... (Enter to send)"}
+        placeholder={placeholder ?? (disabled ? "Disconnected..." : "Type a message... (Enter to send)")}
         className="flex-1 bg-transparent text-[0.8125rem] font-mono text-foreground outline-none placeholder:text-muted-foreground/50"
       />
     </div>

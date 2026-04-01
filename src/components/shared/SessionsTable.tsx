@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Eraser, Trash2 } from "lucide-react"
+import { Eraser, Plus, Trash2 } from "lucide-react"
 import { formatTimeAgo } from "@/lib/format"
 import { TokenBadge } from "@/components/shared/TokenBadge"
 import { extractAgentId, extractSessionType } from "@/lib/session-utils"
@@ -38,6 +38,7 @@ interface SessionsTableProps {
   hideAgentColumn?: boolean
   cleanup?: (days: number) => Promise<number | void>
   cleaning?: boolean
+  onNewSession?: () => void
 }
 
 export function SessionsTable({
@@ -50,6 +51,7 @@ export function SessionsTable({
   hideAgentColumn,
   cleanup,
   cleaning,
+  onNewSession,
 }: SessionsTableProps) {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [cleanupOpen, setCleanupOpen] = useState(false)
@@ -121,17 +123,25 @@ export function SessionsTable({
         </TableBody>
       </Table>
 
-      {cleanup && (
-        <TableFooter className="justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCleanupOpen(true)}
-            disabled={cleaning}
-          >
-            <Eraser className="h-3 w-3 mr-1" />
-            Cleanup Stale
-          </Button>
+      {(onNewSession || cleanup) && (
+        <TableFooter className="justify-end gap-3">
+          {cleanup && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCleanupOpen(true)}
+              disabled={cleaning}
+            >
+              <Eraser className="h-3 w-3 mr-1" />
+              Cleanup Stale
+            </Button>
+          )}
+          {onNewSession && (
+            <Button variant="outline" size="sm" onClick={onNewSession}>
+              <Plus className="h-3 w-3 mr-1" />
+              New Session
+            </Button>
+          )}
         </TableFooter>
       )}
 

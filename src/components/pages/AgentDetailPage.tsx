@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StatCard } from "@/components/shared/StatCard"
 import { useErrorToastStore } from "@/stores/error-toast-store"
-import { Bot, Cpu, FolderOpen, Hash, MessageSquare, Settings, TriangleAlert } from "lucide-react"
+import { Bot, Cpu, FolderOpen, Hash, MessageSquare, Settings, Trash2, TriangleAlert } from "lucide-react"
 import { extractAgentId } from "@/lib/session-utils"
 import { formatDuration } from "@/lib/format"
 import { formatRpcError } from "@/lib/errors"
@@ -24,7 +24,9 @@ import { PageLoading } from "@/components/shared/LoadingSpinner"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { SessionsTable } from "@/components/shared/SessionsTable"
 import { useAgents, useModels } from "@/hooks/use-agents"
+import { useAgentMutations } from "@/hooks/use-agent-mutations"
 import { useSessions, useSessionDelete } from "@/hooks/use-sessions"
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
 import { useState } from "react"
 import type { AgentEntry } from "@/types/agent"
 
@@ -160,9 +162,12 @@ function AgentConfigDialog({
 
 export function AgentDetailPage() {
   const { agentId } = useParams<{ agentId: string }>()
+  const navigate = useNavigate()
   const [configOpen, setConfigOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  const { agents, configHash, isLoading: agentsLoading, refetch } = useAgents()
+  const { agents, defaultId, configHash, isLoading: agentsLoading, refetch } = useAgents()
+  const { deleteAgent } = useAgentMutations(defaultId)
   const { sessions, isLoading: sessionsLoading, refetch: sessionsRefetch } = useSessions()
   const { deleteSession } = useSessionDelete(sessionsRefetch)
 
@@ -218,9 +223,24 @@ export function AgentDetailPage() {
         <CardHeader className="pb-0">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium">Configuration</CardTitle>
-            <Button variant="ghost" size="icon-xs" onClick={() => setConfigOpen(true)}>
-              <Settings className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon-xs" onClick={() => setConfigOpen(true)}>
+                <Settings className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={agent.isDefault || agent.id === defaultId}
+                title={
+                  agent.isDefault || agent.id === defaultId
+                    ? "Cannot delete the default agent"
+                    : "Delete agent"
+                }
+              >
+                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -291,6 +311,18 @@ export function AgentDetailPage() {
         agent={agent}
         configHash={configHash}
         onSaved={refetch}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={async () => {
+          await deleteAgent(agent.id)
+          navigate("/agents")
+        }}
+        targetLabel={agent.name ?? agent.id}
+        title="Delete Agent"
+        description="Permanently remove this agent and its channel bindings? Existing sessions will remain."
       />
     </PageContent>
   )

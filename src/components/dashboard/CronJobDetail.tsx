@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Breadcrumb } from "@/components/shared/Breadcrumb"
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
 import { useCronStore } from "@/stores/cron-store"
 import { useCronRuns } from "@/hooks/use-cron-runs"
 import { useCronRunNow, useCronToggle, useCronUpdateInstructions } from "@/hooks/use-cron-actions"
+import { useCronDelete } from "@/hooks/use-cron-mutations"
 import { formatSchedule } from "@/lib/format"
 import { CronRunHistory } from "./CronRunHistory"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { Play, Pencil, Check, X } from "lucide-react"
+import { Play, Pencil, Check, X, Trash2 } from "lucide-react"
 
 export function CronJobDetail() {
   const { jobId } = useParams<{ jobId: string }>()
@@ -20,11 +22,14 @@ export function CronJobDetail() {
   const { runNow, running } = useCronRunNow()
   const { toggle } = useCronToggle()
   const { update: updateInstructions, saving } = useCronUpdateInstructions()
+  const { remove: deleteJob } = useCronDelete()
+  const navigate = useNavigate()
 
   const job = jobs.find((j) => j.id === jobId)
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState("")
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -79,6 +84,13 @@ export function CronJobDetail() {
             >
               <Play className="h-3 w-3 mr-1" />
               {running ? "Running..." : "Run Now"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="h-3 w-3" />
             </Button>
           </div>
         </CardHeader>
@@ -158,6 +170,18 @@ export function CronJobDetail() {
       </Card>
 
       <CronRunHistory jobId={jobId} runs={runs} />
+
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={async () => {
+          await deleteJob(jobId)
+          navigate("/cron")
+        }}
+        targetLabel={job.name || jobId}
+        title="Delete Cron Job"
+        description="Permanently delete this cron job? This cannot be undone."
+      />
     </div>
   )
 }

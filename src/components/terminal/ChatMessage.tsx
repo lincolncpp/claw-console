@@ -63,7 +63,7 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
-export function ChatMessage({ message }: { message: ChatMessageData }) {
+export function ChatMessage({ message, agentName }: { message: ChatMessageData; agentName?: string }) {
   const html = renderContent(message.content)
 
   if (!html && !message.toolCalls?.length) return null
@@ -73,7 +73,7 @@ export function ChatMessage({ message }: { message: ChatMessageData }) {
       <span
         className={`shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px ${roleColors[message.role] ?? "text-muted-foreground"}`}
       >
-        {roleLabels[message.role] ?? message.role}
+        {message.role === "assistant" && agentName ? agentName : (roleLabels[message.role] ?? message.role)}
       </span>
       {html ? (
         <div

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react"
 import { useTerminalStore } from "@/stores/terminal-store"
 import { useGatewayStore } from "@/stores/gateway-store"
+import { useSystemStore } from "@/stores/system-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { gatewayWs } from "@/services/gateway-ws"
 import { formatRpcError } from "@/lib/errors"
@@ -43,6 +44,8 @@ export function TerminalPanel() {
   const appendMessage = useTerminalStore((s) => s.appendMessage)
   const addToast = useErrorToastStore((s) => s.addToast)
 
+  const agentLabel = useSystemStore((s) => s.agents.find((a) => a.agentId === agentId)?.name ?? agentId ?? "agent")
+
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const connected = connectionStatus === "connected"
 
@@ -54,7 +57,7 @@ export function TerminalPanel() {
     if (autoScrollRef.current) {
       requestAnimationFrame(() => bottomRef.current?.scrollIntoView())
     }
-  }, [messages, streamingText])
+  }, [messages, streamingText, runState])
 
   useEffect(() => {
     if (!isOpen || !agentId || !sessionKey) return
@@ -82,6 +85,55 @@ export function TerminalPanel() {
         addToast(`Failed to load chat history: ${formatRpcError(err)}`)
       })
   }, [isOpen, agentId, sessionKey, addToast])
+
+  // Poll chat history while waiting for agent response (fallback when WS events don't arrive)
+  useEffect(() => {
+    if (runState !== "waiting" || !sessionKey) return
+    let active = true
+
+    const poll = () => {
+      if (!active) return
+      const { runState: rs } = useTerminalStore.getState()
+      if (rs !== "waiting") return
+
+      gatewayWs
+        .chatHistory(sessionKey)
+        .then((resp) => {
+          if (!active) return
+          const data = resp as {
+            messages?: Array<{ id?: string; role?: string; content?: unknown; timestamp?: number }>
+          }
+          if (!data.messages?.length) return
+
+          const { runState: currentRs, messages: currentMsgs } = useTerminalStore.getState()
+          if (currentRs !== "waiting") return
+
+          const serverMsgs = data.messages.filter((m) => m.role !== "toolResult")
+          if (serverMsgs.length <= currentMsgs.length) return
+
+          useTerminalStore.getState().setMessages(
+            serverMsgs.map((m) => ({
+              id: m.id ?? crypto.randomUUID(),
+              role: (m.role as "user" | "assistant" | "system") ?? "system",
+              content: m.content as string,
+              timestamp: m.timestamp ?? Date.now(),
+              toolCalls: extractToolCalls(m.content),
+            })),
+          )
+          useTerminalStore.getState().setRunState("idle")
+        })
+        .catch(() => {})
+    }
+
+    const initial = setTimeout(poll, 1500)
+    const interval = setInterval(poll, 3000)
+
+    return () => {
+      active = false
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
+  }, [runState, sessionKey])
 
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
@@ -114,7 +166,9 @@ export function TerminalPanel() {
         timestamp: Date.now(),
       }
       appendMessage(userMsg)
+      useTerminalStore.getState().setRunState("waiting")
       gatewayWs.chatSend(sessionKey, text).catch((err: Error) => {
+        useTerminalStore.getState().setRunState("error")
         appendMessage({
           id: crypto.randomUUID(),
           role: "system",
@@ -129,17 +183,18 @@ export function TerminalPanel() {
   if (!isOpen) return null
 
   const statusColor =
-    runState === "streaming"
+    runState === "streaming" || runState === "waiting"
       ? "text-status-warning"
       : runState === "error"
         ? "text-status-error"
         : "text-status-success"
   const statusDot =
-    runState === "streaming"
+    runState === "streaming" || runState === "waiting"
       ? "bg-status-warning"
       : runState === "error"
         ? "bg-status-error"
         : "bg-status-success"
+  const statusLabel = runState === "waiting" ? "thinking" : runState
 
   return (
     <div
@@ -170,7 +225,7 @@ export function TerminalPanel() {
         </div>
         <div className="flex items-center gap-2">
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
-          <span className={`text-[0.625rem] ${statusColor}`}>{runState}</span>
+          <span className={`text-[0.625rem] ${statusColor}`}>{statusLabel}</span>
           <button
             type="button"
             onClick={close}
@@ -199,7 +254,7 @@ export function TerminalPanel() {
         )}
         {messages.map((msg) => (
           <div key={msg.id}>
-            <ChatMessage message={msg} />
+            <ChatMessage message={msg} agentName={agentLabel} />
             {msg.toolCalls?.map((tool) => (
               <ToolCard key={tool.id} tool={tool} />
             ))}
@@ -208,8 +263,8 @@ export function TerminalPanel() {
         {streamingToolCall && <ToolCard tool={streamingToolCall} />}
         {streamingText != null && (
           <div className="flex gap-3 items-start px-2 py-0.5">
-            <span className="shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px text-status-success">
-              assistant
+            <span className="shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px truncate text-status-success">
+              {agentLabel}
             </span>
             <span className="text-[0.8125rem] font-mono text-foreground/90 break-words min-w-0 leading-5">
               {streamingText}
@@ -217,11 +272,36 @@ export function TerminalPanel() {
             </span>
           </div>
         )}
+        {runState === "waiting" && streamingText == null && (
+          <div className="flex gap-3 items-start px-2 py-0.5">
+            <span className="shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px truncate text-status-success">
+              {agentLabel}
+            </span>
+            <span className="text-[0.8125rem] font-mono text-muted-foreground/60 flex items-center gap-1.5">
+              <span className="inline-flex gap-1">
+                <span className="w-1 h-1 rounded-full bg-current animate-pulse" />
+                <span className="w-1 h-1 rounded-full bg-current animate-pulse [animation-delay:200ms]" />
+                <span className="w-1 h-1 rounded-full bg-current animate-pulse [animation-delay:400ms]" />
+              </span>
+              <span className="text-[0.75rem]">Thinking…</span>
+            </span>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
-      <ChatInput onSend={handleSend} disabled={!connected || !agentId || !sessionKey} />
+      <ChatInput
+        onSend={handleSend}
+        disabled={!connected || !agentId || !sessionKey || runState === "waiting" || runState === "streaming"}
+        placeholder={
+          runState === "waiting"
+            ? "Agent is thinking…"
+            : runState === "streaming"
+              ? "Agent is responding…"
+              : undefined
+        }
+      />
     </div>
   )
 }

@@ -8,12 +8,19 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 import { useCronStore } from "@/stores/cron-store"
 import { CronJobRow } from "./CronJobRow"
 import { useCronTokens } from "@/hooks/use-all-cron-runs"
 import { useNavigate } from "react-router-dom"
+import { TableFooter } from "@/components/shared/TableFooter"
 
-export function CronJobList() {
+interface CronJobListProps {
+  onNewCronJob?: () => void
+}
+
+export function CronJobList({ onNewCronJob }: CronJobListProps) {
   const jobs = useCronStore((s) => s.jobs)
   const runs = useCronStore((s) => s.runs)
   const navigate = useNavigate()
@@ -87,6 +94,14 @@ export function CronJobList() {
               ))}
             </TableBody>
           </Table>
+        )}
+        {onNewCronJob && (
+          <TableFooter className="justify-end">
+            <Button variant="outline" size="sm" onClick={onNewCronJob}>
+              <Plus className="h-3 w-3 mr-1" />
+              New Cron Job
+            </Button>
+          </TableFooter>
         )}
       </CardContent>
     </Card>

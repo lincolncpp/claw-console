@@ -1,12 +1,21 @@
+import { useState } from "react"
 import { CronJobList } from "@/components/dashboard/CronJobList"
 import { CronRunsByAgentChart } from "@/components/dashboard/CronRunsByAgentChart"
 import { CronSettingsCard } from "@/components/dashboard/CronSettingsCard"
+import { NewCronJobDialog } from "@/components/pages/NewCronJobDialog"
 import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { useCronStore } from "@/stores/cron-store"
+import { gatewayWs } from "@/services/gateway-ws"
 
 export function CronPage() {
   const jobCount = useCronStore((s) => s.jobs.length)
+  const setJobs = useCronStore((s) => s.setJobs)
+  const [newJobOpen, setNewJobOpen] = useState(false)
+
+  const refetchJobs = () => {
+    gatewayWs.cronList().then(setJobs).catch(() => {})
+  }
 
   return (
     <PageContent>
@@ -20,7 +29,13 @@ export function CronPage() {
         <CronRunsByAgentChart />
         <CronSettingsCard />
       </div>
-      <CronJobList />
+      <CronJobList onNewCronJob={() => setNewJobOpen(true)} />
+
+      <NewCronJobDialog
+        open={newJobOpen}
+        onClose={() => setNewJobOpen(false)}
+        onSaved={refetchJobs}
+      />
     </PageContent>
   )
 }

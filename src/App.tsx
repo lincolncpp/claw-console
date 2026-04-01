@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { PageRouter } from "@/components/layout/PageRouter"
 import { TerminalPanel } from "@/components/terminal/TerminalPanel"
 import { ErrorToasts } from "@/components/shared/ErrorToasts"
+import { GatewayDisconnectedModal } from "@/components/shared/GatewayDisconnectedModal"
 import { useGatewayStore } from "@/stores/gateway-store"
 import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
@@ -223,6 +224,7 @@ function App() {
         <StatusBar />
       </div>
       <ErrorToasts />
+      <GatewayDisconnectedModal />
     </div>
   )
 }

@@ -107,6 +107,12 @@ export class GatewayWebSocket {
   async cronUpdate(id: string, patch: Partial<CronJob>): Promise<CronJob> {
     return this.sendRpc("cron.update", { id, patch }) as Promise<CronJob>
   }
+  async cronAdd(job: Partial<CronJob>): Promise<CronJob> {
+    return this.sendRpc("cron.add", job) as Promise<CronJob>
+  }
+  async cronRemove(jobId: string): Promise<void> {
+    await this.sendRpc("cron.remove", { jobId })
+  }
 
   // --- Sessions RPCs ---
   async sessionsList(): Promise<SessionsListResponse> {
@@ -126,6 +132,9 @@ export class GatewayWebSocket {
   // --- Agents RPCs ---
   async agentsList(): Promise<AgentsListResponse> {
     return this.sendRpc("agents.list") as Promise<AgentsListResponse>
+  }
+  async agentsDelete(agentId: string): Promise<{ ok: boolean; agentId: string; removedBindings: number }> {
+    return this.sendRpc("agents.delete", { agentId }) as Promise<{ ok: boolean; agentId: string; removedBindings: number }>
   }
   async configGet(): Promise<ConfigGetResponse> {
     return this.sendRpc("config.get") as Promise<ConfigGetResponse>

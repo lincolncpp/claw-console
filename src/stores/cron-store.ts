@@ -10,6 +10,8 @@ interface CronState {
   setRuns: (jobId: string, runs: CronRun[]) => void
   setRunTotals: (jobId: string, total: number) => void
   updateJob: (jobId: string, patch: Partial<CronJob>) => void
+  addJob: (job: CronJob) => void
+  removeJob: (jobId: string) => void
 }
 
 export const useCronStore = create<CronState>()((set) => ({
@@ -33,4 +35,20 @@ export const useCronStore = create<CronState>()((set) => ({
     set((state) => ({
       jobs: state.jobs.map((j) => (j.id === jobId ? { ...j, ...patch } : j)),
     })),
+
+  addJob: (job) =>
+    set((state) => ({
+      jobs: [...state.jobs, job],
+    })),
+
+  removeJob: (jobId) =>
+    set((state) => {
+      const { [jobId]: _runs, ...restRuns } = state.runs
+      const { [jobId]: _totals, ...restTotals } = state.runTotals
+      return {
+        jobs: state.jobs.filter((j) => j.id !== jobId),
+        runs: restRuns,
+        runTotals: restTotals,
+      }
+    }),
 }))

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Bot, Settings, TriangleAlert } from "lucide-react"
+import { Bot, Plus, Settings, TriangleAlert } from "lucide-react"
 import { formatDuration } from "@/lib/format"
 import { formatRpcError } from "@/lib/errors"
 import { useMemo, useState } from "react"
@@ -35,6 +35,7 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { useSessions } from "@/hooks/use-sessions"
 import { extractAgentId } from "@/lib/session-utils"
 import type { AgentEntry, GlobalConfig } from "@/types/agent"
+import { AddAgentDialog } from "./AddAgentDialog"
 
 function GlobalConfigDialog({
   open,
@@ -137,6 +138,7 @@ function GlobalConfigDialog({
 
 export function AgentsPage() {
   const [configOpen, setConfigOpen] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
   const navigate = useNavigate()
   const snapshotAgents = useSystemStore((s) => s.agents)
   const {
@@ -271,44 +273,56 @@ export function AgentsPage() {
               </TableBody>
             </Table>
           )}
-          {globalConfig && (
-            <TableFooter className="gap-3 text-xs">
-              <span className="text-muted-foreground">Global:</span>
-              {globalConfig.toolExecSecurity && (
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  Tool Security
-                  <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                    {globalConfig.toolExecSecurity}
-                  </Badge>
-                </span>
-              )}
-              {globalConfig.toolAskMode && (
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  Tool Ask
-                  <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                    {globalConfig.toolAskMode}
-                  </Badge>
-                </span>
-              )}
-              {globalConfig.cronMaxConcurrentRuns != null && (
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  Cron Concurrency
-                  <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                    {globalConfig.cronMaxConcurrentRuns}
-                  </Badge>
-                </span>
-              )}
+          <TableFooter className="gap-3 text-xs">
+            {globalConfig && (
+              <>
+                <span className="text-muted-foreground">Global:</span>
+                {globalConfig.toolExecSecurity && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    Tool Security
+                    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                      {globalConfig.toolExecSecurity}
+                    </Badge>
+                  </span>
+                )}
+                {globalConfig.toolAskMode && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    Tool Ask
+                    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                      {globalConfig.toolAskMode}
+                    </Badge>
+                  </span>
+                )}
+                {globalConfig.cronMaxConcurrentRuns != null && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    Cron Concurrency
+                    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                      {globalConfig.cronMaxConcurrentRuns}
+                    </Badge>
+                  </span>
+                )}
+              </>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setConfigOpen(true)}
-                className="ml-auto"
+                disabled={!globalConfig}
               >
                 <Settings className="h-3 w-3 mr-1" />
                 Edit Config
               </Button>
-            </TableFooter>
-          )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAddDialogOpen(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Agent
+              </Button>
+            </div>
+          </TableFooter>
         </CardContent>
       </Card>
 
@@ -321,6 +335,14 @@ export function AgentsPage() {
           onSaved={refetch}
         />
       )}
+
+      <AddAgentDialog
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        existingIds={agents.map((a) => a.id)}
+        configHash={configHash}
+        onSaved={refetch}
+      />
     </PageContent>
   )
 }

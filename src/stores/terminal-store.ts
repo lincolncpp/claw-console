@@ -14,7 +14,7 @@ function loadHeight(): number {
   }
 }
 
-export type RunState = "idle" | "streaming" | "error"
+export type RunState = "idle" | "waiting" | "streaming" | "error"
 
 interface TerminalState {
   // Panel UI
