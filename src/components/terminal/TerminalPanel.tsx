@@ -267,7 +267,7 @@ export function TerminalPanel() {
         {streamingToolCall && <ToolCard tool={streamingToolCall} />}
         {streamingText != null && (
           <div className="flex gap-3 items-start px-2 py-0.5">
-            <span className="shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px truncate text-status-success">
+            <span className="shrink-0 w-20 text-right text-[0.6875rem] font-mono pt-px truncate text-status-success">
               {agentLabel}
             </span>
             <span className="text-[0.8125rem] font-mono text-foreground/90 break-words min-w-0 leading-5">
@@ -278,7 +278,7 @@ export function TerminalPanel() {
         )}
         {runState === "waiting" && streamingText == null && (
           <div className="flex gap-3 items-start px-2 py-0.5">
-            <span className="shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px truncate text-status-success">
+            <span className="shrink-0 w-20 text-right text-[0.6875rem] font-mono pt-px truncate text-status-success">
               {agentLabel}
             </span>
             <span className="text-[0.8125rem] font-mono text-muted-foreground/60 flex items-center gap-1.5">

@@ -25,25 +25,31 @@ interface ContentBlock {
   id?: string
 }
 
-function extractText(content: unknown): string {
-  if (typeof content === "string") return content
-  if (!Array.isArray(content)) return String(content ?? "")
+function extractContent(content: unknown): { thinking: string; text: string } {
+  if (typeof content === "string") return { thinking: "", text: content }
+  if (!Array.isArray(content)) return { thinking: "", text: String(content ?? "") }
 
-  const parts: string[] = []
+  const thinkingParts: string[] = []
+  const textParts: string[] = []
+
   for (const block of content as ContentBlock[]) {
     if (typeof block === "string") {
-      parts.push(block)
-    } else if (block?.type === "text" && block.text) {
-      parts.push(block.text)
+      textParts.push(block)
     } else if (block?.type === "thinking" && block.thinking) {
-      parts.push(block.thinking)
+      thinkingParts.push(block.thinking)
+    } else if (block?.type === "text" && block.text) {
+      textParts.push(block.text)
     } else if (block?.text) {
-      parts.push(block.text)
+      textParts.push(block.text)
     } else if (block?.content) {
-      parts.push(String(block.content))
+      textParts.push(String(block.content))
     }
   }
-  return parts.join("\n")
+
+  return {
+    thinking: thinkingParts.join("\n"),
+    text: textParts.join("\n"),
+  }
 }
 
 export function ChatMessage({
@@ -53,28 +59,32 @@ export function ChatMessage({
   message: ChatMessageData
   agentName?: string
 }) {
-  const text = extractText(message.content)
+  const { thinking, text } = extractContent(message.content)
 
-  if (!text && !message.toolCalls?.length) return null
+  if (!text && !thinking) return null
 
   return (
     <div className="flex gap-3 items-start px-2 py-0.5 hover:bg-white/[0.02] rounded">
       <span
-        className={`shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px ${roleColors[message.role] ?? "text-muted-foreground"}`}
+        className={`shrink-0 w-20 text-right text-[0.6875rem] font-mono pt-px ${roleColors[message.role] ?? "text-muted-foreground"}`}
       >
         {message.role === "assistant" && agentName
           ? agentName
           : (roleLabels[message.role] ?? message.role)}
       </span>
-      {text ? (
-        <div className="text-[0.8125rem] font-mono text-foreground/90 break-words min-w-0 leading-5 [&_pre]:bg-muted [&_pre]:rounded [&_pre]:px-2 [&_pre]:py-1 [&_pre]:my-1 [&_pre]:overflow-x-auto [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_p]:my-0">
-          <ReactMarkdown>{text}</ReactMarkdown>
-        </div>
-      ) : (
-        <div className="text-[0.8125rem] font-mono text-muted-foreground/50 min-w-0 leading-5">
-          (tool calls)
-        </div>
-      )}
+      <div className="text-[0.8125rem] font-mono text-foreground/90 break-words min-w-0 leading-5 [&_pre]:bg-muted [&_pre]:rounded [&_pre]:px-2 [&_pre]:py-1 [&_pre]:my-1 [&_pre]:overflow-x-auto [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_p]:my-0">
+        {thinking && (
+          <details className="mb-1">
+            <summary className="text-[0.6875rem] text-muted-foreground/60 cursor-pointer select-none hover:text-muted-foreground transition-colors">
+              Thinking
+            </summary>
+            <div className="mt-1 pl-2 border-l border-muted-foreground/20 text-muted-foreground/50 text-[0.75rem]">
+              <ReactMarkdown>{thinking}</ReactMarkdown>
+            </div>
+          </details>
+        )}
+        {text && <ReactMarkdown>{text}</ReactMarkdown>}
+      </div>
     </div>
   )
 }

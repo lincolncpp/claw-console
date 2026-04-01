@@ -69,6 +69,7 @@ function App() {
           if (!stream || !data) return
 
           if (stream === "text" || stream === "content") {
+            if (data.type === "thinking") return
             const text =
               (data.text as string) ?? (data.content as string) ?? (data.delta as string) ?? ""
             if (text) {

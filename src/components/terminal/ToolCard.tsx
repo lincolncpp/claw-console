@@ -1,44 +1,29 @@
-import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { ChevronRight, ChevronDown } from "lucide-react"
-import { toolStatusVariants } from "@/lib/status"
 import type { ToolCallData } from "@/types/terminal"
 
+const statusColors: Record<string, string> = {
+  running: "text-status-warning",
+  success: "text-status-success",
+  error: "text-status-error",
+}
+
 export function ToolCard({ tool }: { tool: ToolCallData }) {
-  const [expanded, setExpanded] = useState(false)
+  const duration = tool.durationMs != null ? ` (${(tool.durationMs / 1000).toFixed(1)}s)` : ""
 
   return (
-    <div className="ml-[68px] my-1 border border-border rounded-md bg-card overflow-hidden border-l-2 border-l-primary">
-      <button
-        type="button"
-        className="flex items-center justify-between w-full px-3 py-1.5 text-left hover:bg-white/[0.02] transition-colors"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-center gap-2">
-          {expanded ? (
-            <ChevronDown className="h-3 w-3 text-primary" />
-          ) : (
-            <ChevronRight className="h-3 w-3 text-primary" />
-          )}
-          <span className="text-xs font-mono text-foreground/80">{tool.name}</span>
-          <Badge
-            variant={toolStatusVariants[tool.status] ?? "secondary"}
-            className="text-[0.625rem] px-1.5 py-0"
-          >
-            {tool.status}
-          </Badge>
-        </div>
-        {tool.durationMs != null && (
-          <span className="text-[0.625rem] text-muted-foreground">
-            {(tool.durationMs / 1000).toFixed(1)}s
+    <div className="flex gap-3 items-start px-2 py-0.5">
+      <span className="shrink-0 w-20" />
+      <details>
+        <summary className="text-[0.6875rem] text-muted-foreground/60 cursor-pointer select-none hover:text-muted-foreground transition-colors">
+          {tool.name}
+          <span className={statusColors[tool.status] ?? "text-muted-foreground/60"}>
+            {" "}{tool.status}
           </span>
-        )}
-      </button>
-      {expanded && (
-        <div className="border-t border-border px-3 py-2 text-xs font-mono space-y-2">
+          {duration}
+        </summary>
+        <div className="mt-1 pl-2 border-l border-muted-foreground/20 text-muted-foreground/50 text-[0.75rem] font-mono space-y-2">
           {tool.args != null && (
             <div>
-              <div className="text-muted-foreground text-[0.625rem] mb-1">ARGS</div>
+              <div className="text-muted-foreground/40 text-[0.625rem] mb-0.5">ARGS</div>
               <pre className="bg-muted rounded px-2 py-1 overflow-x-auto text-foreground/70 text-[0.6875rem]">
                 {typeof tool.args === "string" ? tool.args : JSON.stringify(tool.args, null, 2)}
               </pre>
@@ -46,7 +31,7 @@ export function ToolCard({ tool }: { tool: ToolCallData }) {
           )}
           {tool.result != null && (
             <div>
-              <div className="text-muted-foreground text-[0.625rem] mb-1">RESULT</div>
+              <div className="text-muted-foreground/40 text-[0.625rem] mb-0.5">RESULT</div>
               <pre className="bg-muted rounded px-2 py-1 overflow-x-auto text-foreground/70 text-[0.6875rem]">
                 {typeof tool.result === "string"
                   ? tool.result
@@ -55,7 +40,7 @@ export function ToolCard({ tool }: { tool: ToolCallData }) {
             </div>
           )}
         </div>
-      )}
+      </details>
     </div>
   )
 }

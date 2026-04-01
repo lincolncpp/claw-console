@@ -258,7 +258,7 @@ function AgentConfigDialog({
               <div className="flex flex-wrap gap-1 mb-1.5">
                 {fallbacks.map((f, i) => (
                   <Badge
-                    key={i}
+                    key={f}
                     variant="outline"
                     className="text-[0.625rem] px-1.5 py-0 gap-1"
                   >
@@ -415,6 +415,11 @@ export function AgentDetailPage() {
               className="text-destructive"
               onClick={() => setDeleteDialogOpen(true)}
               disabled={agent.isDefault || agent.id === defaultId}
+              title={
+                agent.isDefault || agent.id === defaultId
+                  ? "Cannot delete the default agent"
+                  : "Delete agent"
+              }
             >
               Delete
             </Button>
@@ -507,6 +512,9 @@ export function AgentDetailPage() {
 
             <dt className="text-muted-foreground">Subagent Concurrency</dt>
             <dd>{agent.subagentsMaxConcurrent ?? "--"}</dd>
+
+            <dt className="text-muted-foreground">Sessions</dt>
+            <dd>{agentSessions.length.toLocaleString()}</dd>
           </dl>
         </CardContent>
       </Card>
