@@ -32,7 +32,9 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
           }
         }}
         disabled={disabled}
-        placeholder={placeholder ?? (disabled ? "Disconnected..." : "Type a message... (Enter to send)")}
+        placeholder={
+          placeholder ?? (disabled ? "Disconnected..." : "Type a message... (Enter to send)")
+        }
         className="flex-1 bg-transparent text-[0.8125rem] font-mono text-foreground outline-none placeholder:text-muted-foreground/50"
       />
     </div>

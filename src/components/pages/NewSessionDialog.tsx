@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -20,12 +20,14 @@ interface NewSessionDialogProps {
 
 export function NewSessionDialog({ open, onClose, agents, defaultId }: NewSessionDialogProps) {
   const [agentId, setAgentId] = useState("")
+  const [prevOpen, setPrevOpen] = useState(false)
 
-  useEffect(() => {
-    if (open) {
-      setAgentId(defaultId ?? agents[0]?.id ?? "")
-    }
-  }, [open, defaultId, agents])
+  if (open && !prevOpen) {
+    setAgentId(defaultId ?? agents[0]?.id ?? "")
+  }
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+  }
 
   const handleStart = () => {
     if (!agentId) return

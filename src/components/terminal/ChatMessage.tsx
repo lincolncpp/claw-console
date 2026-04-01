@@ -1,3 +1,4 @@
+import ReactMarkdown from "react-markdown"
 import type { ChatMessageData } from "@/types/terminal"
 
 const roleColors: Record<string, string> = {
@@ -45,41 +46,30 @@ function extractText(content: unknown): string {
   return parts.join("\n")
 }
 
-function renderContent(content: unknown): string {
-  const text = extractText(content)
-  if (!text) return ""
-  return escapeHtml(text)
-    .replace(/```([\s\S]*?)```/g, (_m, inner) => {
-      const code = inner.replace(/^\w*\n/, "")
-      return `<pre class="bg-muted rounded px-2 py-1 my-1 overflow-x-auto"><code>${code}</code></pre>`
-    })
-    .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 rounded text-xs">$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/\n/g, "<br/>")
-}
+export function ChatMessage({
+  message,
+  agentName,
+}: {
+  message: ChatMessageData
+  agentName?: string
+}) {
+  const text = extractText(message.content)
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-}
-
-export function ChatMessage({ message, agentName }: { message: ChatMessageData; agentName?: string }) {
-  const html = renderContent(message.content)
-
-  if (!html && !message.toolCalls?.length) return null
+  if (!text && !message.toolCalls?.length) return null
 
   return (
     <div className="flex gap-3 items-start px-2 py-0.5 hover:bg-white/[0.02] rounded">
       <span
         className={`shrink-0 w-14 text-right text-[0.6875rem] font-mono pt-px ${roleColors[message.role] ?? "text-muted-foreground"}`}
       >
-        {message.role === "assistant" && agentName ? agentName : (roleLabels[message.role] ?? message.role)}
+        {message.role === "assistant" && agentName
+          ? agentName
+          : (roleLabels[message.role] ?? message.role)}
       </span>
-      {html ? (
-        <div
-          className="text-[0.8125rem] font-mono text-foreground/90 break-words min-w-0 leading-5"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+      {text ? (
+        <div className="text-[0.8125rem] font-mono text-foreground/90 break-words min-w-0 leading-5 [&_pre]:bg-muted [&_pre]:rounded [&_pre]:px-2 [&_pre]:py-1 [&_pre]:my-1 [&_pre]:overflow-x-auto [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_p]:my-0">
+          <ReactMarkdown>{text}</ReactMarkdown>
+        </div>
       ) : (
         <div className="text-[0.8125rem] font-mono text-muted-foreground/50 min-w-0 leading-5">
           (tool calls)

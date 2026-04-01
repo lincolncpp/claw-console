@@ -78,11 +78,7 @@ export function CronJobDetail() {
                 {job.enabled ? "Enabled" : "Disabled"}
               </span>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setEditOpen(true)}
-            >
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
               <Settings className="h-3 w-3 mr-1" />
               Edit
             </Button>
@@ -95,11 +91,7 @@ export function CronJobDetail() {
               <Play className="h-3 w-3 mr-1" />
               {running ? "Running..." : "Run Now"}
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setDeleteOpen(true)}
-            >
+            <Button size="sm" variant="outline" onClick={() => setDeleteOpen(true)}>
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
@@ -124,8 +116,12 @@ export function CronJobDetail() {
               <dt className="text-muted-foreground">Delivery</dt>
               <dd>
                 {job.delivery?.mode ?? "none"}
-                {job.delivery?.channel && <span className="text-muted-foreground"> ({job.delivery.channel})</span>}
-                {job.delivery?.to && <span className="text-muted-foreground"> → {job.delivery.to}</span>}
+                {job.delivery?.channel && (
+                  <span className="text-muted-foreground"> ({job.delivery.channel})</span>
+                )}
+                {job.delivery?.to && (
+                  <span className="text-muted-foreground"> → {job.delivery.to}</span>
+                )}
               </dd>
             </dl>
             {job.payload?.message != null && (
@@ -199,11 +195,7 @@ export function CronJobDetail() {
 
       <CronRunHistory jobId={jobId} runs={runs} />
 
-      <EditCronJobDialog
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        job={job}
-      />
+      <EditCronJobDialog open={editOpen} onClose={() => setEditOpen(false)} job={job} />
 
       <DeleteConfirmDialog
         open={deleteOpen}

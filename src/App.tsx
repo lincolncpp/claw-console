@@ -28,7 +28,7 @@ function App() {
   useFetchAllCronRuns()
 
   useEffect(() => {
-    setupEventDispatch({
+    const cleanupDispatch = setupEventDispatch({
       onHealth: updateFromHealth,
       onConnect: updateFromConnect,
       onCron: () => {
@@ -49,7 +49,9 @@ function App() {
             }
             updateAgentSessionCounts(counts)
           })
-          .catch(() => {})
+          .catch((err) => {
+            console.warn("Failed to refresh session counts:", formatRpcError(err))
+          })
       },
       onPresence: () => {},
       onApprovalRequested: () => {},
@@ -70,8 +72,7 @@ function App() {
             const text =
               (data.text as string) ?? (data.content as string) ?? (data.delta as string) ?? ""
             if (text) {
-              const current = useTerminalStore.getState().streamingText
-              useTerminalStore.getState().updateStreamingText((current ?? "") + text)
+              useTerminalStore.getState().updateStreamingText((prev) => (prev ?? "") + text)
             }
           } else if (stream === "tool" || stream === "tool_use") {
             const status = (data.status as string) ?? (data.state as string) ?? ""
@@ -90,30 +91,12 @@ function App() {
             ) {
               const current = useTerminalStore.getState().streamingToolCall
               if (current) {
-                const finishedTool = {
+                useTerminalStore.getState().completeToolCall({
                   ...current,
                   result: data.result ?? data.output,
                   status: (status === "error" ? "error" : "success") as "error" | "success",
                   durationMs: data.durationMs as number | undefined,
-                }
-                const msgs = [...useTerminalStore.getState().messages]
-                const lastMsg = msgs[msgs.length - 1]
-                if (lastMsg && lastMsg.role === "assistant") {
-                  msgs[msgs.length - 1] = {
-                    ...lastMsg,
-                    toolCalls: [...(lastMsg.toolCalls ?? []), finishedTool],
-                  }
-                  useTerminalStore.getState().setMessages(msgs)
-                } else {
-                  useTerminalStore.getState().appendMessage({
-                    id: crypto.randomUUID(),
-                    role: "assistant",
-                    content: "",
-                    timestamp: Date.now(),
-                    toolCalls: [finishedTool],
-                  })
-                }
-                useTerminalStore.setState({ streamingToolCall: null })
+                })
               }
             }
           } else if (stream === "lifecycle") {
@@ -135,8 +118,7 @@ function App() {
 
         if (event === "chat.delta" || event === "session.delta") {
           const text = (p.text as string) ?? (p.content as string) ?? ""
-          const current = useTerminalStore.getState().streamingText
-          useTerminalStore.getState().updateStreamingText((current ?? "") + text)
+          useTerminalStore.getState().updateStreamingText((prev) => (prev ?? "") + text)
         } else if (
           event === "chat.end" ||
           event === "session.end" ||
@@ -157,6 +139,10 @@ function App() {
     gatewayWs.setStatusChangeHandler((status, error) => {
       setConnectionStatus(status, error)
     })
+    return () => {
+      cleanupDispatch()
+      gatewayWs.setStatusChangeHandler(null)
+    }
   }, [
     updateFromHealth,
     updateFromConnect,

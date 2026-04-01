@@ -313,11 +313,7 @@ export function AgentsPage() {
                 <Settings className="h-3 w-3 mr-1" />
                 Edit Config
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAddDialogOpen(true)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="h-3 w-3 mr-1" />
                 New Agent
               </Button>

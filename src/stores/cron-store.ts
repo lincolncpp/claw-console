@@ -43,12 +43,14 @@ export const useCronStore = create<CronState>()((set) => ({
 
   removeJob: (jobId) =>
     set((state) => {
-      const { [jobId]: _runs, ...restRuns } = state.runs
-      const { [jobId]: _totals, ...restTotals } = state.runTotals
+      const runs = { ...state.runs }
+      const runTotals = { ...state.runTotals }
+      delete runs[jobId]
+      delete runTotals[jobId]
       return {
         jobs: state.jobs.filter((j) => j.id !== jobId),
-        runs: restRuns,
-        runTotals: restTotals,
+        runs,
+        runTotals,
       }
     }),
 }))

@@ -81,7 +81,8 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
       if (timeout) payload.timeoutSeconds = parseInt(timeout, 10)
       if (Object.keys(payload).length > 0) job.payload = payload
       const delivery: Record<string, string> = { mode: deliveryMode }
-      if (deliveryMode !== "none" && deliveryChannel.trim()) delivery.channel = deliveryChannel.trim()
+      if (deliveryMode !== "none" && deliveryChannel.trim())
+        delivery.channel = deliveryChannel.trim()
       if (deliveryMode !== "none" && deliveryTo.trim()) delivery.to = deliveryTo.trim()
       job.delivery = delivery
       await create(job)
@@ -122,7 +123,11 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground">Agent</label>
-            <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={selectClass}>
+            <select
+              value={agentId}
+              onChange={(e) => setAgentId(e.target.value)}
+              className={selectClass}
+            >
               <option value="">Select agent</option>
               {agents.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -209,7 +214,11 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Model</label>
-            <select value={model} onChange={(e) => setModel(e.target.value)} className={selectClass}>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className={selectClass}
+            >
               <option value="">Use agent default</option>
               {models.map((m) => (
                 <option key={m.id} value={`${m.provider}/${m.id}`}>
@@ -220,7 +229,11 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Thinking</label>
-            <select value={thinking} onChange={(e) => setThinking(e.target.value)} className={selectClass}>
+            <select
+              value={thinking}
+              onChange={(e) => setThinking(e.target.value)}
+              className={selectClass}
+            >
               <option value="">Use default</option>
               <option value="off">off</option>
               <option value="minimal">minimal</option>
@@ -242,7 +255,11 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Delivery Mode</label>
-            <select value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)} className={selectClass}>
+            <select
+              value={deliveryMode}
+              onChange={(e) => setDeliveryMode(e.target.value)}
+              className={selectClass}
+            >
               <option value="none">None</option>
               <option value="announce">Announce (channel)</option>
               <option value="webhook">Webhook</option>
@@ -260,7 +277,9 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">{deliveryMode === "webhook" ? "URL" : "To"}</label>
+                <label className="text-xs text-muted-foreground">
+                  {deliveryMode === "webhook" ? "URL" : "To"}
+                </label>
                 <Input
                   value={deliveryTo}
                   onChange={(e) => setDeliveryTo((e.target as HTMLInputElement).value)}

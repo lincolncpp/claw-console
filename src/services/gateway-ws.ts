@@ -38,15 +38,15 @@ export class GatewayWebSocket {
   private token: string | null = null
   private connectId = 0
 
-  setEventHandler(handler: EventHandler) {
+  setEventHandler(handler: EventHandler | null) {
     this.onEvent = handler
   }
 
-  setStatusChangeHandler(handler: NonNullable<typeof this.onStatusChange>) {
+  setStatusChangeHandler(handler: NonNullable<typeof this.onStatusChange> | null) {
     this.onStatusChange = handler
   }
 
-  setConnectHandler(handler: (data: ConnectResult) => void) {
+  setConnectHandler(handler: ((data: ConnectResult) => void) | null) {
     this.onConnect = handler
   }
 
@@ -133,8 +133,14 @@ export class GatewayWebSocket {
   async agentsList(): Promise<AgentsListResponse> {
     return this.sendRpc("agents.list") as Promise<AgentsListResponse>
   }
-  async agentsDelete(agentId: string): Promise<{ ok: boolean; agentId: string; removedBindings: number }> {
-    return this.sendRpc("agents.delete", { agentId }) as Promise<{ ok: boolean; agentId: string; removedBindings: number }>
+  async agentsDelete(
+    agentId: string,
+  ): Promise<{ ok: boolean; agentId: string; removedBindings: number }> {
+    return this.sendRpc("agents.delete", { agentId }) as Promise<{
+      ok: boolean
+      agentId: string
+      removedBindings: number
+    }>
   }
   async configGet(): Promise<ConfigGetResponse> {
     return this.sendRpc("config.get") as Promise<ConfigGetResponse>
@@ -348,7 +354,7 @@ export interface EventDispatchHandlers {
   onChatEvent: (event: string, payload: unknown) => void
 }
 
-export function setupEventDispatch(handlers: EventDispatchHandlers) {
+export function setupEventDispatch(handlers: EventDispatchHandlers): () => void {
   gatewayWs.setConnectHandler(handlers.onConnect)
   gatewayWs.setEventHandler((event, payload) => {
     console.log("[gw-event]", event, payload)
@@ -378,4 +384,8 @@ export function setupEventDispatch(handlers: EventDispatchHandlers) {
         break
     }
   })
+  return () => {
+    gatewayWs.setEventHandler(null)
+    gatewayWs.setConnectHandler(null)
+  }
 }

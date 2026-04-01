@@ -40,8 +40,9 @@ interface TerminalState {
   setSession: (agentId: string, sessionKey: string) => void
   appendMessage: (msg: ChatMessageData) => void
   setMessages: (msgs: ChatMessageData[]) => void
-  updateStreamingText: (text: string) => void
+  updateStreamingText: (updater: string | ((prev: string | null) => string)) => void
   updateStreamingToolCall: (tool: ToolCallData) => void
+  completeToolCall: (finishedTool: ToolCallData) => void
   finalizeStreaming: () => void
   setRunState: (state: RunState) => void
 }
@@ -89,9 +90,37 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
 
   setMessages: (messages) => set({ messages }),
 
-  updateStreamingText: (streamingText) => set({ streamingText, runState: "streaming" }),
+  updateStreamingText: (updater) =>
+    set((s) => ({
+      streamingText: typeof updater === "function" ? updater(s.streamingText) : updater,
+      runState: "streaming",
+    })),
 
   updateStreamingToolCall: (streamingToolCall) => set({ streamingToolCall, runState: "streaming" }),
+
+  completeToolCall: (finishedTool) =>
+    set((s) => {
+      const msgs = [...s.messages]
+      const lastMsg = msgs[msgs.length - 1]
+      if (lastMsg && lastMsg.role === "assistant") {
+        msgs[msgs.length - 1] = {
+          ...lastMsg,
+          toolCalls: [...(lastMsg.toolCalls ?? []), finishedTool],
+        }
+      } else {
+        msgs.push({
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "",
+          timestamp: Date.now(),
+          toolCalls: [finishedTool],
+        })
+      }
+      return {
+        messages: msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs,
+        streamingToolCall: null,
+      }
+    }),
 
   finalizeStreaming: () =>
     set((s) => {

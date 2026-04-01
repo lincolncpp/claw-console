@@ -14,7 +14,12 @@ export function CronPage() {
   const [newJobOpen, setNewJobOpen] = useState(false)
 
   const refetchJobs = () => {
-    gatewayWs.cronList().then(setJobs).catch(() => {})
+    gatewayWs
+      .cronList()
+      .then(setJobs)
+      .catch((err) => {
+        console.warn("Failed to refetch cron jobs:", err)
+      })
   }
 
   return (

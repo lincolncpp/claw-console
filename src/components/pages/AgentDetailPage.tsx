@@ -13,7 +13,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StatCard } from "@/components/shared/StatCard"
 import { useErrorToastStore } from "@/stores/error-toast-store"
-import { Bot, Cpu, FolderOpen, Hash, MessageSquare, Settings, Trash2, TriangleAlert } from "lucide-react"
+import {
+  Bot,
+  Cpu,
+  FolderOpen,
+  Hash,
+  MessageSquare,
+  Settings,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react"
 import { extractAgentId } from "@/lib/session-utils"
 import { formatDuration } from "@/lib/format"
 import { formatRpcError } from "@/lib/errors"

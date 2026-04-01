@@ -26,7 +26,8 @@ const UNIT_MS: Record<string, number> = {
 }
 
 function parseEveryMs(ms: number): { value: string; unit: string } {
-  if (ms >= 86_400_000 && ms % 86_400_000 === 0) return { value: String(ms / 86_400_000), unit: "d" }
+  if (ms >= 86_400_000 && ms % 86_400_000 === 0)
+    return { value: String(ms / 86_400_000), unit: "d" }
   if (ms >= 3_600_000 && ms % 3_600_000 === 0) return { value: String(ms / 3_600_000), unit: "h" }
   return { value: String(ms / 60_000), unit: "m" }
 }
@@ -219,7 +220,11 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Model</label>
-            <select value={model} onChange={(e) => setModel(e.target.value)} className={selectClass}>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className={selectClass}
+            >
               <option value="">Use agent default</option>
               {models.map((m) => (
                 <option key={m.id} value={`${m.provider}/${m.id}`}>
@@ -230,7 +235,11 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Thinking</label>
-            <select value={thinking} onChange={(e) => setThinking(e.target.value)} className={selectClass}>
+            <select
+              value={thinking}
+              onChange={(e) => setThinking(e.target.value)}
+              className={selectClass}
+            >
               <option value="">Use default</option>
               <option value="off">off</option>
               <option value="minimal">minimal</option>
@@ -274,7 +283,9 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">{deliveryMode === "webhook" ? "URL" : "To"}</label>
+                <label className="text-xs text-muted-foreground">
+                  {deliveryMode === "webhook" ? "URL" : "To"}
+                </label>
                 <Input
                   value={deliveryTo}
                   onChange={(e) => setDeliveryTo((e.target as HTMLInputElement).value)}

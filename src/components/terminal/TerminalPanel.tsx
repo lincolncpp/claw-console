@@ -44,7 +44,9 @@ export function TerminalPanel() {
   const appendMessage = useTerminalStore((s) => s.appendMessage)
   const addToast = useErrorToastStore((s) => s.addToast)
 
-  const agentLabel = useSystemStore((s) => s.agents.find((a) => a.agentId === agentId)?.name ?? agentId ?? "agent")
+  const agentLabel = useSystemStore(
+    (s) => s.agents.find((a) => a.agentId === agentId)?.name ?? agentId ?? "agent",
+  )
 
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const connected = connectionStatus === "connected"
@@ -122,7 +124,9 @@ export function TerminalPanel() {
           )
           useTerminalStore.getState().setRunState("idle")
         })
-        .catch(() => {})
+        .catch((err) => {
+          console.warn("Chat history poll failed:", err)
+        })
     }
 
     const initial = setTimeout(poll, 1500)
@@ -293,7 +297,13 @@ export function TerminalPanel() {
       {/* Input */}
       <ChatInput
         onSend={handleSend}
-        disabled={!connected || !agentId || !sessionKey || runState === "waiting" || runState === "streaming"}
+        disabled={
+          !connected ||
+          !agentId ||
+          !sessionKey ||
+          runState === "waiting" ||
+          runState === "streaming"
+        }
         placeholder={
           runState === "waiting"
             ? "Agent is thinking…"

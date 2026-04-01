@@ -42,7 +42,9 @@ export function CronJobRow({ job, recentStatuses, avgTokens, onClick }: CronJobR
         {formatSchedule(job.schedule)}
       </TableCell>
       <TableCell>{job.sessionTarget}</TableCell>
-      <TableCell className="text-sm text-muted-foreground">{(job.payload?.model as string) ?? "agent default"}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {(job.payload?.model as string) ?? "agent default"}
+      </TableCell>
       <TableCell className="text-sm text-muted-foreground">{job.delivery?.mode ?? "--"}</TableCell>
       <TableCell>
         <div className="flex items-center gap-2" onClick={handleToggle}>

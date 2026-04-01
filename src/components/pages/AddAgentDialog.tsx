@@ -42,8 +42,7 @@ export function AddAgentDialog({ open, onClose, existingIds, onSaved }: AddAgent
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9_-]/g, "")
 
-  const deriveWorkspace = (agentId: string) =>
-    agentId ? `~/.openclaw/workspace-${agentId}` : ""
+  const deriveWorkspace = (agentId: string) => (agentId ? `~/.openclaw/workspace-${agentId}` : "")
 
   const handleIdChange = (raw: string) => {
     const formatted = formatId(raw)

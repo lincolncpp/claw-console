@@ -68,7 +68,9 @@ export function SessionsTable({
     if (isNaN(days) || days < 1 || !cleanup) return
     cleanup(days)
       .then(() => setCleanupOpen(false))
-      .catch(() => {})
+      .catch((err) => {
+        console.warn("Session cleanup failed:", err)
+      })
   }
 
   return (
