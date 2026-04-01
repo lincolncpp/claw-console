@@ -16,6 +16,7 @@ import { notifySessionsChanged } from "@/hooks/use-sessions-refresh"
 import { notifyCronRunsChanged } from "@/hooks/use-cron-runs-refresh"
 import { formatRpcError } from "@/lib/errors"
 import { extractAgentId } from "@/lib/session-utils"
+import { uuid } from "@/lib/uuid"
 import { useFetchAllCronRuns } from "@/hooks/use-all-cron-runs"
 
 function App() {
@@ -81,7 +82,7 @@ function App() {
             const status = (data.status as string) ?? (data.state as string) ?? ""
             if (status === "start" || status === "running") {
               useTerminalStore.getState().updateStreamingToolCall({
-                id: (data.toolCallId as string) ?? (data.id as string) ?? crypto.randomUUID(),
+                id: (data.toolCallId as string) ?? (data.id as string) ?? uuid(),
                 name: (data.name as string) ?? (data.tool as string) ?? "unknown",
                 args: data.args ?? data.input,
                 status: "running",
@@ -109,7 +110,7 @@ function App() {
             } else if (status === "error" || status === "failed") {
               useTerminalStore.getState().setRunState("error")
               useTerminalStore.getState().appendMessage({
-                id: crypto.randomUUID(),
+                id: uuid(),
                 role: "system",
                 content: (data.message as string) ?? (data.error as string) ?? "An error occurred.",
                 timestamp: Date.now(),
@@ -131,7 +132,7 @@ function App() {
         } else if (event === "chat.error" || event === "session.error") {
           useTerminalStore.getState().setRunState("error")
           useTerminalStore.getState().appendMessage({
-            id: crypto.randomUUID(),
+            id: uuid(),
             role: "system",
             content: (p.message as string) ?? (p.error as string) ?? "An error occurred.",
             timestamp: Date.now(),

@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import type { ChatMessageData, ToolCallData } from "@/types/terminal"
+import { uuid } from "@/lib/uuid"
 
 const STORAGE_KEY = "terminal-panel-height"
 const DEFAULT_HEIGHT = 240
@@ -115,7 +116,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
         }
       } else {
         msgs.push({
-          id: crypto.randomUUID(),
+          id: uuid(),
           role: "assistant",
           content: "",
           timestamp: Date.now(),
@@ -134,7 +135,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
       const msgs = [...s.messages]
       if (s.streamingText != null) {
         msgs.push({
-          id: crypto.randomUUID(),
+          id: uuid(),
           role: "assistant",
           content: s.streamingText,
           timestamp: Date.now(),

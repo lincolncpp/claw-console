@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { uuid } from "@/lib/uuid"
 
 interface Toast {
   id: string
@@ -28,7 +29,7 @@ export const useErrorToastStore = create<ErrorToastState>()((set, get) => ({
     if (isDuplicate) return
 
     const toast: Toast = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       message,
       level,
       timestamp: now,

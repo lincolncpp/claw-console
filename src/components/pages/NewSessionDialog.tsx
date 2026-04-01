@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useTerminalStore } from "@/stores/terminal-store"
 import type { AgentEntry } from "@/types/agent"
+import { uuid } from "@/lib/uuid"
 
 interface NewSessionDialogProps {
   open: boolean
@@ -31,7 +32,7 @@ export function NewSessionDialog({ open, onClose, agents, defaultId }: NewSessio
 
   const handleStart = () => {
     if (!agentId) return
-    const shortId = crypto.randomUUID().slice(0, 8)
+    const shortId = uuid().slice(0, 8)
     const sessionKey = `agent:${agentId}:${shortId}`
     const store = useTerminalStore.getState()
     store.setSession(agentId, sessionKey)

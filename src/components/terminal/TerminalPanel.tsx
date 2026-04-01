@@ -10,6 +10,7 @@ import { ToolCard } from "./ToolCard"
 import { ChatInput } from "./ChatInput"
 import { X, GripHorizontal } from "lucide-react"
 import type { ChatMessageData, ToolCallData } from "@/types/terminal"
+import { uuid } from "@/lib/uuid"
 
 const MIN_HEIGHT = 120
 const MAX_HEIGHT_RATIO = 0.6
@@ -20,7 +21,7 @@ function extractToolCalls(content: unknown): ToolCallData[] | undefined {
   for (const block of content) {
     if (block && typeof block === "object" && block.type === "toolCall") {
       tools.push({
-        id: block.id ?? crypto.randomUUID(),
+        id: block.id ?? uuid(),
         name: block.name ?? "unknown",
         args: block.arguments ?? block.args,
         status: "success",
@@ -75,7 +76,7 @@ export function TerminalPanel() {
           data.messages
             .filter((m) => m.role !== "toolResult")
             .map((m) => ({
-              id: m.id ?? crypto.randomUUID(),
+              id: m.id ?? uuid(),
               role: (m.role as "user" | "assistant" | "system") ?? "system",
               content: m.content as string,
               timestamp: m.timestamp ?? Date.now(),
@@ -125,7 +126,7 @@ export function TerminalPanel() {
 
           useTerminalStore.getState().setMessages(
             serverMsgs.map((m) => ({
-              id: m.id ?? crypto.randomUUID(),
+              id: m.id ?? uuid(),
               role: (m.role as "user" | "assistant" | "system") ?? "system",
               content: m.content as string,
               timestamp: m.timestamp ?? Date.now(),
@@ -181,7 +182,7 @@ export function TerminalPanel() {
     (text: string) => {
       if (!agentId || !sessionKey) return
       const userMsg: ChatMessageData = {
-        id: crypto.randomUUID(),
+        id: uuid(),
         role: "user",
         content: text,
         timestamp: Date.now(),
@@ -193,7 +194,7 @@ export function TerminalPanel() {
         if (currentState === "waiting" || currentState === "error") {
           useTerminalStore.getState().setRunState("error")
           appendMessage({
-            id: crypto.randomUUID(),
+            id: uuid(),
             role: "system",
             content: `Failed to send message: ${err.message}`,
             timestamp: Date.now(),
