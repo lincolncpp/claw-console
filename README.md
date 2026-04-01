@@ -14,6 +14,17 @@ Monitor system health · Manage AI agent sessions · Chat with agents in real ti
 
 <br>
 
+## Features
+
+- **Overview dashboard** — health, token usage, and recent activity
+- **Sessions** — browse and manage active agent sessions
+- **Agents** — view and configure registered agents
+- **Nodes** — monitor node status and presence
+- **Cron jobs** — schedule, run, and inspect job history
+- **Logs** — real-time streaming with filtering
+- **Approvals** — act on pending tool-execution requests
+- **Built-in chat** — interact with agents directly
+
 ## Getting Started
 
 > **Requires** [Node.js](https://nodejs.org/) 20+ and [OpenClaw Gateway](https://docs.openclaw.ai) **v2026.3.31** or later
@@ -54,12 +65,13 @@ Then paste the same token into your `.env` as `VITE_GATEWAY_TOKEN`. See the [Gat
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Start dev server |
-| `npm run build` | Type-check & build for production |
-| `npm run preview` | Preview production build |
-| `npm run check` | Format check + lint + build |
-| `npm test` | Run tests |
+| `npm run dev` | Start Vite dev server with HMR |
+| `npm run build` | Type-check (`tsc`) and build for production |
+| `npm run preview` | Serve the production build locally |
+| `npm run check` | Run format check, lint, and build in sequence |
+| `npm test` | Run tests once with Vitest |
+| `npm run test:watch` | Run tests in watch mode |
 
 ## License
 
-[MIT](LICENSE)
+MIT — see [LICENSE](LICENSE) for details.
