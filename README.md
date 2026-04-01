@@ -1,16 +1,12 @@
-<div align="center">
+
 
 # 🦞 Claw Console
 
 **The web console for the [OpenClaw](https://openclaw.ai/) Gateway.**
-
 Monitor system health · Manage AI agent sessions · Chat with agents in real time · Administer cron jobs, logs & approvals
-
-<br>
 
 <img width="1902" height="1078" alt="Claw Console screenshot" src="https://github.com/user-attachments/assets/11768e0a-e71c-47c4-81a6-97e32c5e00a8" />
 
-</div>
 
 <br>
 
