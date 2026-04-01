@@ -319,7 +319,7 @@ export function AgentsPage() {
                 onClick={() => setAddDialogOpen(true)}
               >
                 <Plus className="h-3 w-3 mr-1" />
-                Add Agent
+                New Agent
               </Button>
             </div>
           </TableFooter>

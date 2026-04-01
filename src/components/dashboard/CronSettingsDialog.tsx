@@ -57,7 +57,7 @@ export function CronSettingsDialog({ open, onClose }: CronSettingsDialogProps) {
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground">Session Retention</label>
+            <label className="text-xs text-muted-foreground">Cron Session Retention</label>
             <Input
               placeholder="e.g. 24h, 1h, 10m"
               value={retention}

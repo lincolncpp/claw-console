@@ -14,7 +14,7 @@ export function CronSettingsCard() {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const rows = [
-    { label: "Session Retention", value: formatRetention(cronConfig.sessionRetention) },
+    { label: "Cron Session Retention", value: formatRetention(cronConfig.sessionRetention) },
     {
       label: "Max Concurrent Runs",
       value: cronConfig.maxConcurrentRuns != null ? String(cronConfig.maxConcurrentRuns) : "—",

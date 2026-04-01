@@ -108,7 +108,7 @@ export function AddAgentDialog({ open, onClose, existingIds, onSaved }: AddAgent
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Add Agent</DialogTitle>
+          <DialogTitle>New Agent</DialogTitle>
           <DialogDescription>Register a new agent in the gateway configuration.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -204,7 +204,7 @@ export function AddAgentDialog({ open, onClose, existingIds, onSaved }: AddAgent
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Adding..." : "Add Agent"}
+            {saving ? "Adding..." : "New Agent"}
           </Button>
         </DialogFooter>
       </DialogContent>
