@@ -57,6 +57,40 @@ openclaw config set gateway.auth.token "your-token-here"
 
 Then paste the same token into your `.env` as `VITE_GATEWAY_TOKEN`. See the [Gateway Security docs](https://docs.openclaw.ai/gateway/security) for details.
 
+### Running on a Different Machine (LAN Access)
+
+By default the OpenClaw Gateway only listens on loopback (`127.0.0.1`), so it is not reachable from other machines. To run Claw Console from a different machine on the same local network you need to reconfigure the gateway.
+
+**1. Set `gateway.bind` to `lan` on the gateway host:**
+
+```json5
+{
+  gateway: {
+    bind: "lan",
+    port: 18789,
+    auth: {
+      mode: "token",
+      token: "your-secure-token"
+    }
+  }
+}
+```
+
+You can also bind to a specific IP instead of `"lan"` (e.g. `"192.168.1.100"`).
+
+> **Authentication is mandatory for non-loopback binds.** The gateway will refuse to start without it. Use token auth (`gateway.auth.mode: "token"`) or password auth (`OPENCLAW_GATEWAY_PASSWORD` env var). Generate a token with `openclaw doctor --generate-gateway-token`.
+
+**2. Restart the gateway** — `gateway.*` config changes require a restart.
+
+**3. Point Claw Console to the gateway's LAN IP:**
+
+```env
+VITE_GATEWAY_HOST=<gateway-lan-ip>
+VITE_GATEWAY_PORT=18789
+VITE_GATEWAY_TOKEN=<the-token-you-configured>
+```
+
+> **Security notes:** Never expose the gateway unauthenticated on `0.0.0.0`. Firewall the port to a tight allowlist of source IPs. For a more secure alternative, consider [Tailscale Serve](https://docs.openclaw.ai/gateway/security) (`gateway.bind: "tailnet"`), which keeps the gateway on loopback while Tailscale manages access control. See the [Gateway Configuration Reference](https://docs.openclaw.ai/gateway/configuration-reference) for all options.
 
 ## License
 
