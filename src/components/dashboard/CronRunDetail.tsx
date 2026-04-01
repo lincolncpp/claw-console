@@ -28,11 +28,13 @@ export function CronRunDetail() {
   if (!run) {
     return (
       <div className="space-y-4">
-        <Breadcrumb items={[
-          { label: "Cron Jobs", to: "/cron" },
-          { label: job?.name ?? jobId!, to: `/cron/${jobId}` },
-          { label: "Run not found" },
-        ]} />
+        <Breadcrumb
+          items={[
+            { label: "Cron Jobs", to: "/cron" },
+            { label: job?.name ?? jobId!, to: `/cron/${jobId}` },
+            { label: "Run not found" },
+          ]}
+        />
         <p className="py-16 text-center text-sm text-muted-foreground">Run not found.</p>
       </div>
     )
@@ -43,18 +45,18 @@ export function CronRunDetail() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[
-        { label: "Cron Jobs", to: "/cron" },
-        { label: job?.name ?? jobId!, to: `/cron/${jobId}` },
-        { label: `Run at ${new Date(run.runAtMs).toLocaleString()}` },
-      ]} />
+      <Breadcrumb
+        items={[
+          { label: "Cron Jobs", to: "/cron" },
+          { label: job?.name ?? jobId!, to: `/cron/${jobId}` },
+          { label: `Run at ${new Date(run.runAtMs).toLocaleString()}` },
+        ]}
+      />
 
       {/* Stat cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard icon={Clock} label="Duration">
-          <p className="text-sm font-medium">
-            {formatDuration(run.durationMs)}
-          </p>
+          <p className="text-sm font-medium">{formatDuration(run.durationMs)}</p>
         </StatCard>
         <StatCard icon={Cpu} label="Model">
           <p className="text-sm font-medium">
@@ -64,9 +66,7 @@ export function CronRunDetail() {
         </StatCard>
         <StatCard icon={Coins} label="Total Tokens">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium font-mono">
-              {formatTokens(run.usage?.total_tokens)}
-            </p>
+            <p className="text-sm font-medium font-mono">{formatTokens(run.usage?.total_tokens)}</p>
             <Badge variant={badgeProps.variant} className={badgeProps.className}>
               {badgeProps.label}
             </Badge>

@@ -15,9 +15,15 @@ export function CronSettingsCard() {
 
   const rows = [
     { label: "Session Retention", value: formatRetention(cronConfig.sessionRetention) },
-    { label: "Max Concurrent Runs", value: cronConfig.maxConcurrentRuns != null ? String(cronConfig.maxConcurrentRuns) : "—" },
+    {
+      label: "Max Concurrent Runs",
+      value: cronConfig.maxConcurrentRuns != null ? String(cronConfig.maxConcurrentRuns) : "—",
+    },
     { label: "Run Log Max Size", value: cronConfig.runLog?.maxBytes ?? "—" },
-    { label: "Run Log Keep Lines", value: cronConfig.runLog?.keepLines != null ? String(cronConfig.runLog.keepLines) : "—" },
+    {
+      label: "Run Log Keep Lines",
+      value: cronConfig.runLog?.keepLines != null ? String(cronConfig.runLog.keepLines) : "—",
+    },
   ]
 
   return (

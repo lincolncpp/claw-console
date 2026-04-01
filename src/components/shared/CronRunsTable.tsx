@@ -43,15 +43,11 @@ export function CronRunsTable({ runs, jobNameMap, onRowClick }: CronRunsTablePro
             <TableCell className="text-sm font-medium">
               {jobNameMap[run.jobId] ?? run.jobId}
             </TableCell>
-            <TableCell className="text-sm">
-              {formatDuration(run.durationMs)}
-            </TableCell>
+            <TableCell className="text-sm">{formatDuration(run.durationMs)}</TableCell>
             <TableCell>
               <StatusBadge status={run.status} />
             </TableCell>
-            <TableCell className="text-sm text-muted-foreground">
-              {run.model ?? "--"}
-            </TableCell>
+            <TableCell className="text-sm text-muted-foreground">{run.model ?? "--"}</TableCell>
             <TableCell>
               <TokenBadge tokens={run.usage?.total_tokens} />
             </TableCell>

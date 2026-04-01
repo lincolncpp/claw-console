@@ -156,7 +156,14 @@ function App() {
     gatewayWs.setStatusChangeHandler((status, error) => {
       setConnectionStatus(status, error)
     })
-  }, [updateFromHealth, updateFromConnect, setJobs, setConnectionStatus, addToast])
+  }, [
+    updateFromHealth,
+    updateFromConnect,
+    setJobs,
+    setConnectionStatus,
+    addToast,
+    updateAgentSessionCounts,
+  ])
 
   useEffect(() => {
     if (token) {

@@ -48,9 +48,7 @@ export function CronRunsByAgentChart() {
       <Card className="flex-1">
         <CardContent>
           <p className="text-xs text-muted-foreground mb-3">Runs by Agent</p>
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No run data available.
-          </p>
+          <p className="py-8 text-center text-sm text-muted-foreground">No run data available.</p>
         </CardContent>
       </Card>
     )
@@ -75,10 +73,7 @@ export function CronRunsByAgentChart() {
                 isAnimationActive={false}
               >
                 {data.map((entry, i) => (
-                  <Cell
-                    key={entry.agent}
-                    fill={COLORS[i % COLORS.length]}
-                  />
+                  <Cell key={entry.agent} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip

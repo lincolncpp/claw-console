@@ -43,7 +43,11 @@ export function useCronUpdateInstructions() {
   const updateJob = useCronStore((s) => s.updateJob)
   const addToast = useErrorToastStore((s) => s.addToast)
 
-  const update = async (jobId: string, currentPayload: Record<string, unknown>, message: string) => {
+  const update = async (
+    jobId: string,
+    currentPayload: Record<string, unknown>,
+    message: string,
+  ) => {
     setSaving(true)
     const newPayload = { ...currentPayload, message }
     updateJob(jobId, { payload: newPayload })

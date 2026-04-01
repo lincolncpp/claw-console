@@ -59,13 +59,24 @@ export function CronJobDetail() {
             {job.agentId && <p className="text-sm text-muted-foreground">Agent: {job.agentId}</p>}
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggle(job.id, job.enabled) }}>
+            <div
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation()
+                toggle(job.id, job.enabled)
+              }}
+            >
               <Switch checked={job.enabled} size="sm" className="pointer-events-none" />
               <span className="text-xs text-muted-foreground">
                 {job.enabled ? "Enabled" : "Disabled"}
               </span>
             </div>
-            <Button size="sm" variant="outline" onClick={() => runNow(jobId)} disabled={running || !job.enabled}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => runNow(jobId)}
+              disabled={running || !job.enabled}
+            >
               <Play className="h-3 w-3 mr-1" />
               {running ? "Running..." : "Run Now"}
             </Button>
@@ -86,7 +97,10 @@ export function CronJobDetail() {
                       size="sm"
                       variant="ghost"
                       className="h-5 w-5 p-0"
-                      onClick={() => { setDraft(job.payload!.message as string); setEditing(true) }}
+                      onClick={() => {
+                        setDraft(job.payload!.message as string)
+                        setEditing(true)
+                      }}
                     >
                       <Pencil className="h-3 w-3" />
                     </Button>
@@ -132,7 +146,9 @@ export function CronJobDetail() {
                   </div>
                 ) : (
                   <div className="text-sm text-foreground leading-relaxed max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-4 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-4 [&_ol]:list-decimal [&_li]:my-0.5 [&_pre]:my-2 [&_pre]:rounded [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:text-xs [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:my-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:my-1.5 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:my-1 [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_hr]:my-2 [&_hr]:border-border [&_table]:text-xs [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{job.payload.message as string}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {job.payload.message as string}
+                    </ReactMarkdown>
                   </div>
                 )}
               </div>

@@ -6,9 +6,5 @@ interface PageContentProps {
 }
 
 export function PageContent({ children, className }: PageContentProps) {
-  return (
-    <div className={`flex flex-col gap-4${className ? ` ${className}` : ""}`}>
-      {children}
-    </div>
-  )
+  return <div className={`flex flex-col gap-4${className ? ` ${className}` : ""}`}>{children}</div>
 }

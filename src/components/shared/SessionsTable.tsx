@@ -36,7 +36,7 @@ interface SessionsTableProps {
   emptyMessage?: string
   maxRows?: number
   hideAgentColumn?: boolean
-  cleanup?: (days: number) => Promise<void>
+  cleanup?: (days: number) => Promise<number | void>
   cleaning?: boolean
 }
 
@@ -58,11 +58,7 @@ export function SessionsTable({
   if (isLoading) return <LoadingBlock />
 
   if (sessions.length === 0) {
-    return (
-      <p className="py-6 text-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </p>
-    )
+    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>
   }
 
   const handleCleanup = () => {
@@ -92,7 +88,10 @@ export function SessionsTable({
             <TableRow key={session.key} className="hover:bg-muted/50">
               {!hideAgentColumn && (
                 <TableCell className="text-sm">
-                  <Link to={`/agents/${extractAgentId(session.key)}`} className="text-foreground hover:underline">
+                  <Link
+                    to={`/agents/${extractAgentId(session.key)}`}
+                    className="text-foreground hover:underline"
+                  >
                     {agentNameMap.get(extractAgentId(session.key)) ?? extractAgentId(session.key)}
                   </Link>
                 </TableCell>
@@ -107,20 +106,13 @@ export function SessionsTable({
                 {session.model ?? "--"}
               </TableCell>
               <TableCell>
-                <SessionKeyButton
-                  agentId={extractAgentId(session.key)}
-                  sessionKey={session.key}
-                />
+                <SessionKeyButton agentId={extractAgentId(session.key)} sessionKey={session.key} />
               </TableCell>
               <TableCell className="text-right text-sm text-muted-foreground">
                 {formatTimeAgo(session.updatedAt)}
               </TableCell>
               <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => setDeleteTarget(session.key)}
-                >
+                <Button variant="ghost" size="icon-xs" onClick={() => setDeleteTarget(session.key)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </TableCell>

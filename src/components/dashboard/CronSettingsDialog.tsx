@@ -23,13 +23,9 @@ export function CronSettingsDialog({ open, onClose }: CronSettingsDialogProps) {
   const [retention, setRetention] = useState(
     cronConfig.sessionRetention === false ? "" : (cronConfig.sessionRetention ?? ""),
   )
-  const [maxConcurrent, setMaxConcurrent] = useState(
-    String(cronConfig.maxConcurrentRuns ?? ""),
-  )
+  const [maxConcurrent, setMaxConcurrent] = useState(String(cronConfig.maxConcurrentRuns ?? ""))
   const [maxBytes, setMaxBytes] = useState(cronConfig.runLog?.maxBytes ?? "")
-  const [keepLines, setKeepLines] = useState(
-    String(cronConfig.runLog?.keepLines ?? ""),
-  )
+  const [keepLines, setKeepLines] = useState(String(cronConfig.runLog?.keepLines ?? ""))
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
@@ -57,9 +53,7 @@ export function CronSettingsDialog({ open, onClose }: CronSettingsDialogProps) {
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Cron Settings</DialogTitle>
-          <DialogDescription>
-            Update global cron scheduler configuration.
-          </DialogDescription>
+          <DialogDescription>Update global cron scheduler configuration.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>

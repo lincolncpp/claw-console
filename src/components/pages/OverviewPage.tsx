@@ -1,6 +1,7 @@
 import { SystemHealth } from "@/components/dashboard/SystemHealth"
 import { RecentCronRuns } from "@/components/dashboard/RecentCronRuns"
-import { TokenHistogram, useTokenTotal } from "@/components/dashboard/TokenSparkline"
+import { TokenHistogram } from "@/components/dashboard/TokenSparkline"
+import { useTokenTotal } from "@/hooks/use-token-total"
 import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,7 +9,6 @@ import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { formatTokensCompact } from "@/lib/format"
 import { ArrowUpCircle, ExternalLink } from "lucide-react"
-
 
 function UpdateBanner() {
   const update = useSystemStore((s) => s.updateAvailable)
@@ -34,12 +34,15 @@ function UpdateBanner() {
         </a>
       </div>
       <div className="text-muted-foreground text-xs pl-7">
-        Run <code className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-foreground">openclaw update</code> to update
+        Run{" "}
+        <code className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-foreground">
+          openclaw update
+        </code>{" "}
+        to update
       </div>
     </div>
   )
 }
-
 
 export function OverviewPage() {
   const runs = useCronStore((s) => s.runs)

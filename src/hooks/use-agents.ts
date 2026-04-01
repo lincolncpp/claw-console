@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import { useRpc } from "./use-rpc"
 import { useConfig } from "./use-config"
 import { gatewayWs } from "@/services/gateway-ws"
-import type { AgentEntry, GlobalConfig, ParsedConfig } from "@/types/agent"
+import type { AgentEntry, GlobalConfig } from "@/types/agent"
 
 export function useAgents() {
   const { data, isLoading, error, scopeError, refetch } = useRpc(() => gatewayWs.agentsList(), [])

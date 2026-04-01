@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StatCard } from "@/components/shared/StatCard"
-import { useSystemStore } from "@/stores/system-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { Bot, Cpu, FolderOpen, Hash, MessageSquare, Settings, TriangleAlert } from "lucide-react"
 import { extractAgentId } from "@/lib/session-utils"
@@ -42,6 +41,7 @@ function AgentConfigDialog({
   open,
   onClose,
   agent,
+  configHash,
   onSaved,
 }: {
   open: boolean
@@ -89,9 +89,7 @@ function AgentConfigDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Agent Configuration</DialogTitle>
-          <DialogDescription>
-            Update configuration for {agent.name ?? agent.id}.
-          </DialogDescription>
+          <DialogDescription>Update configuration for {agent.name ?? agent.id}.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -162,18 +160,15 @@ function AgentConfigDialog({
 
 export function AgentDetailPage() {
   const { agentId } = useParams<{ agentId: string }>()
-  const snapshotAgents = useSystemStore((s) => s.agents)
   const [configOpen, setConfigOpen] = useState(false)
 
-  const { agents, defaultId, configHash, isLoading: agentsLoading, refetch } = useAgents()
+  const { agents, configHash, isLoading: agentsLoading, refetch } = useAgents()
   const { sessions, isLoading: sessionsLoading, refetch: sessionsRefetch } = useSessions()
   const { deleteSession } = useSessionDelete(sessionsRefetch)
 
   const agentNameMap = new Map(agents.map((a) => [a.id, a.name ?? a.id]))
 
   const agent = agents.find((a) => a.id === agentId)
-  const snapshot = snapshotAgents.find((a) => a.agentId === agentId)
-  const isDefault = agent?.isDefault || (agents.length > 0 && agent?.id === defaultId)
 
   const agentSessions = sessions.filter((s) => extractAgentId(s.key) === agentId)
 

@@ -44,7 +44,9 @@ export function useFetchAllCronRuns() {
     }
 
     fetchSequential()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [connectionStatus, jobs, setRuns, setRunTotals])
 }
 

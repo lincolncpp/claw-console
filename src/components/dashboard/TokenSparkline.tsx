@@ -1,9 +1,6 @@
 import { useMemo } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts"
-import {
-  ChartContainer,
-  type ChartConfig,
-} from "@/components/ui/chart"
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
 import { formatTokensCompact } from "@/lib/format"
 import { useCronStore } from "@/stores/cron-store"
 
@@ -36,28 +33,14 @@ function formatHourLabel(key: string) {
   return `${parseInt(m)}/${parseInt(d)} ${hour}:00`
 }
 
-export function useTokenTotal() {
-  const runs = useCronStore((s) => s.runs)
-  return useMemo(() => {
-    const cutoff = Date.now() - HOURS * 3_600_000
-    let total = 0
-    for (const jobRuns of Object.values(runs)) {
-      for (const run of jobRuns) {
-        if (run.runAtMs >= cutoff && run.usage?.total_tokens) {
-          total += run.usage.total_tokens
-        }
-      }
-    }
-    return total
-  }, [runs])
-}
-
 export function TokenHistogram() {
   const jobs = useCronStore((s) => s.jobs)
   const runs = useCronStore((s) => s.runs)
+  // eslint-disable-next-line react-hooks/purity -- cutoff for 7-day chart window; harmless impurity
+  const now = Date.now()
 
   const { data, jobNames, chartConfig } = useMemo(() => {
-    const cutoff = Date.now() - HOURS * 3_600_000
+    const cutoff = now - HOURS * 3_600_000
     const jobNameMap = new Map<string, string>()
     for (const job of jobs) {
       jobNameMap.set(job.id, job.name || job.id)
@@ -85,7 +68,7 @@ export function TokenHistogram() {
     const sortedJobIds = [...jobIds].sort()
     const rows: Record<string, unknown>[] = []
     for (let i = HOURS - 1; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 3_600_000)
+      const d = new Date(now - i * 3_600_000)
       const key = hourKey(d.getTime())
       const entry: Record<string, unknown> = { day: formatHourLabel(key) }
       const hourData = hourMap.get(key)
@@ -105,7 +88,7 @@ export function TokenHistogram() {
     })
 
     return { data: rows, jobNames: names, chartConfig: config }
-  }, [jobs, runs])
+  }, [jobs, runs, now])
 
   if (data.length === 0) return null
 
@@ -117,7 +100,12 @@ export function TokenHistogram() {
       <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="day" fontSize={11} tickLine={false} axisLine={false} />
-        <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatTokensCompact(v)} />
+        <YAxis
+          fontSize={11}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(v) => formatTokensCompact(v)}
+        />
         <Tooltip
           content={({ active, payload, label }) => {
             if (!active || !payload?.length) return null
@@ -134,7 +122,9 @@ export function TokenHistogram() {
                   <div key={p.dataKey as string} className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
                     <span className="text-muted-foreground">{jobNames[p.dataKey as string]}</span>
-                    <span className="ml-auto font-mono">{formatTokensCompact(p.value as number)}</span>
+                    <span className="ml-auto font-mono">
+                      {formatTokensCompact(p.value as number)}
+                    </span>
                   </div>
                 ))}
               </div>

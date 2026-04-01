@@ -29,10 +29,13 @@ export function CronJobList() {
     }
     return [...map.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([agent, agentJobs]) => [
-        agent,
-        [...agentJobs].sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id)),
-      ] as const)
+      .map(
+        ([agent, agentJobs]) =>
+          [
+            agent,
+            [...agentJobs].sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id)),
+          ] as const,
+      )
   }, [jobs])
 
   return (

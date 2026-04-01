@@ -12,7 +12,9 @@ export function CronPage() {
     <PageContent>
       <PageHeader
         breadcrumbs={[{ label: "Cron Jobs" }]}
-        subtitle={jobCount > 0 ? `${jobCount} job${jobCount !== 1 ? "s" : ""} across all agents` : undefined}
+        subtitle={
+          jobCount > 0 ? `${jobCount} job${jobCount !== 1 ? "s" : ""} across all agents` : undefined
+        }
       />
       <div className="flex gap-4">
         <CronRunsByAgentChart />

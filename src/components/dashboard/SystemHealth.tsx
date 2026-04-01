@@ -35,7 +35,9 @@ export function SystemHealth() {
             Active Sessions
             <Tooltip>
               <TooltipTrigger render={<Info className="h-3.5 w-3.5 text-muted-foreground" />} />
-              <TooltipContent>Open agent sessions with total token and message counts</TooltipContent>
+              <TooltipContent>
+                Open agent sessions with total token and message counts
+              </TooltipContent>
             </Tooltip>
           </CardTitle>
           <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -43,7 +45,8 @@ export function SystemHealth() {
         <CardContent>
           <div className="text-2xl font-bold">{totalSessions}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatTokensCompact(totalTokens)} tokens &middot; {totalMessages.toLocaleString()} messages
+            {formatTokensCompact(totalTokens)} tokens &middot; {totalMessages.toLocaleString()}{" "}
+            messages
           </p>
         </CardContent>
       </Card>
@@ -66,9 +69,7 @@ export function SystemHealth() {
             )}
             <span className="text-2xl font-bold">{pendingApprovals}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {approvals.length} total
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">{approvals.length} total</p>
         </CardContent>
       </Card>
 
@@ -85,17 +86,13 @@ export function SystemHealth() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            {jobsWithErrors > 0 && (
-              <div className="h-2.5 w-2.5 rounded-full bg-status-error" />
-            )}
+            {jobsWithErrors > 0 && <div className="h-2.5 w-2.5 rounded-full bg-status-error" />}
             <span className="text-2xl font-bold">
               {enabledJobs}/{jobs.length}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {jobsWithErrors > 0
-              ? `${jobsWithErrors} with errors`
-              : "All healthy"}
+            {jobsWithErrors > 0 ? `${jobsWithErrors} with errors` : "All healthy"}
           </p>
         </CardContent>
       </Card>
@@ -113,14 +110,10 @@ export function SystemHealth() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            {recentErrors > 0 && (
-              <div className="h-2.5 w-2.5 rounded-full bg-status-error" />
-            )}
+            {recentErrors > 0 && <div className="h-2.5 w-2.5 rounded-full bg-status-error" />}
             <span className="text-2xl font-bold">{recentErrors}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            errors &amp; warnings in log
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">errors &amp; warnings in log</p>
         </CardContent>
       </Card>
     </div>

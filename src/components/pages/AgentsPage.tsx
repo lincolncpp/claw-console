@@ -34,7 +34,7 @@ import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { useSessions } from "@/hooks/use-sessions"
 import { extractAgentId } from "@/lib/session-utils"
-import type { GlobalConfig } from "@/types/agent"
+import type { AgentEntry, GlobalConfig } from "@/types/agent"
 
 function GlobalConfigDialog({
   open,
@@ -159,7 +159,7 @@ export function AgentsPage() {
     return counts
   }, [sessions])
 
-  const agents =
+  const agents: AgentEntry[] =
     rpcAgents.length > 0
       ? rpcAgents
       : snapshotAgents.map((a) => ({
@@ -182,9 +182,7 @@ export function AgentsPage() {
       <Card>
         <CardContent>
           {agents.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No agents registered.
-            </p>
+            <p className="py-6 text-center text-sm text-muted-foreground">No agents registered.</p>
           ) : (
             <Table>
               <TableHeader>

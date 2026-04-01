@@ -33,7 +33,6 @@ export function LogsPage() {
     }
   }, [lineCount])
 
-
   if (scopeError) return <EmptyState scope="operator.read" icon={ScrollText} title="" />
   if (isLoading) return <PageLoading />
 
@@ -45,42 +44,39 @@ export function LogsPage() {
 
   return (
     <PageContent className="h-full">
-      <PageHeader
-        breadcrumbs={[{ label: "Logs" }]}
-        subtitle={`${lines.length} lines loaded`}
-      />
+      <PageHeader breadcrumbs={[{ label: "Logs" }]} subtitle={`${lines.length} lines loaded`} />
 
       <div className="flex-1 flex flex-col rounded-xl border bg-card overflow-hidden">
         <ScrollArea
-            className="h-full"
-            onScrollCapture={() => {
-              autoScrollRef.current = false
-            }}
-          >
-            <div className="p-3 font-mono text-xs space-y-px">
-              {filtered.map((line, i) => (
-                <div key={i} className="flex gap-2 leading-5 hover:bg-muted/30 px-1 rounded">
-                  {line.timestamp && (
-                    <span className="shrink-0 text-muted-foreground/60 whitespace-nowrap">
-                      {new Date(line.timestamp).toLocaleTimeString()}
-                    </span>
-                  )}
-                  {line.level && (
-                    <span
-                      className={`shrink-0 w-12 text-right ${levelColors[line.level] ?? "text-muted-foreground"}`}
-                    >
-                      {line.level}
-                    </span>
-                  )}
-                  <span className="shrink-0 text-muted-foreground w-32 truncate">
-                    {line.subsystem ?? ""}
+          className="h-full"
+          onScrollCapture={() => {
+            autoScrollRef.current = false
+          }}
+        >
+          <div className="p-3 font-mono text-xs space-y-px">
+            {filtered.map((line, i) => (
+              <div key={i} className="flex gap-2 leading-5 hover:bg-muted/30 px-1 rounded">
+                {line.timestamp && (
+                  <span className="shrink-0 text-muted-foreground/60 whitespace-nowrap">
+                    {new Date(line.timestamp).toLocaleTimeString()}
                   </span>
-                  <span className="text-foreground/90 break-all">{line.message ?? line.raw}</span>
-                </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
-          </ScrollArea>
+                )}
+                {line.level && (
+                  <span
+                    className={`shrink-0 w-12 text-right ${levelColors[line.level] ?? "text-muted-foreground"}`}
+                  >
+                    {line.level}
+                  </span>
+                )}
+                <span className="shrink-0 text-muted-foreground w-32 truncate">
+                  {line.subsystem ?? ""}
+                </span>
+                <span className="text-foreground/90 break-all">{line.message ?? line.raw}</span>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+        </ScrollArea>
         <TableFooter className="gap-3 shrink-0 rounded-t-none mt-0 -mx-0 -mb-0 px-3 py-2">
           <div className="flex gap-1">
             {["error", "warn", "info", "debug"].map((level) => (

@@ -47,11 +47,7 @@ export function NodesPage() {
 
   return (
     <PageContent>
-      <PageHeader
-        breadcrumbs={[{ label: "Nodes" }]}
-        subtitle={subtitle}
-        actions={undefined}
-      />
+      <PageHeader breadcrumbs={[{ label: "Nodes" }]} subtitle={subtitle} actions={undefined} />
 
       <Card>
         <CardContent>
@@ -108,7 +104,11 @@ export function NodesPage() {
                         {entry.roles && entry.roles.length > 0 ? (
                           <div className="flex gap-1">
                             {entry.roles.map((r) => (
-                              <Badge key={r} variant="default" className="text-[0.625rem] px-1.5 py-0">
+                              <Badge
+                                key={r}
+                                variant="default"
+                                className="text-[0.625rem] px-1.5 py-0"
+                              >
                                 {r}
                               </Badge>
                             ))}
