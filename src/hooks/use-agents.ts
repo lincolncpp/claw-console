@@ -32,19 +32,24 @@ export function useAgents() {
         .map((b) => b.match!.channel!)
       const uniqueChannels = [...new Set(agentBindings)]
 
+      const cfgModelFallbacks =
+        typeof cfg?.model === "object" && cfg.model !== null
+          ? (cfg.model as { fallbacks?: string[] }).fallbacks
+          : undefined
+
       return {
         ...agent,
         workspace: cfg?.workspace ?? defaults?.workspace,
-        model: cfg?.model ?? defaults?.model?.primary ?? normalizeModel(agent.model),
+        model: normalizeModel(cfg?.model) ?? defaults?.model?.primary ?? normalizeModel(agent.model),
         channels: uniqueChannels.length > 0 ? uniqueChannels : undefined,
         thinkingDefault: cfg?.thinkingDefault ?? defaults?.thinkingDefault,
         timeoutSeconds: cfg?.timeoutSeconds ?? defaults?.timeoutSeconds,
         maxConcurrent: cfg?.maxConcurrent ?? defaults?.maxConcurrent,
         memorySearchEnabled: cfg?.memorySearch?.enabled ?? defaults?.memorySearch?.enabled,
-        fallbacks: defaults?.model?.fallbacks,
-        compactionMode: defaults?.compaction?.mode,
-        subagentsMaxConcurrent: defaults?.subagents?.maxConcurrent,
-        subagentsModel: defaults?.subagents?.model,
+        fallbacks: cfgModelFallbacks ?? defaults?.model?.fallbacks,
+        compactionMode: cfg?.compaction?.mode ?? defaults?.compaction?.mode,
+        subagentsMaxConcurrent: cfg?.subagents?.maxConcurrent ?? defaults?.subagents?.maxConcurrent,
+        subagentsModel: cfg?.subagents?.model ?? defaults?.subagents?.model,
       }
     })
   }, [data, parsed])

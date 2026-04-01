@@ -69,11 +69,13 @@ export interface ConfigAgentEntry {
   id: string
   name?: string
   workspace?: string
-  model?: string
+  model?: string | { primary?: string; fallbacks?: string[] }
   thinkingDefault?: string
   timeoutSeconds?: number
   maxConcurrent?: number
   memorySearch?: { enabled?: boolean }
+  compaction?: { mode?: string }
+  subagents?: { maxConcurrent?: number; model?: string }
 }
 
 export interface ConfigBinding {
