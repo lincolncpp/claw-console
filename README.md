@@ -1,18 +1,28 @@
+<div align="center">
+
 # 🦞 Claw Console
-The web console for the [OpenClaw](https://openclaw.ai/) Gateway. Monitor system health, manage AI agent sessions, chat with agents in real time, and administer cron jobs, logs, and approvals.
 
+**The web console for the [OpenClaw](https://openclaw.ai/) Gateway.**
 
-<img width="1902" height="1078" alt="Screenshot from 2026-03-31 21-55-05" src="https://github.com/user-attachments/assets/11768e0a-e71c-47c4-81a6-97e32c5e00a8" />
+Monitor system health · Manage AI agent sessions · Chat with agents in real time · Administer cron jobs, logs & approvals
+
+<br>
+
+<img width="1902" height="1078" alt="Claw Console screenshot" src="https://github.com/user-attachments/assets/11768e0a-e71c-47c4-81a6-97e32c5e00a8" />
+
+</div>
+
+<br>
 
 ## Getting Started
 
-**Prerequisites:** [Node.js](https://nodejs.org/) 20+ and a running [OpenClaw Gateway](https://docs.openclaw.ai)
+> **Requires** [Node.js](https://nodejs.org/) 20+ and [OpenClaw Gateway](https://docs.openclaw.ai) **v2026.3.31** or later
 
 ```bash
 git clone https://github.com/lincolncpp/claw-console.git
 cd claw-console
 npm install
-cp .env.example .env   # then edit .env with your gateway host/port/token
+cp .env.example .env   # edit with your gateway host/port/token
 npm run dev
 ```
 
@@ -26,7 +36,7 @@ npm run dev
 
 ### Gateway Token
 
-If your Gateway has authentication enabled, you need a token. Generate one on the Gateway host:
+If your Gateway has authentication enabled, generate a token on the Gateway host:
 
 ```bash
 openclaw doctor --generate-gateway-token
@@ -45,28 +55,11 @@ Then paste the same token into your `.env` as `VITE_GATEWAY_TOKEN`. See the [Gat
 | Command | Description |
 |---|---|
 | `npm run dev` | Start dev server |
-| `npm run build` | Type-check and build for production |
+| `npm run build` | Type-check & build for production |
 | `npm run preview` | Preview production build |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format code with Prettier |
 | `npm run check` | Format check + lint + build |
 | `npm test` | Run tests |
-
-## Tech Stack
-
-React 19, TypeScript, Vite 8, Tailwind CSS 4, shadcn/ui, Zustand, Recharts, React Router 7
-
-## Contributing
-
-1. Fork the repo
-2. Create a feature branch
-3. Run `npm run check` before committing
-4. Open a pull request
 
 ## License
 
 [MIT](LICENSE)
-
-## Links
-
-- [OpenClaw](https://openclaw.ai/) · [Documentation](https://docs.openclaw.ai) · [Gateway Protocol](https://docs.openclaw.ai/gateway/protocol)
