@@ -59,6 +59,8 @@ export function CronJobList({ onNewCronJob }: CronJobListProps) {
                 <TableHead>Name</TableHead>
                 <TableHead>Schedule</TableHead>
                 <TableHead>Target</TableHead>
+                <TableHead>Model</TableHead>
+                <TableHead>Delivery</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Run</TableHead>
                 <TableHead>Last Run Time</TableHead>
@@ -71,7 +73,7 @@ export function CronJobList({ onNewCronJob }: CronJobListProps) {
                 <Fragment key={agentId}>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableCell
-                      colSpan={8}
+                      colSpan={10}
                       className="py-1.5 text-xs font-semibold text-muted-foreground"
                     >
                       {agentId}

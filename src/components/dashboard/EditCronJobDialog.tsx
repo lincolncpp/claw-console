@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -9,18 +9,15 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { useAgents, useModels } from "@/hooks/use-agents"
-import { useCronCreate } from "@/hooks/use-cron-mutations"
-import type { CronSchedule } from "@/types/cron"
+import { useModels } from "@/hooks/use-agents"
+import { gatewayWs } from "@/services/gateway-ws"
+import { useCronStore } from "@/stores/cron-store"
+import { useErrorToastStore } from "@/stores/error-toast-store"
+import { formatRpcError } from "@/lib/errors"
+import type { CronJob, CronSchedule } from "@/types/cron"
 
 const selectClass =
   "h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
-
-interface NewCronJobDialogProps {
-  open: boolean
-  onClose: () => void
-  onSaved: () => void
-}
 
 const UNIT_MS: Record<string, number> = {
   m: 60_000,
@@ -28,8 +25,19 @@ const UNIT_MS: Record<string, number> = {
   d: 86_400_000,
 }
 
-export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogProps) {
-  const [agentId, setAgentId] = useState("")
+function parseEveryMs(ms: number): { value: string; unit: string } {
+  if (ms >= 86_400_000 && ms % 86_400_000 === 0) return { value: String(ms / 86_400_000), unit: "d" }
+  if (ms >= 3_600_000 && ms % 3_600_000 === 0) return { value: String(ms / 3_600_000), unit: "h" }
+  return { value: String(ms / 60_000), unit: "m" }
+}
+
+interface EditCronJobDialogProps {
+  open: boolean
+  onClose: () => void
+  job: CronJob
+}
+
+export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps) {
   const [name, setName] = useState("")
   const [scheduleType, setScheduleType] = useState<"every" | "cron">("every")
   const [everyValue, setEveryValue] = useState("10")
@@ -43,12 +51,40 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
   const [deliveryMode, setDeliveryMode] = useState("none")
   const [deliveryChannel, setDeliveryChannel] = useState("")
   const [deliveryTo, setDeliveryTo] = useState("")
-  const [instructions, setInstructions] = useState("")
+  const [saving, setSaving] = useState(false)
   const [nameError, setNameError] = useState("")
 
-  const { agents } = useAgents()
   const { models } = useModels()
-  const { create, saving } = useCronCreate()
+  const updateJob = useCronStore((s) => s.updateJob)
+  const addToast = useErrorToastStore((s) => s.addToast)
+
+  useEffect(() => {
+    if (!open) return
+    setName(job.name)
+    setSessionTarget(job.sessionTarget)
+    setModel((job.payload?.model as string) ?? "")
+    setThinking((job.payload?.thinking as string) ?? "")
+    setTimeout(job.payload?.timeoutSeconds != null ? String(job.payload.timeoutSeconds) : "")
+    setDeliveryMode(job.delivery?.mode ?? "none")
+    setDeliveryChannel(job.delivery?.channel ?? "")
+    setDeliveryTo(job.delivery?.to ?? "")
+    setNameError("")
+
+    if (job.schedule.kind === "every") {
+      setScheduleType("every")
+      const parsed = parseEveryMs(job.schedule.everyMs)
+      setEveryValue(parsed.value)
+      setEveryUnit(parsed.unit)
+      setCronExpr("0 * * * *")
+      setTimezone("")
+    } else if (job.schedule.kind === "cron") {
+      setScheduleType("cron")
+      setCronExpr(job.schedule.expr)
+      setTimezone(job.schedule.tz ?? "")
+      setEveryValue("10")
+      setEveryUnit("m")
+    }
+  }, [open, job])
 
   const buildSchedule = (): CronSchedule => {
     if (scheduleType === "every") {
@@ -65,72 +101,47 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
       return
     }
     setNameError("")
+    setSaving(true)
+
+    const currentPayload = { ...(job.payload ?? {}) }
+    if (model) currentPayload.model = model
+    else delete currentPayload.model
+    if (thinking) currentPayload.thinking = thinking
+    else delete currentPayload.thinking
+    if (timeout) currentPayload.timeoutSeconds = parseInt(timeout, 10)
+    else delete currentPayload.timeoutSeconds
+
+    const delivery: Record<string, string> = { mode: deliveryMode }
+    if (deliveryMode !== "none" && deliveryChannel.trim()) delivery.channel = deliveryChannel.trim()
+    if (deliveryMode !== "none" && deliveryTo.trim()) delivery.to = deliveryTo.trim()
+
+    const patch: Partial<CronJob> = {
+      name: name.trim(),
+      schedule: buildSchedule(),
+      sessionTarget,
+      payload: currentPayload,
+      delivery,
+    }
 
     try {
-      const job: Record<string, unknown> = {
-        agentId: agentId || undefined,
-        name: name.trim(),
-        schedule: buildSchedule(),
-        sessionTarget,
-        enabled: true,
-      }
-      const payload: Record<string, unknown> = {}
-      if (instructions.trim()) payload.message = instructions.trim()
-      if (model) payload.model = model
-      if (thinking) payload.thinking = thinking
-      if (timeout) payload.timeoutSeconds = parseInt(timeout, 10)
-      if (Object.keys(payload).length > 0) job.payload = payload
-      const delivery: Record<string, string> = { mode: deliveryMode }
-      if (deliveryMode !== "none" && deliveryChannel.trim()) delivery.channel = deliveryChannel.trim()
-      if (deliveryMode !== "none" && deliveryTo.trim()) delivery.to = deliveryTo.trim()
-      job.delivery = delivery
-      await create(job)
-      onSaved()
-      handleClose()
-    } catch {
-      // error toast handled by hook
+      await gatewayWs.cronUpdate(job.id, patch)
+      updateJob(job.id, patch)
+      onClose()
+    } catch (err) {
+      addToast(`Failed to update cron job: ${formatRpcError(err)}`)
+    } finally {
+      setSaving(false)
     }
   }
 
-  const handleClose = () => {
-    setAgentId("")
-    setName("")
-    setScheduleType("every")
-    setEveryValue("10")
-    setEveryUnit("m")
-    setCronExpr("0 * * * *")
-    setTimezone("")
-    setSessionTarget("isolated")
-    setModel("")
-    setThinking("")
-    setTimeout("")
-    setDeliveryMode("none")
-    setDeliveryChannel("")
-    setDeliveryTo("")
-    setInstructions("")
-    setNameError("")
-    onClose()
-  }
-
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>New Cron Job</DialogTitle>
-          <DialogDescription>Schedule a recurring job for an agent.</DialogDescription>
+          <DialogTitle>Edit Cron Job</DialogTitle>
+          <DialogDescription>Update settings for {job.name || job.id}.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div>
-            <label className="text-xs text-muted-foreground">Agent</label>
-            <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={selectClass}>
-              <option value="">Select agent</option>
-              {agents.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name ?? a.id}
-                </option>
-              ))}
-            </select>
-          </div>
           <div>
             <label className="text-xs text-muted-foreground">
               Name <span className="text-destructive">*</span>
@@ -141,7 +152,6 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
                 setName((e.target as HTMLInputElement).value)
                 if (nameError) setNameError("")
               }}
-              placeholder="e.g. daily-report, health-check"
             />
             {nameError && <p className="text-xs text-destructive mt-1">{nameError}</p>}
           </div>
@@ -242,7 +252,11 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Delivery Mode</label>
-            <select value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)} className={selectClass}>
+            <select
+              value={deliveryMode}
+              onChange={(e) => setDeliveryMode(e.target.value)}
+              className={selectClass}
+            >
               <option value="none">None</option>
               <option value="announce">Announce (channel)</option>
               <option value="webhook">Webhook</option>
@@ -269,23 +283,13 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
               </div>
             </div>
           )}
-          <div>
-            <label className="text-xs text-muted-foreground">Instructions</label>
-            <textarea
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder="What should the agent do on each run?"
-              rows={3}
-              className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-none"
-            />
-          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={saving}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Creating..." : "Create"}
+            {saving ? "Saving..." : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

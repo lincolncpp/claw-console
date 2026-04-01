@@ -9,11 +9,12 @@ import { useCronStore } from "@/stores/cron-store"
 import { useCronRuns } from "@/hooks/use-cron-runs"
 import { useCronRunNow, useCronToggle, useCronUpdateInstructions } from "@/hooks/use-cron-actions"
 import { useCronDelete } from "@/hooks/use-cron-mutations"
-import { formatSchedule } from "@/lib/format"
+import { formatSchedule, formatDuration } from "@/lib/format"
 import { CronRunHistory } from "./CronRunHistory"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { Play, Pencil, Check, X, Trash2 } from "lucide-react"
+import { EditCronJobDialog } from "./EditCronJobDialog"
+import { Play, Pencil, Check, X, Trash2, Settings } from "lucide-react"
 
 export function CronJobDetail() {
   const { jobId } = useParams<{ jobId: string }>()
@@ -30,6 +31,7 @@ export function CronJobDetail() {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState("")
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -79,6 +81,14 @@ export function CronJobDetail() {
             <Button
               size="sm"
               variant="outline"
+              onClick={() => setEditOpen(true)}
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => runNow(jobId)}
               disabled={running || !job.enabled}
             >
@@ -96,10 +106,28 @@ export function CronJobDetail() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 mb-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Target: {job.sessionTarget}</span>
-              <span className="font-mono">{formatSchedule(job.schedule)}</span>
-            </div>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">Schedule</dt>
+              <dd className="font-mono">{formatSchedule(job.schedule)}</dd>
+              <dt className="text-muted-foreground">Session Target</dt>
+              <dd>{job.sessionTarget}</dd>
+              <dt className="text-muted-foreground">Model</dt>
+              <dd>{(job.payload?.model as string) ?? "agent default"}</dd>
+              <dt className="text-muted-foreground">Thinking</dt>
+              <dd>{(job.payload?.thinking as string) ?? "default"}</dd>
+              {job.payload?.timeoutSeconds != null && (
+                <>
+                  <dt className="text-muted-foreground">Timeout</dt>
+                  <dd>{formatDuration((job.payload.timeoutSeconds as number) * 1000)}</dd>
+                </>
+              )}
+              <dt className="text-muted-foreground">Delivery</dt>
+              <dd>
+                {job.delivery?.mode ?? "none"}
+                {job.delivery?.channel && <span className="text-muted-foreground"> ({job.delivery.channel})</span>}
+                {job.delivery?.to && <span className="text-muted-foreground"> → {job.delivery.to}</span>}
+              </dd>
+            </dl>
             {job.payload?.message != null && (
               <div className="rounded-md border border-border bg-muted/30 p-3">
                 <div className="flex items-center justify-between mb-1">
@@ -170,6 +198,12 @@ export function CronJobDetail() {
       </Card>
 
       <CronRunHistory jobId={jobId} runs={runs} />
+
+      <EditCronJobDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        job={job}
+      />
 
       <DeleteConfirmDialog
         open={deleteOpen}
