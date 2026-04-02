@@ -16,6 +16,8 @@ import type {
 } from "@/types/agent"
 import type { GatewayFrame } from "@/types/ws"
 
+import { uuid } from "@/lib/uuid"
+
 type EventHandler = (event: string, payload: unknown) => void
 
 interface PendingRpc {
@@ -177,7 +179,7 @@ export class GatewayWebSocket {
   async chatSend(sessionKey: string, message: string): Promise<unknown> {
     return this.sendRpc(
       "chat.send",
-      { sessionKey, message, idempotencyKey: crypto.randomUUID() },
+      { sessionKey, message, idempotencyKey: uuid() },
       45000,
     )
   }
@@ -241,7 +243,7 @@ export class GatewayWebSocket {
       if (frame.event === "connect.challenge") {
         const connectMsg = {
           type: "req",
-          id: crypto.randomUUID(),
+          id: uuid(),
           method: "connect",
           params: {
             minProtocol: 3,
@@ -319,7 +321,7 @@ export class GatewayWebSocket {
         reject(new Error("Not connected"))
         return
       }
-      const id = crypto.randomUUID()
+      const id = uuid()
       const timeout = setTimeout(() => {
         this.pendingRpc.delete(id)
         reject(new Error(`RPC timeout: ${method}`))
