@@ -17,6 +17,7 @@ import { notifyCronRunsChanged } from "@/hooks/use-cron-runs-refresh"
 import { formatRpcError } from "@/lib/errors"
 import { extractAgentId } from "@/lib/session-utils"
 import { uuid } from "@/lib/uuid"
+import { parseChatHistory, serverHasNewerMessages } from "@/lib/chat-history"
 import { useFetchAllCronRuns } from "@/hooks/use-all-cron-runs"
 
 function App() {
@@ -65,6 +66,8 @@ function App() {
         const { sessionKey: tSession } = useTerminalStore.getState()
 
         if (evtSession && tSession && evtSession !== tSession) return
+
+        useTerminalStore.getState().touchLastEvent()
 
         if (event === "agent") {
           const stream = p.stream as string | undefined
@@ -142,6 +145,25 @@ function App() {
     })
     gatewayWs.setStatusChangeHandler((status, error) => {
       setConnectionStatus(status, error)
+      if (status === "connected") {
+        const { runState, sessionKey } = useTerminalStore.getState()
+        if ((runState === "waiting" || runState === "streaming") && sessionKey) {
+          gatewayWs
+            .chatHistory(sessionKey)
+            .then((resp) => {
+              const serverMsgs = parseChatHistory(resp)
+              if (!serverMsgs) return
+              const { runState: rs, messages } = useTerminalStore.getState()
+              if (rs !== "waiting" && rs !== "streaming") return
+              if (!serverHasNewerMessages(serverMsgs, messages)) return
+              useTerminalStore.getState().setMessages(serverMsgs)
+              useTerminalStore.getState().resetStreaming()
+            })
+            .catch((err) => {
+              console.warn("Reconnect chat history poll failed:", err)
+            })
+        }
+      }
     })
     return () => {
       cleanupDispatch()

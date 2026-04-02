@@ -5,31 +5,16 @@ import { useSystemStore } from "@/stores/system-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { gatewayWs } from "@/services/gateway-ws"
 import { formatRpcError } from "@/lib/errors"
+import { parseChatHistory, serverHasNewerMessages } from "@/lib/chat-history"
 import { ChatMessage } from "./ChatMessage"
 import { ToolCard } from "./ToolCard"
 import { ChatInput } from "./ChatInput"
 import { X, GripHorizontal } from "lucide-react"
-import type { ChatMessageData, ToolCallData } from "@/types/terminal"
+import type { ChatMessageData } from "@/types/terminal"
 import { uuid } from "@/lib/uuid"
 
 const MIN_HEIGHT = 120
 const MAX_HEIGHT_RATIO = 0.6
-
-function extractToolCalls(content: unknown): ToolCallData[] | undefined {
-  if (!Array.isArray(content)) return undefined
-  const tools: ToolCallData[] = []
-  for (const block of content) {
-    if (block && typeof block === "object" && block.type === "toolCall") {
-      tools.push({
-        id: block.id ?? uuid(),
-        name: block.name ?? "unknown",
-        args: block.arguments ?? block.args,
-        status: "success",
-      })
-    }
-  }
-  return tools.length > 0 ? tools : undefined
-}
 
 export function TerminalPanel() {
   const isOpen = useTerminalStore((s) => s.isOpen)
@@ -67,76 +52,53 @@ export function TerminalPanel() {
     gatewayWs
       .chatHistory(sessionKey)
       .then((resp) => {
-        const data = resp as {
-          messages?: Array<{ id?: string; role?: string; content?: unknown; timestamp?: number }>
-        }
-        if (!data.messages?.length) return
-        const { setMessages } = useTerminalStore.getState()
-        setMessages(
-          data.messages
-            .filter((m) => m.role !== "toolResult")
-            .map((m) => ({
-              id: m.id ?? uuid(),
-              role: (m.role as "user" | "assistant" | "system") ?? "system",
-              content: m.content as string,
-              timestamp: m.timestamp ?? Date.now(),
-              toolCalls: extractToolCalls(m.content),
-            })),
-        )
+        const msgs = parseChatHistory(resp)
+        if (msgs) useTerminalStore.getState().setMessages(msgs)
       })
       .catch((err) => {
         addToast(`Failed to load chat history: ${formatRpcError(err)}`)
       })
   }, [isOpen, agentId, sessionKey, addToast])
 
-  // Poll chat history as fallback when WS events stall (covers both "waiting" and "streaming")
+  // Always poll chat history while panel is open to catch missed WS events.
+  // Frequency adapts: fast when waiting/streaming, slow when idle.
   useEffect(() => {
-    if ((runState !== "waiting" && runState !== "streaming") || !sessionKey) return
+    if (!isOpen || !sessionKey) return
     let active = true
+    let lastPollAt = 0
 
-    const WAITING_INITIAL_DELAY = 1500
-    const WAITING_INTERVAL = 3000
-    const STREAMING_STALE_THRESHOLD = 8000
-    const STREAMING_POLL_INTERVAL = 5000
+    const ACTIVE_INTERVAL = 3000 // 3s when waiting/streaming
+    const IDLE_INTERVAL = 10000 // 10s background sync
+    const STREAMING_FRESH_THRESHOLD = 8000 // skip poll during streaming if events are recent
 
     const poll = () => {
       if (!active) return
-      const { runState: rs, messages: currentMsgs, lastEventAt } = useTerminalStore.getState()
+      const now = Date.now()
+      const { runState: rs, lastEventAt } = useTerminalStore.getState()
+      const isActive = rs === "waiting" || rs === "streaming"
 
-      if (rs === "streaming") {
-        if (Date.now() - lastEventAt < STREAMING_STALE_THRESHOLD) return
-      } else if (rs !== "waiting") {
-        return
-      }
+      // During active streaming with recent events, WS is working — skip
+      if (rs === "streaming" && now - lastEventAt < STREAMING_FRESH_THRESHOLD) return
+
+      // Throttle: use fast interval when active, slow when idle
+      const minGap = isActive ? ACTIVE_INTERVAL : IDLE_INTERVAL
+      if (now - lastPollAt < minGap) return
+      lastPollAt = now
 
       gatewayWs
         .chatHistory(sessionKey)
         .then((resp) => {
           if (!active) return
-          const data = resp as {
-            messages?: Array<{ id?: string; role?: string; content?: unknown; timestamp?: number }>
-          }
-          if (!data.messages?.length) return
+          const serverMsgs = parseChatHistory(resp)
+          if (!serverMsgs) return
 
           const { runState: currentRs, messages: nowMsgs } = useTerminalStore.getState()
-          if (currentRs !== "waiting" && currentRs !== "streaming") return
+          if (!serverHasNewerMessages(serverMsgs, nowMsgs)) return
 
-          const serverMsgs = data.messages.filter((m) => m.role !== "toolResult")
-          if (serverMsgs.length <= nowMsgs.length) return
-
-          useTerminalStore.getState().setMessages(
-            serverMsgs.map((m) => ({
-              id: m.id ?? uuid(),
-              role: (m.role as "user" | "assistant" | "system") ?? "system",
-              content: m.content as string,
-              timestamp: m.timestamp ?? Date.now(),
-              toolCalls: extractToolCalls(m.content),
-            })),
-          )
-          if (currentRs === "streaming") {
+          useTerminalStore.getState().setMessages(serverMsgs)
+          // Only reset streaming UI if we were actively waiting/streaming
+          if (currentRs === "waiting" || currentRs === "streaming") {
             useTerminalStore.getState().resetStreaming()
-          } else {
-            useTerminalStore.getState().setRunState("idle")
           }
         })
         .catch((err) => {
@@ -144,18 +106,14 @@ export function TerminalPanel() {
         })
     }
 
-    const initialDelay = runState === "waiting" ? WAITING_INITIAL_DELAY : STREAMING_STALE_THRESHOLD
-    const pollInterval = runState === "waiting" ? WAITING_INTERVAL : STREAMING_POLL_INTERVAL
-
-    const initial = setTimeout(poll, initialDelay)
-    const interval = setInterval(poll, pollInterval)
+    // Tick at the fast rate; poll() self-throttles based on state
+    const interval = setInterval(poll, ACTIVE_INTERVAL)
 
     return () => {
       active = false
-      clearTimeout(initial)
       clearInterval(interval)
     }
-  }, [runState, sessionKey])
+  }, [isOpen, sessionKey])
 
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {

@@ -44,6 +44,7 @@ export function useSessionCleanup(sessions: SessionEntry[], refetch: () => void)
   const cleanup = async (maxAgeDays: number) => {
     const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000
     const stale = sessions.filter((s) => {
+      if (s.key === "agent:main:main") return false
       const age = s.age ?? (s.updatedAt != null ? Date.now() - s.updatedAt : null)
       return age != null && age > maxAgeMs
     })

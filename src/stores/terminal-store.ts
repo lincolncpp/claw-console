@@ -42,6 +42,7 @@ interface TerminalState {
   setSession: (agentId: string, sessionKey: string) => void
   appendMessage: (msg: ChatMessageData) => void
   setMessages: (msgs: ChatMessageData[]) => void
+  touchLastEvent: () => void
   updateStreamingText: (updater: string | ((prev: string | null) => string)) => void
   updateStreamingToolCall: (tool: ToolCallData) => void
   completeToolCall: (finishedTool: ToolCallData) => void
@@ -94,6 +95,8 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
     }),
 
   setMessages: (messages) => set({ messages }),
+
+  touchLastEvent: () => set({ lastEventAt: Date.now() }),
 
   updateStreamingText: (updater) =>
     set((s) => ({

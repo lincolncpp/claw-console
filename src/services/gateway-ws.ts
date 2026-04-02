@@ -39,6 +39,11 @@ export class GatewayWebSocket {
   private onConnect: ((data: ConnectResult) => void) | null = null
   private token: string | null = null
   private connectId = 0
+  private lastFrameAt = 0
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null
+
+  private static readonly HEARTBEAT_CHECK_MS = 15_000
+  private static readonly HEARTBEAT_STALE_MS = 30_000
 
   setEventHandler(handler: EventHandler | null) {
     this.onEvent = handler
@@ -69,6 +74,7 @@ export class GatewayWebSocket {
   private teardown() {
     this.connectId++
     this.shouldReconnect = false
+    this.stopHeartbeat()
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
@@ -238,6 +244,7 @@ export class GatewayWebSocket {
   }
 
   private handleFrame(frame: GatewayFrame, token: string) {
+    this.lastFrameAt = Date.now()
     console.log("[gw-frame]", frame.type, frame)
     if (frame.type === "event") {
       if (frame.event === "connect.challenge") {
@@ -278,6 +285,7 @@ export class GatewayWebSocket {
       ) {
         this.reconnectDelay = 1000
         this.onStatusChange?.("connected")
+        this.startHeartbeat()
         return
       }
       this.onEvent?.(frame.event, frame.payload)
@@ -336,6 +344,25 @@ export class GatewayWebSocket {
       clearTimeout(pending.timeout)
       pending.reject(new Error(reason))
       this.pendingRpc.delete(id)
+    }
+  }
+
+  private startHeartbeat() {
+    this.stopHeartbeat()
+    this.lastFrameAt = Date.now()
+    this.heartbeatInterval = setInterval(() => {
+      if (this.lastFrameAt && Date.now() - this.lastFrameAt > GatewayWebSocket.HEARTBEAT_STALE_MS) {
+        console.warn("[gw-ws] No frames received for 30s, forcing reconnect")
+        this.stopHeartbeat()
+        this.ws?.close()
+      }
+    }, GatewayWebSocket.HEARTBEAT_CHECK_MS)
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval)
+      this.heartbeatInterval = null
     }
   }
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { useGatewayStore } from "@/stores/gateway-store"
 
 function SpinningLobster({ className }: { className?: string }) {
@@ -162,11 +163,24 @@ function SpinningLobster({ className }: { className?: string }) {
   )
 }
 
+const GRACE_PERIOD_MS = 3000
+
 export function GatewayDisconnectedModal() {
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const errorMessage = useGatewayStore((s) => s.errorMessage)
+  const [showModal, setShowModal] = useState(false)
 
-  if (connectionStatus === "connected") return null
+  useEffect(() => {
+    if (connectionStatus === "connected") {
+      // Clear immediately via microtask to avoid sync setState in effect
+      const t = setTimeout(() => setShowModal(false), 0)
+      return () => clearTimeout(t)
+    }
+    const timer = setTimeout(() => setShowModal(true), GRACE_PERIOD_MS)
+    return () => clearTimeout(timer)
+  }, [connectionStatus])
+
+  if (!showModal || connectionStatus === "connected") return null
 
   const isError = connectionStatus === "error"
 
