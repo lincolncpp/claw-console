@@ -80,10 +80,13 @@ export function useModels() {
   return { models: data?.models ?? [], isLoading, error, scopeError }
 }
 
-export function useTools() {
-  const { data, isLoading, error, scopeError } = useRpc(() => gatewayWs.toolsCatalog(), [])
-  const tools = Array.isArray(data?.tools) ? data.tools : Array.isArray(data) ? data : []
-  return { tools, isLoading, error, scopeError }
+export function useTools(agentId?: string) {
+  const { data, isLoading, error, scopeError } = useRpc(
+    () => gatewayWs.toolsCatalog(agentId),
+    [agentId],
+  )
+  const groups = Array.isArray(data?.groups) ? data.groups : []
+  return { groups, profiles: data?.profiles ?? [], isLoading, error, scopeError }
 }
 
 export function useSkills() {

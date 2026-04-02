@@ -36,24 +36,70 @@ export interface ModelsListResponse {
 }
 
 export interface ToolEntry {
-  name: string
+  id: string
+  label: string
   description?: string
   source?: string
-  enabled?: boolean
+  defaultProfiles?: string[]
 }
 
-export interface ToolsCatalogResponse {
+export interface ToolGroup {
+  id: string
+  label: string
+  source?: string
   tools: ToolEntry[]
 }
 
-export interface SkillEntry {
+export interface ToolProfile {
   id: string
+  label: string
+}
+
+export interface ToolsCatalogResponse {
+  agentId?: string
+  profiles?: ToolProfile[]
+  groups: ToolGroup[]
+}
+
+export interface SkillRequirements {
+  bins: string[]
+  anyBins: string[]
+  env: string[]
+  config: string[]
+  os: string[]
+}
+
+export interface SkillInstallOption {
+  id: string
+  kind: string
+  label: string
+  bins?: string[]
+}
+
+export interface SkillEntry {
   name: string
-  status?: string
-  version?: string
+  description?: string
+  source?: string
+  bundled?: boolean
+  filePath?: string
+  baseDir?: string
+  skillKey?: string
+  emoji?: string
+  homepage?: string
+  always?: boolean
+  disabled?: boolean
+  blockedByAllowlist?: boolean
+  eligible?: boolean
+  primaryEnv?: string
+  requirements?: SkillRequirements
+  missing?: SkillRequirements
+  configChecks?: unknown[]
+  install?: SkillInstallOption[]
 }
 
 export interface SkillsStatusResponse {
+  workspaceDir?: string
+  managedSkillsDir?: string
   skills: SkillEntry[]
 }
 

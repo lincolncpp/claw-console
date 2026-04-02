@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Bot,
   Timer,
+  Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react"
@@ -17,6 +18,7 @@ const navItems: { path: string; label: string; icon: typeof LayoutDashboard }[] 
   { path: "/", label: "Overview", icon: LayoutDashboard },
   { path: "/sessions", label: "Sessions", icon: MessageSquare },
   { path: "/agents", label: "Agents", icon: Bot },
+  { path: "/skills", label: "Skills", icon: Sparkles },
   { path: "/nodes", label: "Nodes", icon: Server },
   { path: "/cron", label: "Cron Jobs", icon: Timer },
   { path: "/logs", label: "Logs", icon: ScrollText },

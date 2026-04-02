@@ -22,7 +22,16 @@ import { PageContent } from "@/components/shared/PageContent"
 import { PageLoading } from "@/components/shared/LoadingSpinner"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { SessionsTable } from "@/components/shared/SessionsTable"
-import { useAgents, useModels } from "@/hooks/use-agents"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { LoadingBlock } from "@/components/shared/LoadingSpinner"
+import { useAgents, useModels, useTools } from "@/hooks/use-agents"
 import { useConfig } from "@/hooks/use-config"
 import { useAgentMutations } from "@/hooks/use-agent-mutations"
 import { useSessions, useSessionDelete } from "@/hooks/use-sessions"
@@ -361,6 +370,7 @@ export function AgentDetailPage() {
     refetch: sessionsRefetch,
   } = useSessions()
   const { deleteSession } = useSessionDelete(sessionsRefetch)
+  const { groups: toolGroups, isLoading: toolsLoading } = useTools(agentId)
 
   const agentNameMap = new Map(agents.map((a) => [a.id, a.name ?? a.id]))
   const agent = agents.find((a) => a.id === agentId)
@@ -393,131 +403,165 @@ export function AgentDetailPage() {
         ]}
       />
 
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>{agent.name ?? agent.id}</CardTitle>
-            {agent.name && (
-              <p className="text-sm text-muted-foreground">ID: {agent.id}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>{agent.name ?? agent.id}</CardTitle>
+              {agent.name && (
+                <p className="text-sm text-muted-foreground">ID: {agent.id}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setConfigOpen(true)}
+              >
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={agent.isDefault || agent.id === defaultId}
+                title={
+                  agent.isDefault || agent.id === defaultId
+                    ? "Cannot delete the default agent"
+                    : "Delete agent"
+                }
+              >
+                Delete
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">Model</dt>
+              <dd>{agent.model ?? "default"}</dd>
+
+              <dt className="text-muted-foreground">Workspace</dt>
+              <dd className="font-mono break-all">
+                {agent.workspace ?? "--"}
+              </dd>
+
+              <dt className="text-muted-foreground">Channels</dt>
+              <dd>
+                {agent.channels?.length ? (
+                  <div className="flex gap-1 flex-wrap">
+                    {agent.channels.map((ch) => (
+                      <Badge
+                        key={ch}
+                        variant="outline"
+                        className="text-[0.625rem] px-1.5 py-0"
+                      >
+                        {ch}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </dd>
+
+              <dt className="text-muted-foreground">Thinking</dt>
+              <dd>{agent.thinkingDefault ?? "--"}</dd>
+
+              <dt className="text-muted-foreground">Timeout</dt>
+              <dd>
+                {formatDuration(
+                  agent.timeoutSeconds
+                    ? agent.timeoutSeconds * 1000
+                    : undefined,
+                )}
+              </dd>
+
+              <dt className="text-muted-foreground">Concurrency</dt>
+              <dd>{agent.maxConcurrent ?? "--"}</dd>
+
+              <dt className="text-muted-foreground">Memory Search</dt>
+              <dd>
+                {agent.memorySearchEnabled != null ? (
+                  <Badge
+                    variant={
+                      agent.memorySearchEnabled ? "default" : "secondary"
+                    }
+                    className="text-[0.625rem] px-1.5 py-0"
+                  >
+                    {agent.memorySearchEnabled ? "on" : "off"}
+                  </Badge>
+                ) : (
+                  "--"
+                )}
+              </dd>
+
+              <dt className="text-muted-foreground">Compaction</dt>
+              <dd>{agent.compactionMode ?? "--"}</dd>
+
+              <dt className="text-muted-foreground">Fallbacks</dt>
+              <dd>
+                {agent.fallbacks?.length ? (
+                  <div className="flex gap-1 flex-wrap">
+                    {agent.fallbacks.map((f) => (
+                      <Badge
+                        key={f}
+                        variant="outline"
+                        className="text-[0.625rem] px-1.5 py-0"
+                      >
+                        {f}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </dd>
+
+              <dt className="text-muted-foreground">Subagent Model</dt>
+              <dd>{agent.subagentsModel ?? "--"}</dd>
+
+              <dt className="text-muted-foreground">Subagent Concurrency</dt>
+              <dd>{agent.subagentsMaxConcurrent ?? "--"}</dd>
+
+              <dt className="text-muted-foreground">Sessions</dt>
+              <dd>{agentSessions.length.toLocaleString()}</dd>
+            </dl>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-0">
+            <CardTitle className="text-sm font-medium">Tools</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {toolsLoading ? (
+              <LoadingBlock />
+            ) : toolGroups.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No tools found.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Group</TableHead>
+                    <TableHead>Tools</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {toolGroups.map((group) => (
+                    <TableRow key={group.id}>
+                      <TableCell className="font-medium text-sm whitespace-nowrap align-top">{group.label}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-normal">
+                        {group.tools.map((t) => t.label).join(", ")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setConfigOpen(true)}
-            >
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-destructive"
-              onClick={() => setDeleteDialogOpen(true)}
-              disabled={agent.isDefault || agent.id === defaultId}
-              title={
-                agent.isDefault || agent.id === defaultId
-                  ? "Cannot delete the default agent"
-                  : "Delete agent"
-              }
-            >
-              Delete
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted-foreground">Model</dt>
-            <dd>{agent.model ?? "default"}</dd>
-
-            <dt className="text-muted-foreground">Workspace</dt>
-            <dd className="font-mono break-all">
-              {agent.workspace ?? "--"}
-            </dd>
-
-            <dt className="text-muted-foreground">Channels</dt>
-            <dd>
-              {agent.channels?.length ? (
-                <div className="flex gap-1 flex-wrap">
-                  {agent.channels.map((ch) => (
-                    <Badge
-                      key={ch}
-                      variant="outline"
-                      className="text-[0.625rem] px-1.5 py-0"
-                    >
-                      {ch}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-muted-foreground">--</span>
-              )}
-            </dd>
-
-            <dt className="text-muted-foreground">Thinking</dt>
-            <dd>{agent.thinkingDefault ?? "--"}</dd>
-
-            <dt className="text-muted-foreground">Timeout</dt>
-            <dd>
-              {formatDuration(
-                agent.timeoutSeconds
-                  ? agent.timeoutSeconds * 1000
-                  : undefined,
-              )}
-            </dd>
-
-            <dt className="text-muted-foreground">Concurrency</dt>
-            <dd>{agent.maxConcurrent ?? "--"}</dd>
-
-            <dt className="text-muted-foreground">Memory Search</dt>
-            <dd>
-              {agent.memorySearchEnabled != null ? (
-                <Badge
-                  variant={
-                    agent.memorySearchEnabled ? "default" : "secondary"
-                  }
-                  className="text-[0.625rem] px-1.5 py-0"
-                >
-                  {agent.memorySearchEnabled ? "on" : "off"}
-                </Badge>
-              ) : (
-                "--"
-              )}
-            </dd>
-
-            <dt className="text-muted-foreground">Compaction</dt>
-            <dd>{agent.compactionMode ?? "--"}</dd>
-
-            <dt className="text-muted-foreground">Fallbacks</dt>
-            <dd>
-              {agent.fallbacks?.length ? (
-                <div className="flex gap-1 flex-wrap">
-                  {agent.fallbacks.map((f) => (
-                    <Badge
-                      key={f}
-                      variant="outline"
-                      className="text-[0.625rem] px-1.5 py-0"
-                    >
-                      {f}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-muted-foreground">--</span>
-              )}
-            </dd>
-
-            <dt className="text-muted-foreground">Subagent Model</dt>
-            <dd>{agent.subagentsModel ?? "--"}</dd>
-
-            <dt className="text-muted-foreground">Subagent Concurrency</dt>
-            <dd>{agent.subagentsMaxConcurrent ?? "--"}</dd>
-
-            <dt className="text-muted-foreground">Sessions</dt>
-            <dd>{agentSessions.length.toLocaleString()}</dd>
-          </dl>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader className="pb-0">

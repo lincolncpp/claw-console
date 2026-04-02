@@ -159,8 +159,8 @@ export class GatewayWebSocket {
   async modelsList(): Promise<ModelsListResponse> {
     return this.sendRpc("models.list") as Promise<ModelsListResponse>
   }
-  async toolsCatalog(): Promise<ToolsCatalogResponse> {
-    return this.sendRpc("tools.catalog") as Promise<ToolsCatalogResponse>
+  async toolsCatalog(agentId?: string): Promise<ToolsCatalogResponse> {
+    return this.sendRpc("tools.catalog", agentId ? { agentId } : undefined) as Promise<ToolsCatalogResponse>
   }
   async skillsStatus(): Promise<SkillsStatusResponse> {
     return this.sendRpc("skills.status") as Promise<SkillsStatusResponse>
