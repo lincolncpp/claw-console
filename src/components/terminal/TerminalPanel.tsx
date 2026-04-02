@@ -12,6 +12,9 @@ import { ChatInput } from "./ChatInput"
 import { X, GripHorizontal } from "lucide-react"
 import type { ChatMessageData } from "@/types/terminal"
 import { uuid } from "@/lib/uuid"
+import { useSessionTokens } from "@/hooks/use-session-tokens"
+import { formatTokensCompact } from "@/lib/format"
+import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
 
 const MIN_HEIGHT = 120
 const MAX_HEIGHT_RATIO = 0.6
@@ -33,6 +36,10 @@ export function TerminalPanel() {
   const agentLabel = useSystemStore(
     (s) => s.agents.find((a) => a.agentId === agentId)?.name ?? agentId ?? "agent",
   )
+
+  const totalTokens = useSessionTokens(sessionKey)
+  const tokenLevel = classifyTokenConsumption(totalTokens)
+  const tokenLevelLabel = tokenLevelBadgeProps[tokenLevel].label
 
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const connected = connectionStatus === "connected"
@@ -186,6 +193,24 @@ export function TerminalPanel() {
           <span className="text-muted-foreground/40">|</span>
           <span className="text-muted-foreground">
             session: <span className="text-primary">{sessionKey ?? "none"}</span>
+          </span>
+          <span className="text-muted-foreground/40">|</span>
+          <span className="text-muted-foreground">
+            total tokens:{" "}
+            <span className="text-primary">
+              {totalTokens != null ? formatTokensCompact(totalTokens) : "--"}
+            </span>
+            {totalTokens != null && (
+              <span className={`ml-1 text-[0.625rem] ${
+                tokenLevel === "medium"
+                  ? "text-yellow-600"
+                  : tokenLevel === "high"
+                    ? "text-destructive"
+                    : ""
+              }`}>
+                ({tokenLevelLabel})
+              </span>
+            )}
           </span>
         </div>
         <div className="flex items-center gap-2">
