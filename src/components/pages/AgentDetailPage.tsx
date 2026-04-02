@@ -109,9 +109,10 @@ function AgentConfigDialog({
       const entry: Record<string, unknown> = { id: agent.id }
       if (name.trim()) entry.name = name.trim()
 
-      // Preserve workspace from existing entry (not editable)
+      // Preserve fields from existing entry that aren't editable here
       const existing = currentList.find((c) => c.id === agent.id)
       if (existing?.workspace) entry.workspace = existing.workspace
+      if (existing?.tools) entry.tools = existing.tools
 
       if (model) {
         entry.model =
@@ -356,10 +357,178 @@ function AgentConfigDialog({
   )
 }
 
+const toolProfiles = ["full", "coding", "messaging", "minimal"] as const
+
+function AgentToolsDialog({
+  open,
+  onClose,
+  agentId,
+  onSaved,
+}: {
+  open: boolean
+  onClose: () => void
+  agentId: string
+  onSaved: () => void
+}) {
+  const { parsed, configHash, refetch: refetchConfig } = useConfig()
+  const { groups } = useTools(agentId)
+  const addToast = useErrorToastStore((s) => s.addToast)
+
+  const [profile, setProfile] = useState("")
+  const [allow, setAllow] = useState<string[]>([])
+  const [deny, setDeny] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+
+  const allToolIds = groups.flatMap((g) => [
+    `group:${g.id}`,
+    ...g.tools.map((t) => t.id),
+  ])
+
+  useEffect(() => {
+    if (!open) return
+    const entry = parsed?.agents?.list?.find((c) => c.id === agentId)
+    setProfile(entry?.tools?.profile ?? "")
+    setAllow(entry?.tools?.allow ?? [])
+    setDeny(entry?.tools?.deny ?? [])
+  }, [open, agentId, parsed])
+
+  const addItem = (list: string[], setList: (v: string[]) => void, value: string) => {
+    if (value && !list.includes(value)) setList([...list, value])
+  }
+  const removeItem = (list: string[], setList: (v: string[]) => void, index: number) => {
+    setList(list.filter((_, i) => i !== index))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      // Per-agent: profile, allow, deny all supported
+      // Always send arrays explicitly — omitted keys preserve old values
+      const currentList = parsed?.agents?.list ?? []
+      const existing = currentList.find((c) => c.id === agentId)
+      const entry: Record<string, unknown> = { ...existing, id: agentId }
+      // Always send all fields explicitly — omitted keys preserve old values
+      entry.tools = {
+        profile: profile || null,
+        allow: allow,
+        deny: deny,
+      }
+
+      const existingIdx = currentList.findIndex((c) => c.id === agentId)
+      const newList =
+        existingIdx >= 0
+          ? currentList.map((c, i) => (i === existingIdx ? entry : c))
+          : [...currentList, entry]
+
+      await gatewayWs.configPatch({ agents: { list: newList } }, configHash)
+      refetchConfig()
+      onSaved()
+      onClose()
+    } catch (err) {
+      addToast(`Failed to update tools config: ${formatRpcError(err)}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Agent Tools</DialogTitle>
+          <DialogDescription>
+            Configure tool profile, allow, and deny lists for this agent.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted-foreground">Profile</label>
+            <select
+              value={profile}
+              onChange={(e) => setProfile(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">Use default (full)</option>
+              {toolProfiles.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Allow</label>
+            {allow.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-1.5">
+                {allow.map((item, i) => (
+                  <Badge key={item} variant="outline" className="text-[0.625rem] px-1.5 py-0 gap-1">
+                    {item}
+                    <button type="button" onClick={() => removeItem(allow, setAllow, i)} className="inline-flex items-center hover:text-destructive [&>svg]:pointer-events-auto">
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <select
+              value=""
+              onChange={(e) => addItem(allow, setAllow, e.target.value)}
+              className={selectClass}
+            >
+              <option value="">Add tool to allow list...</option>
+              {allToolIds.filter((t) => !allow.includes(t)).map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Deny</label>
+            {deny.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-1.5">
+                {deny.map((item, i) => (
+                  <Badge key={item} variant="destructive" className="text-[0.625rem] px-1.5 py-0 gap-1">
+                    {item}
+                    <button type="button" onClick={() => removeItem(deny, setDeny, i)} className="inline-flex items-center hover:text-destructive-foreground [&>svg]:pointer-events-auto">
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <select
+              value=""
+              onChange={(e) => addItem(deny, setDeny, e.target.value)}
+              className={selectClass}
+            >
+              <option value="">Add tool to deny list...</option>
+              {allToolIds.filter((t) => !deny.includes(t)).map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <DialogFooter>
+          <div className="flex items-center gap-1.5 text-xs text-warning mr-auto">
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+            <span>Saving restarts the gateway</span>
+          </div>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function AgentDetailPage() {
   const { agentId } = useParams<{ agentId: string }>()
   const navigate = useNavigate()
   const [configOpen, setConfigOpen] = useState(false)
+  const [toolsConfigOpen, setToolsConfigOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const { agents, defaultId, isLoading: agentsLoading, refetch } = useAgents()
@@ -370,13 +539,34 @@ export function AgentDetailPage() {
     refetch: sessionsRefetch,
   } = useSessions()
   const { deleteSession } = useSessionDelete(sessionsRefetch)
-  const { groups: toolGroups, isLoading: toolsLoading } = useTools(agentId)
+  const { groups: rawToolGroups, isLoading: toolsLoading, refetch: refetchTools } = useTools(agentId)
+  const { parsed, refetch: refetchConfig } = useConfig()
 
   const agentNameMap = new Map(agents.map((a) => [a.id, a.name ?? a.id]))
   const agent = agents.find((a) => a.id === agentId)
   const agentSessions = sessions.filter(
     (s) => extractAgentId(s.key) === agentId,
   )
+
+  const agentToolsConfig = parsed?.agents?.list?.find((c) => c.id === agentId)?.tools
+  const agentProfile = agentToolsConfig?.profile ?? "full"
+  const allowSet = new Set(agentToolsConfig?.allow ?? [])
+  const denySet = new Set(agentToolsConfig?.deny ?? [])
+  const toolGroups = rawToolGroups
+    .map((g) => {
+      if (denySet.has(`group:${g.id}`)) return { ...g, tools: [] }
+      const groupAllowed = allowSet.has(`group:${g.id}`)
+      return {
+        ...g,
+        tools: g.tools.filter((t) => {
+          if (denySet.has(t.id)) return false
+          if (allowSet.has(t.id) || groupAllowed) return true
+          if (agentProfile === "full") return true
+          return t.defaultProfiles?.includes(agentProfile) ?? false
+        }),
+      }
+    })
+    .filter((g) => g.tools.length > 0)
 
   if (agentsLoading) return <PageLoading />
 
@@ -531,8 +721,11 @@ export function AgentDetailPage() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-0">
+          <CardHeader className="flex flex-row items-center justify-between pb-0">
             <CardTitle className="text-sm font-medium">Tools</CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setToolsConfigOpen(true)}>
+              Edit
+            </Button>
           </CardHeader>
           <CardContent>
             {toolsLoading ? (
@@ -584,6 +777,13 @@ export function AgentDetailPage() {
         onClose={() => setConfigOpen(false)}
         agent={agent}
         onSaved={refetch}
+      />
+
+      <AgentToolsDialog
+        open={toolsConfigOpen}
+        onClose={() => setToolsConfigOpen(false)}
+        agentId={agent.id}
+        onSaved={() => { refetch(); refetchTools(); refetchConfig() }}
       />
 
       <DeleteConfirmDialog

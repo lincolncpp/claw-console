@@ -122,6 +122,7 @@ export interface ConfigAgentEntry {
   memorySearch?: { enabled?: boolean }
   compaction?: { mode?: string }
   subagents?: { maxConcurrent?: number; model?: string }
+  tools?: { profile?: string; allow?: string[]; deny?: string[] }
 }
 
 export interface ConfigBinding {
@@ -150,7 +151,7 @@ export interface ParsedConfig {
     list?: ConfigAgentEntry[]
   }
   bindings?: ConfigBinding[]
-  tools?: { exec?: { security?: string; ask?: string } }
+  tools?: { exec?: { security?: string; ask?: string }; allow?: string[]; deny?: string[] }
   cron?: {
     maxConcurrentRuns?: number
     sessionRetention?: string | false

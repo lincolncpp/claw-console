@@ -81,12 +81,12 @@ export function useModels() {
 }
 
 export function useTools(agentId?: string) {
-  const { data, isLoading, error, scopeError } = useRpc(
+  const { data, isLoading, error, scopeError, refetch } = useRpc(
     () => gatewayWs.toolsCatalog(agentId),
     [agentId],
   )
   const groups = Array.isArray(data?.groups) ? data.groups : []
-  return { groups, profiles: data?.profiles ?? [], isLoading, error, scopeError }
+  return { groups, profiles: data?.profiles ?? [], isLoading, error, scopeError, refetch }
 }
 
 export function useSkills() {
