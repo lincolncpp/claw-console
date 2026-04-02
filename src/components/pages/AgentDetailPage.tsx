@@ -52,7 +52,7 @@ function AgentConfigDialog({
   agent: AgentEntry
   onSaved: () => void
 }) {
-  const { parsed, configHash } = useConfig()
+  const { parsed, configHash, refetch: refetchConfig } = useConfig()
   const { models } = useModels()
   const addToast = useErrorToastStore((s) => s.addToast)
 
@@ -96,21 +96,18 @@ function AgentConfigDialog({
     try {
       const currentList = parsed?.agents?.list ?? []
 
-      // Build the updated per-agent entry
-      const entry: Record<string, unknown> = { id: agent.id }
-      if (name.trim()) entry.name = name.trim()
-
-      // Preserve fields from existing entry that aren't editable here
+      // Spread existing entry to preserve non-editable fields, then
+      // explicitly set all editable fields (null clears overrides)
       const existing = currentList.find((c) => c.id === agent.id)
-      if (existing?.workspace) entry.workspace = existing.workspace
-      if (existing?.tools) entry.tools = existing.tools
+      const entry: Record<string, unknown> = { ...existing, id: agent.id }
 
-      if (model) {
-        entry.model = fallbacks.length > 0 ? { primary: model, fallbacks } : model
-      }
-      if (thinking) entry.thinkingDefault = thinking
-      if (memorySearch) entry.memorySearch = { enabled: memorySearch === "enabled" }
-      if (subagentModel) entry.subagents = { model: subagentModel }
+      entry.name = name.trim() || null
+      entry.model = model
+        ? fallbacks.length > 0 ? { primary: model, fallbacks } : model
+        : null
+      entry.thinkingDefault = thinking || null
+      entry.memorySearch = memorySearch ? { enabled: memorySearch === "enabled" } : null
+      entry.subagents = subagentModel ? { model: subagentModel } : null
 
       // Replace existing entry or append new one
       const existingIdx = currentList.findIndex((c) => c.id === agent.id)
@@ -120,6 +117,7 @@ function AgentConfigDialog({
           : [...currentList, entry]
 
       await gatewayWs.configPatch({ agents: { list: newList } }, configHash)
+      refetchConfig()
       onSaved()
       onClose()
     } catch (err) {
@@ -653,7 +651,10 @@ export function AgentDetailPage() {
         open={configOpen}
         onClose={() => setConfigOpen(false)}
         agent={agent}
-        onSaved={refetch}
+        onSaved={() => {
+          refetch()
+          refetchConfig()
+        }}
       />
 
       <AgentToolsDialog
