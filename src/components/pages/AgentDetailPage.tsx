@@ -15,6 +15,8 @@ import { useErrorToastStore } from "@/stores/error-toast-store"
 import { Bot, TriangleAlert, X } from "lucide-react"
 import { extractAgentId } from "@/lib/session-utils"
 import { formatRpcError } from "@/lib/errors"
+import { useTerminalStore } from "@/stores/terminal-store"
+import { uuid } from "@/lib/uuid"
 import { gatewayWs } from "@/services/gateway-ws"
 import { Breadcrumb } from "@/components/shared/Breadcrumb"
 import { PageContent } from "@/components/shared/PageContent"
@@ -643,6 +645,13 @@ export function AgentDetailPage() {
             isLoading={sessionsLoading}
             emptyMessage="No sessions for this agent"
             hideAgentColumn
+            onNewSession={() => {
+              const hash = uuid().slice(0, 8)
+              const sessionKey = `agent:${agent.id}:chat:${hash}`
+              const store = useTerminalStore.getState()
+              store.setSession(agent.id, sessionKey)
+              store.open()
+            }}
           />
         </CardContent>
       </Card>

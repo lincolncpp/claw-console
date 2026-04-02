@@ -60,7 +60,19 @@ export function SessionsTable({
   if (isLoading) return <LoadingBlock />
 
   if (sessions.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>
+    return (
+      <>
+        <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>
+        {onNewSession && (
+          <TableFooter className="justify-end">
+            <Button variant="outline" size="sm" onClick={onNewSession}>
+              <Plus className="h-3 w-3 mr-1" />
+              New Session
+            </Button>
+          </TableFooter>
+        )}
+      </>
+    )
   }
 
   const handleCleanup = () => {

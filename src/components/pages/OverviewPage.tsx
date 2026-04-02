@@ -1,9 +1,12 @@
+import { useMemo } from "react"
 import { SystemHealth } from "@/components/dashboard/SystemHealth"
 import { RecentCronRuns } from "@/components/dashboard/RecentCronRuns"
 import { TokenHistogram } from "@/components/dashboard/TokenSparkline"
 import { useTokenTotal } from "@/hooks/use-token-total"
 import { useSystemStore } from "@/stores/system-store"
 import { useCronStore } from "@/stores/cron-store"
+import { useSessions } from "@/hooks/use-sessions"
+import { extractSessionType } from "@/lib/session-utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
@@ -47,21 +50,28 @@ function UpdateBanner() {
 export function OverviewPage() {
   const runs = useCronStore((s) => s.runs)
   const hasRuns = Object.values(runs).some((r) => r.length > 0)
-  const totalTokens = useTokenTotal()
+  const { sessions } = useSessions()
+  const SESSION_TYPES = new Set(["chat", "main", "subagent"])
+  const tokenSessions = useMemo(
+    () => sessions.filter((s) => SESSION_TYPES.has(extractSessionType(s.key)) && s.totalTokens),
+    [sessions],
+  )
+  const totalTokens = useTokenTotal(tokenSessions)
+  const hasTokenData = hasRuns || tokenSessions.length > 0
 
   return (
     <PageContent>
       <PageHeader breadcrumbs={[{ label: "Overview" }]} />
       <UpdateBanner />
       <SystemHealth />
-      {hasRuns && (
+      {hasTokenData && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Token Usage (7d)</CardTitle>
             <CardDescription>{formatTokensCompact(totalTokens)} total</CardDescription>
           </CardHeader>
           <CardContent>
-            <TokenHistogram />
+            <TokenHistogram tokenSessions={tokenSessions} />
           </CardContent>
         </Card>
       )}

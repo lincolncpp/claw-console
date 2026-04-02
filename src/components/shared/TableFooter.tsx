@@ -10,7 +10,7 @@ export function TableFooter({
   return (
     <div
       className={cn(
-        "flex items-center border-t bg-muted/50 rounded-b-xl p-4 -mx-4 -mb-4 mt-3",
+        "flex items-center gap-2 border-t bg-muted/50 rounded-b-xl p-4 -mx-4 -mb-4 mt-3",
         className,
       )}
     >

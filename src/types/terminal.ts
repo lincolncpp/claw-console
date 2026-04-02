@@ -4,6 +4,7 @@ export interface ChatMessageData {
   content: string
   timestamp: number
   toolCalls?: ToolCallData[]
+  isError?: boolean
 }
 
 export interface ToolCallData {

@@ -63,16 +63,20 @@ export function ChatMessage({
 
   if (!text && !thinking) return null
 
+  const isError = message.isError === true
+
   return (
-    <div className="flex gap-3 items-start px-2 py-0.5 hover:bg-white/[0.02] rounded">
+    <div className={`flex gap-3 items-start px-2 py-0.5 rounded ${isError ? "bg-status-error/5" : "hover:bg-white/[0.02]"}`}>
       <span
-        className={`shrink-0 w-20 text-right text-[0.6875rem] font-mono pt-px ${roleColors[message.role] ?? "text-muted-foreground"}`}
+        className={`shrink-0 w-20 text-right text-[0.6875rem] font-mono pt-px ${isError ? "text-status-error" : (roleColors[message.role] ?? "text-muted-foreground")}`}
       >
-        {message.role === "assistant" && agentName
-          ? agentName
-          : (roleLabels[message.role] ?? message.role)}
+        {isError
+          ? "error"
+          : message.role === "assistant" && agentName
+            ? agentName
+            : (roleLabels[message.role] ?? message.role)}
       </span>
-      <div className="text-[0.8125rem] font-mono text-foreground/90 break-words min-w-0 leading-5 [&_pre]:bg-muted [&_pre]:rounded [&_pre]:px-2 [&_pre]:py-1 [&_pre]:my-1 [&_pre]:overflow-x-auto [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_p]:my-0">
+      <div className={`text-[0.8125rem] font-mono break-words min-w-0 leading-5 [&_pre]:bg-muted [&_pre]:rounded [&_pre]:px-2 [&_pre]:py-1 [&_pre]:my-1 [&_pre]:overflow-x-auto [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_p]:my-0 ${isError ? "text-status-error/90" : "text-foreground/90"}`}>
         {thinking && (
           <details className="mb-1">
             <summary className="text-[0.6875rem] text-muted-foreground/60 cursor-pointer select-none hover:text-muted-foreground transition-colors">

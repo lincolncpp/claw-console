@@ -3,6 +3,8 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts"
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
 import { formatTokensCompact } from "@/lib/format"
 import { useCronStore } from "@/stores/cron-store"
+import { extractAgentId, extractSessionType } from "@/lib/session-utils"
+import type { SessionEntry } from "@/types/session"
 
 const HOURS = 7 * 24
 const COLORS = [
@@ -33,28 +35,28 @@ function formatHourLabel(key: string) {
   return `${parseInt(m)}/${parseInt(d)} ${hour}:00`
 }
 
-export function TokenHistogram() {
+export function TokenHistogram({ tokenSessions }: { tokenSessions?: SessionEntry[] }) {
   const jobs = useCronStore((s) => s.jobs)
   const runs = useCronStore((s) => s.runs)
   // eslint-disable-next-line react-hooks/purity -- cutoff for 7-day chart window; harmless impurity
   const now = Date.now()
 
-  const { data, jobNames, chartConfig } = useMemo(() => {
+  const { data, seriesNames, chartConfig } = useMemo(() => {
     const cutoff = now - HOURS * 3_600_000
     const jobNameMap = new Map<string, string>()
     for (const job of jobs) {
       jobNameMap.set(job.id, job.name || job.id)
     }
 
-    // Build hour -> jobId -> tokens map
+    // Build hour -> seriesKey -> tokens map
     const hourMap = new Map<string, Record<string, number>>()
-    const jobIds = new Set<string>()
+    const seriesKeys = new Set<string>()
 
     for (const [jobId, jobRuns] of Object.entries(runs)) {
       for (const run of jobRuns) {
         if (run.runAtMs < cutoff || !run.usage?.total_tokens) continue
         const hour = hourKey(run.runAtMs)
-        jobIds.add(jobId)
+        seriesKeys.add(jobId)
         let hourEntry = hourMap.get(hour)
         if (!hourEntry) {
           hourEntry = {}
@@ -64,16 +66,34 @@ export function TokenHistogram() {
       }
     }
 
+    // Add session tokens grouped by agent and type
+    if (tokenSessions) {
+      for (const session of tokenSessions) {
+        if (!session.updatedAt || !session.totalTokens || session.updatedAt < cutoff) continue
+        const sessionType = extractSessionType(session.key)
+        const agentId = extractAgentId(session.key)
+        const seriesKey = `session::${sessionType}::${agentId}`
+        const hour = hourKey(session.updatedAt)
+        seriesKeys.add(seriesKey)
+        let hourEntry = hourMap.get(hour)
+        if (!hourEntry) {
+          hourEntry = {}
+          hourMap.set(hour, hourEntry)
+        }
+        hourEntry[seriesKey] = (hourEntry[seriesKey] ?? 0) + session.totalTokens
+      }
+    }
+
     // Generate all 168 hours (7 days)
-    const sortedJobIds = [...jobIds].sort()
+    const sortedKeys = [...seriesKeys].sort()
     const rows: Record<string, unknown>[] = []
     for (let i = HOURS - 1; i >= 0; i--) {
       const d = new Date(now - i * 3_600_000)
       const key = hourKey(d.getTime())
       const entry: Record<string, unknown> = { day: formatHourLabel(key) }
       const hourData = hourMap.get(key)
-      for (const jid of sortedJobIds) {
-        entry[jid] = hourData?.[jid] ?? 0
+      for (const sk of sortedKeys) {
+        entry[sk] = hourData?.[sk] ?? 0
       }
       rows.push(entry)
     }
@@ -81,19 +101,27 @@ export function TokenHistogram() {
     // Build chart config
     const config: ChartConfig = {}
     const names: Record<string, string> = {}
-    sortedJobIds.forEach((jid, i) => {
-      const name = jobNameMap.get(jid) ?? jid
-      names[jid] = name
-      config[jid] = { label: name, color: getColor(i) }
+    sortedKeys.forEach((sk, i) => {
+      let name: string
+      if (sk.startsWith("session::")) {
+        const parts = sk.split("::")
+        const sessionType = parts[1]
+        const agentId = parts[2]
+        name = `${agentId} ${sessionType}`
+      } else {
+        name = jobNameMap.get(sk) ?? sk
+      }
+      names[sk] = name
+      config[sk] = { label: name, color: getColor(i) }
     })
 
-    return { data: rows, jobNames: names, chartConfig: config }
-  }, [jobs, runs, now])
+    return { data: rows, seriesNames: names, chartConfig: config }
+  }, [jobs, runs, tokenSessions, now])
 
   if (data.length === 0) return null
 
-  const jobIdKeys = Object.keys(jobNames)
-  if (jobIdKeys.length === 0) return null
+  const seriesIdKeys = Object.keys(seriesNames)
+  if (seriesIdKeys.length === 0) return null
 
   return (
     <ChartContainer config={chartConfig} className="h-[220px] w-full">
@@ -121,7 +149,7 @@ export function TokenHistogram() {
                 {items.map((p) => (
                   <div key={p.dataKey as string} className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
-                    <span className="text-muted-foreground">{jobNames[p.dataKey as string]}</span>
+                    <span className="text-muted-foreground">{seriesNames[p.dataKey as string]}</span>
                     <span className="ml-auto font-mono">
                       {formatTokensCompact(p.value as number)}
                     </span>
@@ -131,12 +159,12 @@ export function TokenHistogram() {
             )
           }}
         />
-        {jobIdKeys.map((jid) => (
+        {seriesIdKeys.map((sk) => (
           <Bar
-            key={jid}
-            dataKey={jid}
+            key={sk}
+            dataKey={sk}
             stackId="tokens"
-            fill={chartConfig[jid]?.color}
+            fill={chartConfig[sk]?.color}
             radius={0}
             isAnimationActive={false}
           />

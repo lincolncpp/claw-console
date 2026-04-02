@@ -1,9 +1,10 @@
 import { useMemo } from "react"
 import { useCronStore } from "@/stores/cron-store"
+import type { SessionEntry } from "@/types/session"
 
 const HOURS = 7 * 24
 
-export function useTokenTotal() {
+export function useTokenTotal(tokenSessions?: SessionEntry[]) {
   const runs = useCronStore((s) => s.runs)
   return useMemo(() => {
     // eslint-disable-next-line react-hooks/purity -- Date.now() inside memo is fine; recomputes only when runs change
@@ -16,6 +17,13 @@ export function useTokenTotal() {
         }
       }
     }
+    if (tokenSessions) {
+      for (const session of tokenSessions) {
+        if (session.updatedAt && session.updatedAt >= cutoff && session.totalTokens) {
+          total += session.totalTokens
+        }
+      }
+    }
     return total
-  }, [runs])
+  }, [runs, tokenSessions])
 }

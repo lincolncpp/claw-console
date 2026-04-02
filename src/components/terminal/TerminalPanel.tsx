@@ -60,30 +60,15 @@ export function TerminalPanel() {
       })
   }, [isOpen, agentId, sessionKey, addToast])
 
-  // Always poll chat history while panel is open to catch missed WS events.
-  // Frequency adapts: fast when waiting/streaming, slow when idle.
+  // Always poll chat history every 1s while panel is open to catch missed WS events.
   useEffect(() => {
     if (!isOpen || !sessionKey) return
     let active = true
-    let lastPollAt = 0
 
-    const ACTIVE_INTERVAL = 3000 // 3s when waiting/streaming
-    const IDLE_INTERVAL = 10000 // 10s background sync
-    const STREAMING_FRESH_THRESHOLD = 8000 // skip poll during streaming if events are recent
+    const POLL_INTERVAL = 1000 // 1s — always fetch terminal data
 
     const poll = () => {
       if (!active) return
-      const now = Date.now()
-      const { runState: rs, lastEventAt } = useTerminalStore.getState()
-      const isActive = rs === "waiting" || rs === "streaming"
-
-      // During active streaming with recent events, WS is working — skip
-      if (rs === "streaming" && now - lastEventAt < STREAMING_FRESH_THRESHOLD) return
-
-      // Throttle: use fast interval when active, slow when idle
-      const minGap = isActive ? ACTIVE_INTERVAL : IDLE_INTERVAL
-      if (now - lastPollAt < minGap) return
-      lastPollAt = now
 
       gatewayWs
         .chatHistory(sessionKey)
@@ -96,7 +81,7 @@ export function TerminalPanel() {
           if (!serverHasNewerMessages(serverMsgs, nowMsgs)) return
 
           useTerminalStore.getState().setMessages(serverMsgs)
-          // Only reset streaming UI if we were actively waiting/streaming
+          // Reset streaming UI if we were actively waiting/streaming
           if (currentRs === "waiting" || currentRs === "streaming") {
             useTerminalStore.getState().resetStreaming()
           }
@@ -106,8 +91,7 @@ export function TerminalPanel() {
         })
     }
 
-    // Tick at the fast rate; poll() self-throttles based on state
-    const interval = setInterval(poll, ACTIVE_INTERVAL)
+    const interval = setInterval(poll, POLL_INTERVAL)
 
     return () => {
       active = false
@@ -148,18 +132,14 @@ export function TerminalPanel() {
       appendMessage(userMsg)
       useTerminalStore.getState().setRunState("waiting")
       gatewayWs.chatSend(sessionKey, text).catch((err: Error) => {
-        const { runState: currentState } = useTerminalStore.getState()
-        if (currentState === "waiting" || currentState === "error") {
-          useTerminalStore.getState().setRunState("error")
-          appendMessage({
-            id: uuid(),
-            role: "system",
-            content: `Failed to send message: ${err.message}`,
-            timestamp: Date.now(),
-          })
-        } else {
-          console.warn("chatSend RPC failed after streaming started:", err.message)
-        }
+        useTerminalStore.getState().setRunState("error")
+        appendMessage({
+          id: uuid(),
+          role: "system",
+          content: `Failed to send message: ${err.message}`,
+          timestamp: Date.now(),
+          isError: true,
+        })
       })
     },
     [agentId, sessionKey, appendMessage],

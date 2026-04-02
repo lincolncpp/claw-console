@@ -117,6 +117,7 @@ function App() {
                 role: "system",
                 content: (data.message as string) ?? (data.error as string) ?? "An error occurred.",
                 timestamp: Date.now(),
+                isError: true,
               })
             }
           }
@@ -139,6 +140,7 @@ function App() {
             role: "system",
             content: (p.message as string) ?? (p.error as string) ?? "An error occurred.",
             timestamp: Date.now(),
+            isError: true,
           })
         }
       },

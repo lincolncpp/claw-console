@@ -327,6 +327,7 @@ export function AgentsPage() {
               size="sm"
               onClick={() => setConfigOpen(true)}
               disabled={!globalConfig}
+              className="ml-auto"
             >
               <Settings className="h-3 w-3 mr-1" />
               Edit Global Settings
@@ -335,7 +336,6 @@ export function AgentsPage() {
               variant="outline"
               size="sm"
               onClick={() => setAddDialogOpen(true)}
-              className="ml-auto"
             >
               <Plus className="h-3 w-3 mr-1" />
               New Agent
