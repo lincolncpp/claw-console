@@ -65,12 +65,18 @@ By default the OpenClaw Gateway only listens on loopback (`127.0.0.1`), so it is
 
 ```json5
 {
-  gateway: {
-    bind: "lan",
-    port: 18789,
-    auth: {
-      mode: "token",
-      token: "your-secure-token"
+  "gateway": {
+    "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "allowedOrigins": [
+        "*" 
+      ],
+      "dangerouslyDisableDeviceAuth": true
+    },
+    "auth": {
+      "mode": "token",
+      "token": "your-secure-token"
     }
   }
 }
