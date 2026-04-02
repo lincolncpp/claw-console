@@ -5,8 +5,19 @@ import { gatewayWs } from "@/services/gateway-ws"
 import type { AgentEntry, GlobalConfig } from "@/types/agent"
 
 export function useAgents() {
-  const { data, isLoading, error, scopeError, refetch } = useRpc(() => gatewayWs.agentsList(), [])
-  const { parsed, configHash } = useConfig()
+  const {
+    data,
+    isLoading,
+    error,
+    scopeError,
+    refetch: refetchAgents,
+  } = useRpc(() => gatewayWs.agentsList(), [])
+  const { parsed, configHash, refetch: refetchConfig } = useConfig()
+
+  const refetch = () => {
+    refetchAgents()
+    refetchConfig()
+  }
 
   const agents = useMemo(() => {
     const base = data?.agents ?? []
@@ -40,15 +51,16 @@ export function useAgents() {
       return {
         ...agent,
         workspace: cfg?.workspace ?? defaults?.workspace,
-        model: normalizeModel(cfg?.model) ?? defaults?.model?.primary ?? normalizeModel(agent.model),
+        model:
+          normalizeModel(cfg?.model) ?? defaults?.model?.primary ?? normalizeModel(agent.model),
         channels: uniqueChannels.length > 0 ? uniqueChannels : undefined,
         thinkingDefault: cfg?.thinkingDefault ?? defaults?.thinkingDefault,
-        timeoutSeconds: cfg?.timeoutSeconds ?? defaults?.timeoutSeconds,
-        maxConcurrent: cfg?.maxConcurrent ?? defaults?.maxConcurrent,
+        timeoutSeconds: defaults?.timeoutSeconds,
+        maxConcurrent: defaults?.maxConcurrent,
         memorySearchEnabled: cfg?.memorySearch?.enabled ?? defaults?.memorySearch?.enabled,
         fallbacks: cfgModelFallbacks ?? defaults?.model?.fallbacks,
-        compactionMode: cfg?.compaction?.mode ?? defaults?.compaction?.mode,
-        subagentsMaxConcurrent: cfg?.subagents?.maxConcurrent ?? defaults?.subagents?.maxConcurrent,
+        compactionMode: defaults?.compaction?.mode,
+        subagentsMaxConcurrent: defaults?.subagents?.maxConcurrent,
         subagentsModel: cfg?.subagents?.model ?? defaults?.subagents?.model,
       }
     })
@@ -57,9 +69,18 @@ export function useAgents() {
   const globalConfig = useMemo((): GlobalConfig | undefined => {
     if (!parsed) return undefined
     return {
-      toolExecSecurity: parsed.tools?.exec?.security,
-      toolAskMode: parsed.tools?.exec?.ask,
       cronMaxConcurrentRuns: parsed.cron?.maxConcurrentRuns,
+      defaultTimeoutSeconds: parsed.agents?.defaults?.timeoutSeconds,
+      defaultMaxConcurrent: parsed.agents?.defaults?.maxConcurrent,
+      defaultMemorySearch:
+        parsed.agents?.defaults?.memorySearch?.enabled != null
+          ? parsed.agents.defaults.memorySearch.enabled
+            ? "enabled"
+            : "disabled"
+          : undefined,
+      defaultCompaction: parsed.agents?.defaults?.compaction?.mode,
+      defaultSubagentModel: parsed.agents?.defaults?.subagents?.model,
+      defaultSubagentConcurrency: parsed.agents?.defaults?.subagents?.maxConcurrent,
     }
   }, [parsed])
 

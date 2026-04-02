@@ -28,8 +28,8 @@ export function AddAgentDialog({ open, onClose, existingIds, onSaved }: AddAgent
   const [workspace, setWorkspace] = useState("")
   const [model, setModel] = useState("")
   const [thinking, setThinking] = useState("")
-  const [timeout, setTimeout] = useState("")
-  const [concurrency, setConcurrency] = useState("")
+  const [memorySearch, setMemorySearch] = useState("")
+  const [subagentModel, setSubagentModel] = useState("")
   const [saving, setSaving] = useState(false)
   const [idError, setIdError] = useState("")
 
@@ -77,8 +77,8 @@ export function AddAgentDialog({ open, onClose, existingIds, onSaved }: AddAgent
       if (workspace.trim()) entry.workspace = workspace.trim()
       if (model) entry.model = model
       if (thinking) entry.thinkingDefault = thinking
-      if (timeout) entry.timeoutSeconds = parseInt(timeout, 10)
-      if (concurrency) entry.maxConcurrent = parseInt(concurrency, 10)
+      if (memorySearch) entry.memorySearch = { enabled: memorySearch === "enabled" }
+      if (subagentModel) entry.subagents = { model: subagentModel }
 
       await addAgent(entry as { id: string })
       onSaved()
@@ -97,8 +97,8 @@ export function AddAgentDialog({ open, onClose, existingIds, onSaved }: AddAgent
     setWorkspaceEdited(false)
     setModel("")
     setThinking("")
-    setTimeout("")
-    setConcurrency("")
+    setMemorySearch("")
+    setSubagentModel("")
     setIdError("")
     onClose()
   }
@@ -175,22 +175,31 @@ export function AddAgentDialog({ open, onClose, existingIds, onSaved }: AddAgent
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground">Timeout (seconds)</label>
-              <Input
-                type="number"
-                min="1"
-                value={timeout}
-                onChange={(e) => setTimeout((e.target as HTMLInputElement).value)}
-              />
+              <label className="text-xs text-muted-foreground">Memory Search</label>
+              <select
+                value={memorySearch}
+                onChange={(e) => setMemorySearch(e.target.value)}
+                className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
+              >
+                <option value="">Use default</option>
+                <option value="enabled">enabled</option>
+                <option value="disabled">disabled</option>
+              </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Max Concurrent</label>
-              <Input
-                type="number"
-                min="1"
-                value={concurrency}
-                onChange={(e) => setConcurrency((e.target as HTMLInputElement).value)}
-              />
+              <label className="text-xs text-muted-foreground">Subagent Model</label>
+              <select
+                value={subagentModel}
+                onChange={(e) => setSubagentModel(e.target.value)}
+                className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
+              >
+                <option value="">Use default</option>
+                {models.map((m) => (
+                  <option key={m.id} value={`${m.provider}/${m.id}`}>
+                    {m.provider}/{m.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

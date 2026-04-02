@@ -9,14 +9,28 @@ import { PageContent } from "@/components/shared/PageContent"
 import { PageLoading } from "@/components/shared/LoadingSpinner"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { useSkills } from "@/hooks/use-agents"
-import type { SkillRequirements } from "@/types/agent"
+import type { SkillInstallOption, SkillRequirements } from "@/types/agent"
 
 function hasRequirements(reqs?: SkillRequirements): boolean {
   if (!reqs) return false
-  return reqs.bins.length > 0 || reqs.anyBins.length > 0 || reqs.env.length > 0 || reqs.config.length > 0 || reqs.os.length > 0
+  return (
+    reqs.bins.length > 0 ||
+    reqs.anyBins.length > 0 ||
+    reqs.env.length > 0 ||
+    reqs.config.length > 0 ||
+    reqs.os.length > 0
+  )
 }
 
-function RequirementRow({ label, items, missing }: { label: string; items: string[]; missing: string[] }) {
+function RequirementRow({
+  label,
+  items,
+  missing,
+}: {
+  label: string
+  items: string[]
+  missing: string[]
+}) {
   if (items.length === 0) return null
   return (
     <>
@@ -28,7 +42,8 @@ function RequirementRow({ label, items, missing }: { label: string; items: strin
             variant={missing.includes(item) ? "destructive" : "outline"}
             className="text-[0.625rem] px-1.5 py-0"
           >
-            {item}{missing.includes(item) ? " (missing)" : ""}
+            {item}
+            {missing.includes(item) ? " (missing)" : ""}
           </Badge>
         ))}
       </dd>
@@ -59,9 +74,7 @@ export function SkillDetailPage() {
 
   return (
     <PageContent>
-      <Breadcrumb
-        items={[{ label: "Skills", to: "/skills" }, { label: skill.name }]}
-      />
+      <Breadcrumb items={[{ label: "Skills", to: "/skills" }, { label: skill.name }]} />
 
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
@@ -75,11 +88,13 @@ export function SkillDetailPage() {
             )}
           </div>
           {skill.homepage && (
-            <Button size="sm" variant="outline" asChild>
-              <a href={skill.homepage} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-3 w-3 mr-1" />
-                Homepage
-              </a>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<a href={skill.homepage} target="_blank" rel="noopener noreferrer" />}
+            >
+              <ExternalLink className="h-3 w-3 mr-1" />
+              Homepage
             </Button>
           )}
         </CardHeader>
@@ -88,8 +103,12 @@ export function SkillDetailPage() {
             <dt className="text-muted-foreground">Source</dt>
             <dd>
               {skill.source ? (
-                <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">{skill.source}</Badge>
-              ) : "--"}
+                <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                  {skill.source}
+                </Badge>
+              ) : (
+                "--"
+              )}
             </dd>
 
             <dt className="text-muted-foreground">Skill Key</dt>
@@ -98,19 +117,35 @@ export function SkillDetailPage() {
             <dt className="text-muted-foreground">Status</dt>
             <dd>
               {skill.disabled ? (
-                <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">disabled</Badge>
+                <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">
+                  disabled
+                </Badge>
               ) : skill.eligible ? (
-                <Badge variant="default" className="text-[0.625rem] px-1.5 py-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">ready</Badge>
+                <Badge
+                  variant="default"
+                  className="text-[0.625rem] px-1.5 py-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                >
+                  ready
+                </Badge>
               ) : (
-                <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0 text-muted-foreground">needs setup</Badge>
+                <Badge
+                  variant="outline"
+                  className="text-[0.625rem] px-1.5 py-0 text-muted-foreground"
+                >
+                  needs setup
+                </Badge>
               )}
             </dd>
 
             <dt className="text-muted-foreground">Bundled</dt>
             <dd>
               {skill.bundled ? (
-                <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">yes</Badge>
-              ) : "no"}
+                <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">
+                  yes
+                </Badge>
+              ) : (
+                "no"
+              )}
             </dd>
 
             <dt className="text-muted-foreground">Always Active</dt>
@@ -177,10 +212,12 @@ export function SkillDetailPage() {
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-              {skill.install!.map((opt) => (
+              {skill.install!.map((opt: SkillInstallOption) => (
                 <Fragment key={opt.id}>
                   <dt className="text-muted-foreground">
-                    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">{opt.kind}</Badge>
+                    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
+                      {opt.kind}
+                    </Badge>
                   </dt>
                   <dd>{opt.label}</dd>
                 </Fragment>

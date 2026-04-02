@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { Bot, TriangleAlert, X } from "lucide-react"
 import { extractAgentId } from "@/lib/session-utils"
-import { formatDuration } from "@/lib/format"
 import { formatRpcError } from "@/lib/errors"
 import { gatewayWs } from "@/services/gateway-ws"
 import { Breadcrumb } from "@/components/shared/Breadcrumb"
@@ -60,13 +59,9 @@ function AgentConfigDialog({
   const [name, setName] = useState("")
   const [model, setModel] = useState("")
   const [thinking, setThinking] = useState("")
-  const [timeout, setTimeout] = useState("")
-  const [concurrency, setConcurrency] = useState("")
   const [memorySearch, setMemorySearch] = useState("")
-  const [compaction, setCompaction] = useState("")
-  const [fallbacks, setFallbacks] = useState<string[]>([])
   const [subagentModel, setSubagentModel] = useState("")
-  const [subagentConcurrency, setSubagentConcurrency] = useState("")
+  const [fallbacks, setFallbacks] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
   // Reset form state from raw per-agent config each time dialog opens
@@ -75,18 +70,16 @@ function AgentConfigDialog({
     const entry = parsed?.agents?.list?.find((c) => c.id === agent.id)
     const entryModel =
       typeof entry?.model === "object" && entry?.model !== null
-        ? (entry.model as { primary?: string }).primary ?? ""
-        : (entry?.model as string) ?? ""
+        ? ((entry.model as { primary?: string }).primary ?? "")
+        : ((entry?.model as string) ?? "")
     const entryFallbacks =
       typeof entry?.model === "object" && entry?.model !== null
-        ? (entry.model as { fallbacks?: string[] }).fallbacks ?? []
+        ? ((entry.model as { fallbacks?: string[] }).fallbacks ?? [])
         : []
 
     setName(entry?.name ?? "")
     setModel(entryModel)
     setThinking(entry?.thinkingDefault ?? "")
-    setTimeout(String(entry?.timeoutSeconds ?? ""))
-    setConcurrency(String(entry?.maxConcurrent ?? ""))
     setMemorySearch(
       entry?.memorySearch?.enabled != null
         ? entry.memorySearch.enabled
@@ -94,10 +87,8 @@ function AgentConfigDialog({
           : "disabled"
         : "",
     )
-    setCompaction(entry?.compaction?.mode ?? "")
-    setFallbacks(entryFallbacks)
     setSubagentModel(entry?.subagents?.model ?? "")
-    setSubagentConcurrency(String(entry?.subagents?.maxConcurrent ?? ""))
+    setFallbacks(entryFallbacks)
   }, [open, agent.id, parsed])
 
   const handleSave = async () => {
@@ -115,22 +106,11 @@ function AgentConfigDialog({
       if (existing?.tools) entry.tools = existing.tools
 
       if (model) {
-        entry.model =
-          fallbacks.length > 0 ? { primary: model, fallbacks } : model
+        entry.model = fallbacks.length > 0 ? { primary: model, fallbacks } : model
       }
       if (thinking) entry.thinkingDefault = thinking
-      if (timeout) entry.timeoutSeconds = parseInt(timeout, 10)
-      if (concurrency) entry.maxConcurrent = parseInt(concurrency, 10)
-      if (memorySearch)
-        entry.memorySearch = { enabled: memorySearch === "enabled" }
-      if (compaction) entry.compaction = { mode: compaction }
-      if (subagentModel || subagentConcurrency) {
-        const sub: Record<string, unknown> = {}
-        if (subagentModel) sub.model = subagentModel
-        if (subagentConcurrency)
-          sub.maxConcurrent = parseInt(subagentConcurrency, 10)
-        entry.subagents = sub
-      }
+      if (memorySearch) entry.memorySearch = { enabled: memorySearch === "enabled" }
+      if (subagentModel) entry.subagents = { model: subagentModel }
 
       // Replace existing entry or append new one
       const existingIdx = currentList.findIndex((c) => c.id === agent.id)
@@ -154,9 +134,7 @@ function AgentConfigDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Agent</DialogTitle>
-          <DialogDescription>
-            Update configuration for {agent.name ?? agent.id}.
-          </DialogDescription>
+          <DialogDescription>Update configuration for {agent.name ?? agent.id}.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -183,9 +161,7 @@ function AgentConfigDialog({
             </select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">
-              Thinking Default
-            </label>
+            <label className="text-xs text-muted-foreground">Thinking Default</label>
             <select
               value={thinking}
               onChange={(e) => setThinking(e.target.value)}
@@ -203,37 +179,7 @@ function AgentConfigDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground">
-                Timeout (seconds)
-              </label>
-              <Input
-                type="number"
-                min="1"
-                value={timeout}
-                onChange={(e) =>
-                  setTimeout((e.target as HTMLInputElement).value)
-                }
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">
-                Max Concurrent
-              </label>
-              <Input
-                type="number"
-                min="1"
-                value={concurrency}
-                onChange={(e) =>
-                  setConcurrency((e.target as HTMLInputElement).value)
-                }
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground">
-                Memory Search
-              </label>
+              <label className="text-xs text-muted-foreground">Memory Search</label>
               <select
                 value={memorySearch}
                 onChange={(e) => setMemorySearch(e.target.value)}
@@ -245,39 +191,31 @@ function AgentConfigDialog({
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">
-                Compaction Mode
-              </label>
+              <label className="text-xs text-muted-foreground">Subagent Model</label>
               <select
-                value={compaction}
-                onChange={(e) => setCompaction(e.target.value)}
+                value={subagentModel}
+                onChange={(e) => setSubagentModel(e.target.value)}
                 className={selectClass}
               >
                 <option value="">Use default</option>
-                <option value="auto">auto</option>
-                <option value="full">full</option>
-                <option value="none">none</option>
+                {models.map((m) => (
+                  <option key={m.id} value={`${m.provider}/${m.id}`}>
+                    {m.provider}/{m.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">
-              Fallback Models
-            </label>
+            <label className="text-xs text-muted-foreground">Fallback Models</label>
             {fallbacks.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-1.5">
                 {fallbacks.map((f, i) => (
-                  <Badge
-                    key={f}
-                    variant="outline"
-                    className="text-[0.625rem] px-1.5 py-0 gap-1"
-                  >
+                  <Badge key={f} variant="outline" className="text-[0.625rem] px-1.5 py-0 gap-1">
                     {f}
                     <button
                       type="button"
-                      onClick={() =>
-                        setFallbacks(fallbacks.filter((_, j) => j !== i))
-                      }
+                      onClick={() => setFallbacks(fallbacks.filter((_, j) => j !== i))}
                       className="hover:text-destructive"
                     >
                       <X className="h-2.5 w-2.5" />
@@ -304,40 +242,6 @@ function AgentConfigDialog({
                   </option>
                 ))}
             </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground">
-                Subagent Model
-              </label>
-              <select
-                value={subagentModel}
-                onChange={(e) => setSubagentModel(e.target.value)}
-                className={selectClass}
-              >
-                <option value="">Use default</option>
-                {models.map((m) => (
-                  <option key={m.id} value={`${m.provider}/${m.id}`}>
-                    {m.provider}/{m.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">
-                Subagent Concurrency
-              </label>
-              <Input
-                type="number"
-                min="1"
-                value={subagentConcurrency}
-                onChange={(e) =>
-                  setSubagentConcurrency(
-                    (e.target as HTMLInputElement).value,
-                  )
-                }
-              />
-            </div>
           </div>
         </div>
         <DialogFooter>
@@ -379,10 +283,7 @@ function AgentToolsDialog({
   const [deny, setDeny] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
-  const allToolIds = groups.flatMap((g) => [
-    `group:${g.id}`,
-    ...g.tools.map((t) => t.id),
-  ])
+  const allToolIds = groups.flatMap((g) => [`group:${g.id}`, ...g.tools.map((t) => t.id)])
 
   useEffect(() => {
     if (!open) return
@@ -450,7 +351,9 @@ function AgentToolsDialog({
             >
               <option value="">Use default (full)</option>
               {toolProfiles.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>
+                  {p}
+                </option>
               ))}
             </select>
           </div>
@@ -462,7 +365,11 @@ function AgentToolsDialog({
                 {allow.map((item, i) => (
                   <Badge key={item} variant="outline" className="text-[0.625rem] px-1.5 py-0 gap-1">
                     {item}
-                    <button type="button" onClick={() => removeItem(allow, setAllow, i)} className="inline-flex items-center hover:text-destructive [&>svg]:pointer-events-auto">
+                    <button
+                      type="button"
+                      onClick={() => removeItem(allow, setAllow, i)}
+                      className="inline-flex items-center hover:text-destructive [&>svg]:pointer-events-auto"
+                    >
                       <X className="h-2.5 w-2.5" />
                     </button>
                   </Badge>
@@ -475,9 +382,13 @@ function AgentToolsDialog({
               className={selectClass}
             >
               <option value="">Add tool to allow list...</option>
-              {allToolIds.filter((t) => !allow.includes(t)).map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
+              {allToolIds
+                .filter((t) => !allow.includes(t))
+                .map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -486,9 +397,17 @@ function AgentToolsDialog({
             {deny.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-1.5">
                 {deny.map((item, i) => (
-                  <Badge key={item} variant="destructive" className="text-[0.625rem] px-1.5 py-0 gap-1">
+                  <Badge
+                    key={item}
+                    variant="destructive"
+                    className="text-[0.625rem] px-1.5 py-0 gap-1"
+                  >
                     {item}
-                    <button type="button" onClick={() => removeItem(deny, setDeny, i)} className="inline-flex items-center hover:text-destructive-foreground [&>svg]:pointer-events-auto">
+                    <button
+                      type="button"
+                      onClick={() => removeItem(deny, setDeny, i)}
+                      className="inline-flex items-center hover:text-destructive-foreground [&>svg]:pointer-events-auto"
+                    >
                       <X className="h-2.5 w-2.5" />
                     </button>
                   </Badge>
@@ -501,9 +420,13 @@ function AgentToolsDialog({
               className={selectClass}
             >
               <option value="">Add tool to deny list...</option>
-              {allToolIds.filter((t) => !deny.includes(t)).map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
+              {allToolIds
+                .filter((t) => !deny.includes(t))
+                .map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
             </select>
           </div>
         </div>
@@ -533,20 +456,18 @@ export function AgentDetailPage() {
 
   const { agents, defaultId, isLoading: agentsLoading, refetch } = useAgents()
   const { deleteAgent } = useAgentMutations(defaultId)
-  const {
-    sessions,
-    isLoading: sessionsLoading,
-    refetch: sessionsRefetch,
-  } = useSessions()
+  const { sessions, isLoading: sessionsLoading, refetch: sessionsRefetch } = useSessions()
   const { deleteSession } = useSessionDelete(sessionsRefetch)
-  const { groups: rawToolGroups, isLoading: toolsLoading, refetch: refetchTools } = useTools(agentId)
+  const {
+    groups: rawToolGroups,
+    isLoading: toolsLoading,
+    refetch: refetchTools,
+  } = useTools(agentId)
   const { parsed, refetch: refetchConfig } = useConfig()
 
   const agentNameMap = new Map(agents.map((a) => [a.id, a.name ?? a.id]))
   const agent = agents.find((a) => a.id === agentId)
-  const agentSessions = sessions.filter(
-    (s) => extractAgentId(s.key) === agentId,
-  )
+  const agentSessions = sessions.filter((s) => extractAgentId(s.key) === agentId)
 
   const agentToolsConfig = parsed?.agents?.list?.find((c) => c.id === agentId)?.tools
   const agentProfile = agentToolsConfig?.profile ?? "full"
@@ -573,12 +494,7 @@ export function AgentDetailPage() {
   if (!agent) {
     return (
       <PageContent>
-        <Breadcrumb
-          items={[
-            { label: "Agents", to: "/agents" },
-            { label: agentId ?? "Unknown" },
-          ]}
-        />
+        <Breadcrumb items={[{ label: "Agents", to: "/agents" }, { label: agentId ?? "Unknown" }]} />
         <EmptyState icon={Bot} title={`Agent ${agentId} not found`} />
       </PageContent>
     )
@@ -586,28 +502,17 @@ export function AgentDetailPage() {
 
   return (
     <PageContent>
-      <Breadcrumb
-        items={[
-          { label: "Agents", to: "/agents" },
-          { label: agent.name ?? agent.id },
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Agents", to: "/agents" }, { label: agent.name ?? agent.id }]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
               <CardTitle>{agent.name ?? agent.id}</CardTitle>
-              {agent.name && (
-                <p className="text-sm text-muted-foreground">ID: {agent.id}</p>
-              )}
+              {agent.name && <p className="text-sm text-muted-foreground">ID: {agent.id}</p>}
             </div>
             <div className="flex items-center gap-3">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setConfigOpen(true)}
-              >
+              <Button size="sm" variant="outline" onClick={() => setConfigOpen(true)}>
                 Edit
               </Button>
               <Button
@@ -632,20 +537,14 @@ export function AgentDetailPage() {
               <dd>{agent.model ?? "default"}</dd>
 
               <dt className="text-muted-foreground">Workspace</dt>
-              <dd className="font-mono break-all">
-                {agent.workspace ?? "--"}
-              </dd>
+              <dd className="font-mono break-all">{agent.workspace ?? "--"}</dd>
 
               <dt className="text-muted-foreground">Channels</dt>
               <dd>
                 {agent.channels?.length ? (
                   <div className="flex gap-1 flex-wrap">
                     {agent.channels.map((ch) => (
-                      <Badge
-                        key={ch}
-                        variant="outline"
-                        className="text-[0.625rem] px-1.5 py-0"
-                      >
+                      <Badge key={ch} variant="outline" className="text-[0.625rem] px-1.5 py-0">
                         {ch}
                       </Badge>
                     ))}
@@ -658,25 +557,11 @@ export function AgentDetailPage() {
               <dt className="text-muted-foreground">Thinking</dt>
               <dd>{agent.thinkingDefault ?? "--"}</dd>
 
-              <dt className="text-muted-foreground">Timeout</dt>
-              <dd>
-                {formatDuration(
-                  agent.timeoutSeconds
-                    ? agent.timeoutSeconds * 1000
-                    : undefined,
-                )}
-              </dd>
-
-              <dt className="text-muted-foreground">Concurrency</dt>
-              <dd>{agent.maxConcurrent ?? "--"}</dd>
-
               <dt className="text-muted-foreground">Memory Search</dt>
               <dd>
                 {agent.memorySearchEnabled != null ? (
                   <Badge
-                    variant={
-                      agent.memorySearchEnabled ? "default" : "secondary"
-                    }
+                    variant={agent.memorySearchEnabled ? "default" : "secondary"}
                     className="text-[0.625rem] px-1.5 py-0"
                   >
                     {agent.memorySearchEnabled ? "on" : "off"}
@@ -686,19 +571,15 @@ export function AgentDetailPage() {
                 )}
               </dd>
 
-              <dt className="text-muted-foreground">Compaction</dt>
-              <dd>{agent.compactionMode ?? "--"}</dd>
+              <dt className="text-muted-foreground">Subagent Model</dt>
+              <dd>{agent.subagentsModel ?? "--"}</dd>
 
               <dt className="text-muted-foreground">Fallbacks</dt>
               <dd>
                 {agent.fallbacks?.length ? (
                   <div className="flex gap-1 flex-wrap">
                     {agent.fallbacks.map((f) => (
-                      <Badge
-                        key={f}
-                        variant="outline"
-                        className="text-[0.625rem] px-1.5 py-0"
-                      >
+                      <Badge key={f} variant="outline" className="text-[0.625rem] px-1.5 py-0">
                         {f}
                       </Badge>
                     ))}
@@ -707,12 +588,6 @@ export function AgentDetailPage() {
                   <span className="text-muted-foreground">--</span>
                 )}
               </dd>
-
-              <dt className="text-muted-foreground">Subagent Model</dt>
-              <dd>{agent.subagentsModel ?? "--"}</dd>
-
-              <dt className="text-muted-foreground">Subagent Concurrency</dt>
-              <dd>{agent.subagentsMaxConcurrent ?? "--"}</dd>
 
               <dt className="text-muted-foreground">Sessions</dt>
               <dd>{agentSessions.length.toLocaleString()}</dd>
@@ -743,7 +618,9 @@ export function AgentDetailPage() {
                 <TableBody>
                   {toolGroups.map((group) => (
                     <TableRow key={group.id}>
-                      <TableCell className="font-medium text-sm whitespace-nowrap align-top">{group.label}</TableCell>
+                      <TableCell className="font-medium text-sm whitespace-nowrap align-top">
+                        {group.label}
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-normal">
                         {group.tools.map((t) => t.label).join(", ")}
                       </TableCell>
@@ -783,7 +660,11 @@ export function AgentDetailPage() {
         open={toolsConfigOpen}
         onClose={() => setToolsConfigOpen(false)}
         agentId={agent.id}
-        onSaved={() => { refetch(); refetchTools(); refetchConfig() }}
+        onSaved={() => {
+          refetch()
+          refetchTools()
+          refetchConfig()
+        }}
       />
 
       <DeleteConfirmDialog

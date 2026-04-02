@@ -19,11 +19,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Bot, Plus, Settings, TriangleAlert } from "lucide-react"
-import { formatDuration } from "@/lib/format"
 import { formatRpcError } from "@/lib/errors"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useAgents } from "@/hooks/use-agents"
+import { useAgents, useModels } from "@/hooks/use-agents"
 import { useSystemStore } from "@/stores/system-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { gatewayWs } from "@/services/gateway-ws"
@@ -50,19 +49,47 @@ function GlobalConfigDialog({
   configHash?: string
   onSaved: () => void
 }) {
-  const [toolSecurity, setToolSecurity] = useState(config.toolExecSecurity ?? "")
-  const [toolAsk, setToolAsk] = useState(config.toolAskMode ?? "")
-  const [cronConcurrency, setCronConcurrency] = useState(String(config.cronMaxConcurrentRuns ?? ""))
+  const [cronConcurrency, setCronConcurrency] = useState("")
+  const [defaultTimeout, setDefaultTimeout] = useState("")
+  const [defaultConcurrency, setDefaultConcurrency] = useState("")
+  const [memorySearch, setMemorySearch] = useState("")
+  const [compaction, setCompaction] = useState("")
+  const [subagentModel, setSubagentModel] = useState("")
+  const [subagentConcurrency, setSubagentConcurrency] = useState("")
   const [saving, setSaving] = useState(false)
+  const { models } = useModels()
   const addToast = useErrorToastStore((s) => s.addToast)
+
+  useEffect(() => {
+    if (!open) return
+    setCronConcurrency(String(config.cronMaxConcurrentRuns ?? ""))
+    setDefaultTimeout(String(config.defaultTimeoutSeconds ?? ""))
+    setDefaultConcurrency(String(config.defaultMaxConcurrent ?? ""))
+    setMemorySearch(config.defaultMemorySearch ?? "")
+    setCompaction(config.defaultCompaction ?? "")
+    setSubagentModel(config.defaultSubagentModel ?? "")
+    setSubagentConcurrency(String(config.defaultSubagentConcurrency ?? ""))
+  }, [open, config])
 
   const handleSave = async () => {
     setSaving(true)
     try {
+      const agentsDefaults: Record<string, unknown> = {}
+      if (defaultTimeout) agentsDefaults.timeoutSeconds = parseInt(defaultTimeout, 10)
+      if (defaultConcurrency) agentsDefaults.maxConcurrent = parseInt(defaultConcurrency, 10)
+      if (memorySearch) agentsDefaults.memorySearch = { enabled: memorySearch === "enabled" }
+      if (compaction) agentsDefaults.compaction = { mode: compaction }
+      const sub: Record<string, unknown> = {}
+      if (subagentModel) sub.model = subagentModel
+      if (subagentConcurrency) sub.maxConcurrent = parseInt(subagentConcurrency, 10)
+      if (Object.keys(sub).length > 0) agentsDefaults.subagents = sub
+
       await gatewayWs.configPatch(
         {
-          tools: { exec: { security: toolSecurity, ask: toolAsk } },
           cron: { maxConcurrentRuns: parseInt(cronConcurrency, 10) || undefined },
+          ...(Object.keys(agentsDefaults).length > 0
+            ? { agents: { defaults: agentsDefaults } }
+            : {}),
         },
         configHash,
       )
@@ -77,46 +104,90 @@ function GlobalConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Global Configuration</DialogTitle>
-          <DialogDescription>
-            These settings apply to all agents unless overridden per-agent.
-          </DialogDescription>
+          <DialogTitle>Global Settings</DialogTitle>
+          <DialogDescription>These settings apply globally to all agents.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground">Tool Exec Security</label>
-            <select
-              value={toolSecurity}
-              onChange={(e) => setToolSecurity(e.target.value)}
-              className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
-            >
-              <option value="deny">deny</option>
-              <option value="allowlist">allowlist</option>
-              <option value="full">full</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Tool Ask Mode</label>
-            <select
-              value={toolAsk}
-              onChange={(e) => setToolAsk(e.target.value)}
-              className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
-            >
-              <option value="off">off</option>
-              <option value="on-miss">on-miss</option>
-              <option value="always">always</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Cron Max Concurrent Runs</label>
+            <label className="text-xs text-muted-foreground">Agent Timeout (seconds)</label>
             <Input
               type="number"
               min="1"
-              value={cronConcurrency}
-              onChange={(e) => setCronConcurrency((e.target as HTMLInputElement).value)}
+              value={defaultTimeout}
+              onChange={(e) => setDefaultTimeout((e.target as HTMLInputElement).value)}
             />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Agent Concurrency</label>
+              <Input
+                type="number"
+                min="1"
+                value={defaultConcurrency}
+                onChange={(e) => setDefaultConcurrency((e.target as HTMLInputElement).value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Cron Concurrency</label>
+              <Input
+                type="number"
+                min="1"
+                value={cronConcurrency}
+                onChange={(e) => setCronConcurrency((e.target as HTMLInputElement).value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Subagent Concurrency</label>
+              <Input
+                type="number"
+                min="1"
+                value={subagentConcurrency}
+                onChange={(e) => setSubagentConcurrency((e.target as HTMLInputElement).value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Memory Search</label>
+              <select
+                value={memorySearch}
+                onChange={(e) => setMemorySearch(e.target.value)}
+                className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
+              >
+                <option value="">Not set</option>
+                <option value="enabled">enabled</option>
+                <option value="disabled">disabled</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Compaction Mode</label>
+              <select
+                value={compaction}
+                onChange={(e) => setCompaction(e.target.value)}
+                className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
+              >
+                <option value="">Not set</option>
+                <option value="default">default</option>
+                <option value="safeguard">safeguard</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Subagent Model</label>
+            <select
+              value={subagentModel}
+              onChange={(e) => setSubagentModel(e.target.value)}
+              className="h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
+            >
+              <option value="">Not set</option>
+              {models.map((m) => (
+                <option key={m.id} value={`${m.provider}/${m.id}`}>
+                  {m.provider}/{m.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <DialogFooter>
@@ -194,9 +265,6 @@ export function AgentsPage() {
                   <TableHead>Workspace</TableHead>
                   <TableHead>Channels</TableHead>
                   <TableHead>Thinking</TableHead>
-                  <TableHead>Timeout</TableHead>
-                  <TableHead>Concurrency</TableHead>
-                  <TableHead>Memory</TableHead>
                   <TableHead className="text-right">Sessions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -244,26 +312,6 @@ export function AgentsPage() {
                       <TableCell className="text-sm text-muted-foreground">
                         {agent.thinkingDefault ?? "--"}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDuration(
-                          agent.timeoutSeconds ? agent.timeoutSeconds * 1000 : undefined,
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {agent.maxConcurrent ?? "--"}
-                      </TableCell>
-                      <TableCell>
-                        {agent.memorySearchEnabled != null ? (
-                          <Badge
-                            variant={agent.memorySearchEnabled ? "default" : "secondary"}
-                            className="text-[0.625rem] px-1.5 py-0"
-                          >
-                            {agent.memorySearchEnabled ? "on" : "off"}
-                          </Badge>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">--</span>
-                        )}
-                      </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
                         {(sessionCounts[agent.id] ?? 0).toLocaleString()}
                       </TableCell>
@@ -273,51 +321,25 @@ export function AgentsPage() {
               </TableBody>
             </Table>
           )}
-          <TableFooter className="gap-3 text-xs">
-            {globalConfig && (
-              <>
-                <span className="text-muted-foreground">Global:</span>
-                {globalConfig.toolExecSecurity && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    Tool Security
-                    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                      {globalConfig.toolExecSecurity}
-                    </Badge>
-                  </span>
-                )}
-                {globalConfig.toolAskMode && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    Tool Ask
-                    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                      {globalConfig.toolAskMode}
-                    </Badge>
-                  </span>
-                )}
-                {globalConfig.cronMaxConcurrentRuns != null && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    Cron Concurrency
-                    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0">
-                      {globalConfig.cronMaxConcurrentRuns}
-                    </Badge>
-                  </span>
-                )}
-              </>
-            )}
-            <div className="flex items-center gap-2 ml-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setConfigOpen(true)}
-                disabled={!globalConfig}
-              >
-                <Settings className="h-3 w-3 mr-1" />
-                Edit Config
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)}>
-                <Plus className="h-3 w-3 mr-1" />
-                New Agent
-              </Button>
-            </div>
+          <TableFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfigOpen(true)}
+              disabled={!globalConfig}
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Edit Global Settings
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAddDialogOpen(true)}
+              className="ml-auto"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              New Agent
+            </Button>
           </TableFooter>
         </CardContent>
       </Card>

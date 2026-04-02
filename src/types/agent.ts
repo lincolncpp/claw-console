@@ -117,11 +117,8 @@ export interface ConfigAgentEntry {
   workspace?: string
   model?: string | { primary?: string; fallbacks?: string[] }
   thinkingDefault?: string
-  timeoutSeconds?: number
-  maxConcurrent?: number
   memorySearch?: { enabled?: boolean }
-  compaction?: { mode?: string }
-  subagents?: { maxConcurrent?: number; model?: string }
+  subagents?: { model?: string }
   tools?: { profile?: string; allow?: string[]; deny?: string[] }
 }
 
@@ -131,9 +128,13 @@ export interface ConfigBinding {
 }
 
 export interface GlobalConfig {
-  toolExecSecurity?: string
-  toolAskMode?: string
   cronMaxConcurrentRuns?: number
+  defaultTimeoutSeconds?: number
+  defaultMaxConcurrent?: number
+  defaultMemorySearch?: string
+  defaultCompaction?: string
+  defaultSubagentModel?: string
+  defaultSubagentConcurrency?: number
 }
 
 export interface ParsedConfig {
