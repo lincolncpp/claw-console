@@ -32,8 +32,8 @@ export function NewSessionDialog({ open, onClose, agents, defaultId }: NewSessio
 
   const handleStart = () => {
     if (!agentId) return
-    const shortId = uuid().slice(0, 8)
-    const sessionKey = `agent:${agentId}:${shortId}`
+    const hash = uuid().slice(0, 8)
+    const sessionKey = `agent:${agentId}:chat:${hash}`
     const store = useTerminalStore.getState()
     store.setSession(agentId, sessionKey)
     store.open()
