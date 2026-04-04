@@ -38,7 +38,7 @@ function ApprovalSettingsDialog({
   const handleSave = async () => {
     setSaving(true)
     try {
-      await updateApprovalConfig({ security: toolSecurity, ask: toolAsk })
+      await updateApprovalConfig({ security: toolSecurity, ask: toolAsk === "off" ? null : toolAsk })
       onSaved()
       onClose()
     } catch {

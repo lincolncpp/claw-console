@@ -19,7 +19,7 @@ export function useApprovalConfig() {
   }
 
   const updateApprovalConfig = useCallback(
-    async (patch: { security?: string; ask?: string }) => {
+    async (patch: { security?: string; ask?: string | null }) => {
       try {
         await gatewayWs.configPatch({ tools: { exec: { ...patch } } }, configHash)
         refetch()
