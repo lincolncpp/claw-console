@@ -32,13 +32,13 @@ function ApprovalSettingsDialog({
   const { updateApprovalConfig } = useApprovalConfig()
 
   const [toolSecurity, setToolSecurity] = useState(config.security ?? "")
-  const [toolAsk, setToolAsk] = useState(config.askMode ?? "")
+  const [toolAsk, setToolAsk] = useState(config.askMode ?? "off")
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      await updateApprovalConfig({ security: toolSecurity, ask: toolAsk === "off" ? null : toolAsk })
+      await updateApprovalConfig({ security: toolSecurity, ask: toolAsk })
       onSaved()
       onClose()
     } catch {
