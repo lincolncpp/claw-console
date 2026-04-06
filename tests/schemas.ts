@@ -210,7 +210,7 @@ export const CronJobSchema = z
     agentId: z.string().optional(),
     name: z.string(),
     enabled: z.boolean(),
-    sessionTarget: z.enum(["main", "isolated"]),
+    sessionTarget: z.string(),
     schedule: CronScheduleSchema,
   })
   .passthrough()

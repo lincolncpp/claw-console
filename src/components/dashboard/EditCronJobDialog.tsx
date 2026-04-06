@@ -14,6 +14,11 @@ import { gatewayWs } from "@/services/gateway-ws"
 import { useCronStore } from "@/stores/cron-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { formatRpcError } from "@/lib/errors"
+import {
+  buildCronSessionTarget,
+  parseCronSessionTarget,
+  type CronSessionTargetMode,
+} from "@/lib/cron-session-target"
 import type { CronJob, CronSchedule } from "@/types/cron"
 
 const selectClass =
@@ -45,7 +50,9 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
   const [everyUnit, setEveryUnit] = useState("m")
   const [cronExpr, setCronExpr] = useState("0 * * * *")
   const [timezone, setTimezone] = useState("")
-  const [sessionTarget, setSessionTarget] = useState<"isolated" | "main">("isolated")
+  const [sessionTargetMode, setSessionTargetMode] = useState<CronSessionTargetMode>("isolated")
+  const [sessionId, setSessionId] = useState("")
+  const [unsupportedSessionTarget, setUnsupportedSessionTarget] = useState("")
   const [model, setModel] = useState("")
   const [thinking, setThinking] = useState("")
   const [timeout, setTimeout] = useState("")
@@ -54,6 +61,7 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
   const [deliveryTo, setDeliveryTo] = useState("")
   const [saving, setSaving] = useState(false)
   const [nameError, setNameError] = useState("")
+  const [sessionError, setSessionError] = useState("")
 
   const { models } = useModels()
   const updateJob = useCronStore((s) => s.updateJob)
@@ -61,8 +69,13 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
 
   useEffect(() => {
     if (!open) return
+    const parsedSessionTarget = parseCronSessionTarget(job.sessionTarget)
     setName(job.name)
-    setSessionTarget(job.sessionTarget)
+    setSessionTargetMode(parsedSessionTarget.mode)
+    setSessionId(parsedSessionTarget.sessionId)
+    setUnsupportedSessionTarget(
+      parsedSessionTarget.mode === "unsupported" ? parsedSessionTarget.raw : "",
+    )
     setModel((job.payload?.model as string) ?? "")
     setThinking((job.payload?.thinking as string) ?? "")
     setTimeout(job.payload?.timeoutSeconds != null ? String(job.payload.timeoutSeconds) : "")
@@ -70,6 +83,7 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
     setDeliveryChannel(job.delivery?.channel ?? "")
     setDeliveryTo(job.delivery?.to ?? "")
     setNameError("")
+    setSessionError("")
 
     if (job.schedule.kind === "every") {
       setScheduleType("every")
@@ -102,6 +116,15 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
       return
     }
     setNameError("")
+    const nextSessionTarget =
+      sessionTargetMode === "unsupported"
+        ? unsupportedSessionTarget
+        : buildCronSessionTarget(sessionTargetMode, sessionId)
+    if (sessionTargetMode === "session" && !sessionId.trim()) {
+      setSessionError("Session ID is required")
+      return
+    }
+    setSessionError("")
     setSaving(true)
 
     const currentPayload = { ...(job.payload ?? {}) }
@@ -119,7 +142,7 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
     const patch: Partial<CronJob> = {
       name: name.trim(),
       schedule: buildSchedule(),
-      sessionTarget,
+      sessionTarget: nextSessionTarget,
       payload: currentPayload,
       delivery,
     }
@@ -210,13 +233,41 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
           <div>
             <label className="text-xs text-muted-foreground">Session Target</label>
             <select
-              value={sessionTarget}
-              onChange={(e) => setSessionTarget(e.target.value as "isolated" | "main")}
+              value={sessionTargetMode}
+              onChange={(e) => {
+                setSessionTargetMode(e.target.value as CronSessionTargetMode)
+                setSessionError("")
+              }}
               className={selectClass}
             >
               <option value="isolated">Isolated</option>
               <option value="main">Main</option>
+              <option value="session">Specific session</option>
+              {sessionTargetMode === "unsupported" && (
+                <option value="unsupported">Unsupported (preserve existing)</option>
+              )}
             </select>
+            {sessionTargetMode === "session" && (
+              <div className="mt-2 space-y-1">
+                <Input
+                  value={sessionId}
+                  onChange={(e) => {
+                    setSessionId((e.target as HTMLInputElement).value)
+                    if (sessionError) setSessionError("")
+                  }}
+                  placeholder="daily-brief"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Saved as <span className="font-mono">session:{sessionId || "..."}</span>
+                </p>
+              </div>
+            )}
+            {sessionTargetMode === "unsupported" && (
+              <p className="mt-2 text-xs text-muted-foreground font-mono break-all">
+                Preserving existing target: {unsupportedSessionTarget}
+              </p>
+            )}
+            {sessionError && <p className="text-xs text-destructive mt-1">{sessionError}</p>}
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Model</label>

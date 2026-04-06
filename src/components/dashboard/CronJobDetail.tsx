@@ -10,6 +10,7 @@ import { useCronRuns } from "@/hooks/use-cron-runs"
 import { useCronRunNow, useCronToggle, useCronUpdateInstructions } from "@/hooks/use-cron-actions"
 import { useCronDelete } from "@/hooks/use-cron-mutations"
 import { formatSchedule, formatDuration } from "@/lib/format"
+import { formatCronSessionTarget } from "@/lib/cron-session-target"
 import { CronRunHistory } from "./CronRunHistory"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -102,7 +103,7 @@ export function CronJobDetail() {
               <dt className="text-muted-foreground">Schedule</dt>
               <dd className="font-mono">{formatSchedule(job.schedule)}</dd>
               <dt className="text-muted-foreground">Session Target</dt>
-              <dd>{job.sessionTarget}</dd>
+              <dd className="font-mono">{formatCronSessionTarget(job.sessionTarget)}</dd>
               <dt className="text-muted-foreground">Model</dt>
               <dd>{(job.payload?.model as string) ?? "agent default"}</dd>
               <dt className="text-muted-foreground">Thinking</dt>

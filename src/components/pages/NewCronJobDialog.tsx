@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAgents, useModels } from "@/hooks/use-agents"
 import { useCronCreate } from "@/hooks/use-cron-mutations"
+import { buildCronSessionTarget, type CronSessionTargetMode } from "@/lib/cron-session-target"
 import type { CronSchedule } from "@/types/cron"
 
 const selectClass =
@@ -36,7 +37,9 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
   const [everyUnit, setEveryUnit] = useState("m")
   const [cronExpr, setCronExpr] = useState("0 * * * *")
   const [timezone, setTimezone] = useState("")
-  const [sessionTarget, setSessionTarget] = useState<"isolated" | "main">("isolated")
+  const [sessionTargetMode, setSessionTargetMode] =
+    useState<Exclude<CronSessionTargetMode, "unsupported">>("isolated")
+  const [sessionId, setSessionId] = useState("")
   const [model, setModel] = useState("")
   const [thinking, setThinking] = useState("")
   const [timeout, setTimeout] = useState("")
@@ -45,6 +48,7 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
   const [deliveryTo, setDeliveryTo] = useState("")
   const [instructions, setInstructions] = useState("")
   const [nameError, setNameError] = useState("")
+  const [sessionError, setSessionError] = useState("")
 
   const { agents } = useAgents()
   const { models } = useModels()
@@ -65,13 +69,18 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
       return
     }
     setNameError("")
+    if (sessionTargetMode === "session" && !sessionId.trim()) {
+      setSessionError("Session ID is required")
+      return
+    }
+    setSessionError("")
 
     try {
       const job: Record<string, unknown> = {
         agentId: agentId || undefined,
         name: name.trim(),
         schedule: buildSchedule(),
-        sessionTarget,
+        sessionTarget: buildCronSessionTarget(sessionTargetMode, sessionId),
         enabled: true,
       }
       const payload: Record<string, unknown> = {}
@@ -101,7 +110,8 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
     setEveryUnit("m")
     setCronExpr("0 * * * *")
     setTimezone("")
-    setSessionTarget("isolated")
+    setSessionTargetMode("isolated")
+    setSessionId("")
     setModel("")
     setThinking("")
     setTimeout("")
@@ -110,6 +120,7 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
     setDeliveryTo("")
     setInstructions("")
     setNameError("")
+    setSessionError("")
     onClose()
   }
 
@@ -205,13 +216,35 @@ export function NewCronJobDialog({ open, onClose, onSaved }: NewCronJobDialogPro
             <div>
               <label className="text-xs text-muted-foreground">Session Target</label>
               <select
-                value={sessionTarget}
-                onChange={(e) => setSessionTarget(e.target.value as "isolated" | "main")}
+                value={sessionTargetMode}
+                onChange={(e) => {
+                  setSessionTargetMode(
+                    e.target.value as Exclude<CronSessionTargetMode, "unsupported">,
+                  )
+                  setSessionError("")
+                }}
                 className={selectClass}
               >
                 <option value="isolated">Isolated</option>
                 <option value="main">Main</option>
+                <option value="session">Specific session</option>
               </select>
+              {sessionTargetMode === "session" && (
+                <div className="mt-2 space-y-1">
+                  <Input
+                    value={sessionId}
+                    onChange={(e) => {
+                      setSessionId((e.target as HTMLInputElement).value)
+                      if (sessionError) setSessionError("")
+                    }}
+                    placeholder="daily-brief"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Saved as <span className="font-mono">session:{sessionId || "..."}</span>
+                  </p>
+                </div>
+              )}
+              {sessionError && <p className="text-xs text-destructive mt-1">{sessionError}</p>}
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Model</label>

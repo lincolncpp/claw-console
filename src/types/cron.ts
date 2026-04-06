@@ -30,7 +30,7 @@ export interface CronJob {
   enabled: boolean
   createdAtMs?: number
   updatedAtMs?: number
-  sessionTarget: "main" | "isolated"
+  sessionTarget: string
   schedule: CronSchedule
   wakeMode?: string
   payload?: Record<string, unknown>
