@@ -1,3 +1,5 @@
+import type { HeartbeatConfig } from "./heartbeat"
+
 export interface AgentEntry {
   id: string
   name?: string
@@ -120,6 +122,7 @@ export interface ConfigAgentEntry {
   memorySearch?: { enabled?: boolean }
   subagents?: { model?: string }
   tools?: { profile?: string; allow?: string[]; deny?: string[] }
+  heartbeat?: HeartbeatConfig
 }
 
 export interface ConfigBinding {
@@ -148,6 +151,7 @@ export interface ParsedConfig {
       memorySearch?: { enabled?: boolean }
       compaction?: { mode?: string }
       subagents?: { maxConcurrent?: number; model?: string }
+      heartbeat?: HeartbeatConfig
     }
     list?: ConfigAgentEntry[]
   }
