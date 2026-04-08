@@ -63,7 +63,7 @@ export function HeartbeatDetailPage() {
   }
 
   const configFields = [
-    { label: "Interval", value: config.every ?? heartbeat.every },
+    { label: "Interval", value: (() => { const v = config.every ?? heartbeat.every; return v === "disabled" || v === "0m" ? "--" : v })() },
     { label: "Target", value: config.target ?? heartbeat.target },
     { label: "Model", value: config.model ?? "agent default" },
     { label: "Session", value: config.session ?? "main" },
