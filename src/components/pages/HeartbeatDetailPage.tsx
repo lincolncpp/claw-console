@@ -14,6 +14,7 @@ import {
 } from "@/hooks/use-heartbeat"
 import { EditHeartbeatDialog } from "@/components/heartbeat/EditHeartbeatDialog"
 import { gatewayWs } from "@/services/gateway-ws"
+import { useSystemStore } from "@/stores/system-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { formatRpcError } from "@/lib/errors"
 import { formatTimeAgo } from "@/lib/format"
@@ -67,6 +68,7 @@ export function HeartbeatDetailPage() {
         configHash,
       )
       refetch()
+      gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
     } catch (err) {
       addToast(`Failed to toggle heartbeat: ${formatRpcError(err)}`)
     }
@@ -82,11 +84,11 @@ export function HeartbeatDetailPage() {
   }
 
   const configFields = [
-    { label: "Interval", value: heartbeat.every },
-    { label: "Target", value: heartbeat.target },
+    { label: "Interval", value: config.every ?? heartbeat.every },
+    { label: "Target", value: config.target ?? heartbeat.target },
     { label: "Model", value: config.model ?? "agent default" },
     { label: "Session", value: config.session ?? "main" },
-    { label: "Ack Max Chars", value: String(heartbeat.ackMaxChars) },
+    { label: "Ack Max Chars", value: String(config.ackMaxChars ?? heartbeat.ackMaxChars) },
     { label: "Isolated Session", value: config.isolatedSession ? "Yes" : "No" },
     { label: "Light Context", value: config.lightContext ? "Yes" : "No" },
     { label: "Direct Policy", value: config.directPolicy ?? "allow" },

@@ -175,6 +175,10 @@ export class GatewayWebSocket {
     return this.sendRpc("set-heartbeats", { enabled })
   }
 
+  async health(): Promise<HealthPayload> {
+    return this.sendRpc("health") as Promise<HealthPayload>
+  }
+
   // --- Nodes RPCs ---
   async nodeList(): Promise<NodeListResponse> {
     return this.sendRpc("node.list") as Promise<NodeListResponse>

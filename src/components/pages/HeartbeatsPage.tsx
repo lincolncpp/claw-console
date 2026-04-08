@@ -4,6 +4,7 @@ import { HeartbeatTable } from "@/components/heartbeat/HeartbeatTable"
 import { GlobalHeartbeatCard } from "@/components/heartbeat/GlobalHeartbeatCard"
 import { useHeartbeatAgents, useHeartbeatDefaults } from "@/hooks/use-heartbeat"
 import { gatewayWs } from "@/services/gateway-ws"
+import { useSystemStore } from "@/stores/system-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { formatRpcError } from "@/lib/errors"
 
@@ -22,6 +23,7 @@ export function HeartbeatsPage() {
         configHash,
       )
       refetch()
+      gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
     } catch (err) {
       addToast(`Failed to toggle heartbeat: ${formatRpcError(err)}`)
     }
