@@ -11,6 +11,8 @@ import { CronJobDetail } from "@/components/dashboard/CronJobDetail"
 import { CronRunDetail } from "@/components/dashboard/CronRunDetail"
 import { SkillsPage } from "@/components/pages/SkillsPage"
 import { SkillDetailPage } from "@/components/pages/SkillDetailPage"
+import { HeartbeatsPage } from "@/components/pages/HeartbeatsPage"
+import { HeartbeatDetailPage } from "@/components/pages/HeartbeatDetailPage"
 
 export function PageRouter() {
   return (
@@ -25,6 +27,8 @@ export function PageRouter() {
       <Route path="/cron" element={<CronPage />} />
       <Route path="/cron/:jobId/runs/:runTs" element={<CronRunDetail />} />
       <Route path="/cron/:jobId" element={<CronJobDetail />} />
+      <Route path="/heartbeats" element={<HeartbeatsPage />} />
+      <Route path="/heartbeats/:agentId" element={<HeartbeatDetailPage />} />
       <Route path="/logs" element={<LogsPage />} />
       <Route path="/approvals" element={<ApprovalsPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
