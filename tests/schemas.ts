@@ -265,3 +265,9 @@ export const LogsTailResponseSchema = z
     lines: z.array(z.string()),
   })
   .passthrough()
+
+// ── Heartbeat ──────────────────────────────────────────────────
+
+export const LastHeartbeatResponseSchema = z.unknown()
+
+export const SetHeartbeatsResponseSchema = z.unknown()
