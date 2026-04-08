@@ -1,3 +1,5 @@
+import type { AgentHeartbeatStatus } from "./heartbeat"
+
 export interface ChannelHealth {
   configured: boolean
   running: boolean
@@ -14,6 +16,7 @@ export interface AgentHealth {
   name?: string
   isDefault: boolean
   sessions: { count: number }
+  heartbeat?: AgentHeartbeatStatus
 }
 
 export interface HealthPayload {

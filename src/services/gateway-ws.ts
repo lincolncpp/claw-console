@@ -166,6 +166,15 @@ export class GatewayWebSocket {
     return this.sendRpc("skills.status") as Promise<SkillsStatusResponse>
   }
 
+  // --- Heartbeat RPCs ---
+  async lastHeartbeat(agentId?: string): Promise<unknown> {
+    return this.sendRpc("last-heartbeat", agentId ? { agentId } : undefined)
+  }
+
+  async setHeartbeats(enabled: boolean): Promise<unknown> {
+    return this.sendRpc("set-heartbeats", { enabled })
+  }
+
   // --- Nodes RPCs ---
   async nodeList(): Promise<NodeListResponse> {
     return this.sendRpc("node.list") as Promise<NodeListResponse>
