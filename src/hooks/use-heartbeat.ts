@@ -40,8 +40,8 @@ export function useHeartbeatDefaults() {
           { agents: { defaults: { heartbeat: { ...patch } } } },
           configHash,
         )
-        refetch()
-        gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
+        await refetch()
+        void gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
       } catch (err) {
         addToast(`Failed to update heartbeat defaults: ${formatRpcError(err)}`)
         throw err
@@ -72,8 +72,8 @@ export function useHeartbeatConfig(agentId: string) {
           { agents: { list: [{ id: agentId, heartbeat: { ...patch } }] } },
           configHash,
         )
-        refetch()
-        gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
+        await refetch()
+        void gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
       } catch (err) {
         addToast(`Failed to update heartbeat config: ${formatRpcError(err)}`)
         throw err
