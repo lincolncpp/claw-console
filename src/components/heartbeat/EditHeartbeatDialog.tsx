@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,6 @@ interface EditHeartbeatDialogProps {
   open: boolean
   onClose: () => void
   config: HeartbeatConfig
-  heartbeatEnabled: boolean
   onSave: (patch: Partial<HeartbeatConfig>) => Promise<void>
 }
 
@@ -24,7 +23,6 @@ export function EditHeartbeatDialog({
   open,
   onClose,
   config,
-  heartbeatEnabled: _heartbeatEnabled,
   onSave,
 }: EditHeartbeatDialogProps) {
   const [every, setEvery] = useState(config.every ?? "30m")
@@ -41,14 +39,30 @@ export function EditHeartbeatDialog({
   )
   const [saving, setSaving] = useState(false)
 
+  useEffect(() => {
+    if (!open) return
+    setEvery(config.every ?? "30m")
+    setTarget(config.target ?? "none")
+    setModel(config.model ?? "")
+    setSession(config.session ?? "main")
+    setAckMaxChars(String(config.ackMaxChars ?? 300))
+    setIsolatedSession(config.isolatedSession ?? false)
+    setLightContext(config.lightContext ?? false)
+    setDirectPolicy(config.directPolicy ?? "allow")
+    setIncludeReasoning(config.includeReasoning ?? false)
+    setSuppressToolErrors(config.suppressToolErrorWarnings ?? false)
+  }, [open, config])
+
   const handleSave = async () => {
+    const parsedAck = parseInt(ackMaxChars, 10)
+    if (!Number.isFinite(parsedAck) || parsedAck < 0) return
     setSaving(true)
     try {
       const patch: Partial<HeartbeatConfig> = {
         every,
         target,
         session,
-        ackMaxChars: parseInt(ackMaxChars, 10),
+        ackMaxChars: parsedAck,
         isolatedSession,
         lightContext,
         directPolicy,

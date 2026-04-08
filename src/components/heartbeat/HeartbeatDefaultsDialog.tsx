@@ -35,13 +35,15 @@ export function HeartbeatDefaultsDialog({
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
+    const parsedAck = parseInt(ackMaxChars, 10)
+    if (!Number.isFinite(parsedAck) || parsedAck < 0) return
     setSaving(true)
     try {
       const patch: Partial<HeartbeatConfig> = {
         every,
         target,
         session,
-        ackMaxChars: parseInt(ackMaxChars, 10),
+        ackMaxChars: parsedAck,
       }
       await updateDefaults(patch)
       onSaved?.()

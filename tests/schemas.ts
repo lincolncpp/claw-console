@@ -268,6 +268,12 @@ export const LogsTailResponseSchema = z
 
 // ── Heartbeat ──────────────────────────────────────────────────
 
-export const LastHeartbeatResponseSchema = z.unknown()
+export const LastHeartbeatResponseSchema = z
+  .object({
+    status: z.string().optional(),
+    ts: z.number().optional(),
+  })
+  .passthrough()
+  .nullable()
 
-export const SetHeartbeatsResponseSchema = z.unknown()
+export const SetHeartbeatsResponseSchema = z.object({}).passthrough()

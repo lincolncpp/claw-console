@@ -96,6 +96,7 @@ export function useGlobalHeartbeatToggle() {
     async (enabled: boolean) => {
       try {
         await gatewayWs.setHeartbeats(enabled)
+        gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
       } catch (err) {
         addToast(`Failed to toggle heartbeats: ${formatRpcError(err)}`)
         throw err

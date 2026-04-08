@@ -17,6 +17,14 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onClick }: HeartbeatRowPr
     <TableRow
       className="cursor-pointer hover:bg-muted/50"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onClick()
+        }
+      }}
     >
       <TableCell className="font-medium">
         {agent.name || agent.agentId}
@@ -44,7 +52,7 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onClick }: HeartbeatRowPr
         main
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {lastHeartbeatTs ? formatTimeAgo(lastHeartbeatTs) : "--"}
+        {lastHeartbeatTs != null ? formatTimeAgo(lastHeartbeatTs) : "--"}
       </TableCell>
     </TableRow>
   )

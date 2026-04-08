@@ -42,7 +42,7 @@ export function HeartbeatTable({ agents }: HeartbeatTableProps) {
                 <HeartbeatRow
                   key={agent.agentId}
                   agent={agent}
-                  onClick={() => navigate(`/heartbeats/${agent.agentId}`)}
+                  onClick={() => navigate(`/heartbeats/${encodeURIComponent(agent.agentId)}`)}
                 />
               ))}
             </TableBody>

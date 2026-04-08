@@ -62,16 +62,20 @@ export function HeartbeatDetailPage() {
     }
   }
 
+  const renderBool = (v?: boolean) => (v == null ? "--" : v ? "Yes" : "No")
+
+  const effectivePrompt = config.prompt ?? heartbeat.prompt
+
   const configFields = [
     { label: "Interval", value: (() => { const v = config.every ?? heartbeat.every; return v === "disabled" || v === "0m" ? "--" : v })() },
     { label: "Target", value: config.target ?? heartbeat.target },
     { label: "Model", value: config.model ?? "agent default" },
     { label: "Session", value: config.session ?? "main" },
     { label: "Ack Max Chars", value: String(config.ackMaxChars ?? heartbeat.ackMaxChars) },
-    { label: "Isolated Session", value: config.isolatedSession ? "Yes" : "No" },
-    { label: "Light Context", value: config.lightContext ? "Yes" : "No" },
+    { label: "Isolated Session", value: renderBool(config.isolatedSession) },
+    { label: "Light Context", value: renderBool(config.lightContext) },
     { label: "Direct Policy", value: config.directPolicy ?? "allow" },
-    { label: "Include Reasoning", value: config.includeReasoning ? "Yes" : "No" },
+    { label: "Include Reasoning", value: renderBool(config.includeReasoning) },
   ]
 
   const lastHb = lastHeartbeat as { ts?: number } | null
@@ -134,7 +138,7 @@ export function HeartbeatDetailPage() {
                 variant="ghost"
                 className="h-5 w-5 p-0"
                 onClick={() => {
-                  setDraft(heartbeat.prompt)
+                  setDraft(effectivePrompt)
                   setEditing(true)
                 }}
               >
@@ -177,7 +181,7 @@ export function HeartbeatDetailPage() {
             </div>
           ) : (
             <div className="rounded-md border border-border bg-muted/30 p-3 text-xs font-mono leading-relaxed text-muted-foreground">
-              {heartbeat.prompt}
+              {effectivePrompt}
             </div>
           )}
         </CardContent>
@@ -212,7 +216,6 @@ export function HeartbeatDetailPage() {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         config={config}
-        heartbeatEnabled={heartbeat.enabled}
         onSave={updateConfig}
       />
     </PageContent>
