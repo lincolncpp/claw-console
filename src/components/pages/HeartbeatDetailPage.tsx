@@ -60,10 +60,14 @@ export function HeartbeatDetailPage() {
 
   const { heartbeat } = agent
   const isActive = heartbeat.enabled && (heartbeat.everyMs ?? 0) > 0
+  const previousEvery = useRef(heartbeat.every)
+
+  // Track the last non-zero interval
+  if (isActive) previousEvery.current = heartbeat.every
 
   const handleToggle = async () => {
     try {
-      const newEvery = isActive ? "0m" : (defaults.every ?? "30m")
+      const newEvery = isActive ? "0m" : (previousEvery.current !== "0m" ? previousEvery.current : defaults.every ?? "30m")
       await gatewayWs.configPatch(
         { agents: { list: [{ id: agentId, heartbeat: { every: newEvery } }] } },
         configHash,

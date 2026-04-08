@@ -1,3 +1,4 @@
+import { useRef } from "react"
 import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { HeartbeatTable } from "@/components/heartbeat/HeartbeatTable"
@@ -12,12 +13,20 @@ export function HeartbeatsPage() {
   const { agents, isLoading } = useHeartbeatAgents()
   const { defaults, configHash, refetch } = useHeartbeatDefaults()
   const addToast = useErrorToastStore((s) => s.addToast)
+  const previousEvery = useRef<Record<string, string>>({})
 
   const enabledCount = agents.filter((a) => a.heartbeat.enabled && (a.heartbeat.everyMs ?? 0) > 0).length
 
   const handleToggle = async (agentId: string, currentEnabled: boolean) => {
     try {
-      const newEvery = currentEnabled ? "0m" : (defaults.every ?? "30m")
+      let newEvery: string
+      if (currentEnabled) {
+        const agent = agents.find((a) => a.agentId === agentId)
+        if (agent) previousEvery.current[agentId] = agent.heartbeat.every
+        newEvery = "0m"
+      } else {
+        newEvery = previousEvery.current[agentId] ?? defaults.every ?? "30m"
+      }
       await gatewayWs.configPatch(
         { agents: { list: [{ id: agentId, heartbeat: { every: newEvery } }] } },
         configHash,
