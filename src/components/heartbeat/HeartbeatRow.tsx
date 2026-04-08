@@ -1,5 +1,4 @@
 import { TableCell, TableRow } from "@/components/ui/table"
-import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { formatTimeAgo } from "@/lib/format"
 import type { HeartbeatAgentEntry } from "@/types/heartbeat"
@@ -7,18 +6,12 @@ import type { HeartbeatAgentEntry } from "@/types/heartbeat"
 interface HeartbeatRowProps {
   agent: HeartbeatAgentEntry
   lastHeartbeatTs?: number | null
-  onToggle: (agentId: string, currentEnabled: boolean) => void
   onClick: () => void
 }
 
-export function HeartbeatRow({ agent, lastHeartbeatTs, onToggle, onClick }: HeartbeatRowProps) {
+export function HeartbeatRow({ agent, lastHeartbeatTs, onClick }: HeartbeatRowProps) {
   const { heartbeat } = agent
   const isActive = heartbeat.enabled && (heartbeat.everyMs ?? 0) > 0
-
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onToggle(agent.agentId, isActive)
-  }
 
   return (
     <TableRow
@@ -34,12 +27,9 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onToggle, onClick }: Hear
         )}
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-2" onClick={handleToggle}>
-          <Switch checked={isActive} className="pointer-events-none" />
-          <span className="text-xs text-muted-foreground">
-            {isActive ? "On" : "Off"}
-          </span>
-        </div>
+        <Badge variant={isActive ? "default" : "secondary"} className="text-xs">
+          {isActive ? "Active" : "Inactive"}
+        </Badge>
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {heartbeat.every}

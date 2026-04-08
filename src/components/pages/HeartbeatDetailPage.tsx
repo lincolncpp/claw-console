@@ -3,20 +3,14 @@ import { useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
 import { Breadcrumb } from "@/components/shared/Breadcrumb"
 import { PageContent } from "@/components/shared/PageContent"
 import {
   useHeartbeatAgents,
   useHeartbeatConfig,
-  useHeartbeatDefaults,
   useLastHeartbeat,
 } from "@/hooks/use-heartbeat"
 import { EditHeartbeatDialog } from "@/components/heartbeat/EditHeartbeatDialog"
-import { gatewayWs } from "@/services/gateway-ws"
-import { useSystemStore } from "@/stores/system-store"
-import { useErrorToastStore } from "@/stores/error-toast-store"
-import { formatRpcError } from "@/lib/errors"
 import { formatTimeAgo } from "@/lib/format"
 import { Settings, Pencil, Check, X } from "lucide-react"
 
@@ -24,9 +18,7 @@ export function HeartbeatDetailPage() {
   const { agentId } = useParams<{ agentId: string }>()
   const { agents } = useHeartbeatAgents()
   const { config, updateConfig } = useHeartbeatConfig(agentId ?? "")
-  const { defaults, configHash, refetch } = useHeartbeatDefaults()
   const { data: lastHeartbeat } = useLastHeartbeat(agentId)
-  const addToast = useErrorToastStore((s) => s.addToast)
 
   const agent = agents.find((a) => a.agentId === agentId)
 
@@ -60,24 +52,6 @@ export function HeartbeatDetailPage() {
 
   const { heartbeat } = agent
   const isActive = heartbeat.enabled && (heartbeat.everyMs ?? 0) > 0
-  const previousEvery = useRef(heartbeat.every)
-
-  // Track the last non-zero interval
-  if (isActive) previousEvery.current = heartbeat.every
-
-  const handleToggle = async () => {
-    try {
-      const newEvery = isActive ? "0m" : (previousEvery.current !== "0m" ? previousEvery.current : defaults.every ?? "30m")
-      await gatewayWs.configPatch(
-        { agents: { list: [{ id: agentId, heartbeat: { every: newEvery } }] } },
-        configHash,
-      )
-      refetch()
-      gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
-    } catch (err) {
-      addToast(`Failed to toggle heartbeat: ${formatRpcError(err)}`)
-    }
-  }
 
   const handleSavePrompt = async () => {
     try {
@@ -126,12 +100,9 @@ export function HeartbeatDetailPage() {
             <p className="text-sm text-muted-foreground">Agent heartbeat configuration</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={handleToggle}>
-              <Switch checked={isActive} className="pointer-events-none" />
-              <span className="text-xs text-muted-foreground">
-                {isActive ? "Enabled" : "Disabled"}
-              </span>
-            </div>
+            <Badge variant={isActive ? "default" : "secondary"} className="text-xs">
+              {isActive ? "Active" : "Inactive"}
+            </Badge>
             <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
               <Settings className="h-3 w-3 mr-1" />
               Edit

@@ -1,42 +1,14 @@
-import { useRef } from "react"
 import { PageContent } from "@/components/shared/PageContent"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { HeartbeatTable } from "@/components/heartbeat/HeartbeatTable"
 import { GlobalHeartbeatCard } from "@/components/heartbeat/GlobalHeartbeatCard"
 import { useHeartbeatAgents, useHeartbeatDefaults } from "@/hooks/use-heartbeat"
-import { gatewayWs } from "@/services/gateway-ws"
-import { useSystemStore } from "@/stores/system-store"
-import { useErrorToastStore } from "@/stores/error-toast-store"
-import { formatRpcError } from "@/lib/errors"
 
 export function HeartbeatsPage() {
   const { agents, isLoading } = useHeartbeatAgents()
-  const { defaults, configHash, refetch } = useHeartbeatDefaults()
-  const addToast = useErrorToastStore((s) => s.addToast)
-  const previousEvery = useRef<Record<string, string>>({})
+  const { refetch } = useHeartbeatDefaults()
 
   const enabledCount = agents.filter((a) => a.heartbeat.enabled && (a.heartbeat.everyMs ?? 0) > 0).length
-
-  const handleToggle = async (agentId: string, currentEnabled: boolean) => {
-    try {
-      let newEvery: string
-      if (currentEnabled) {
-        const agent = agents.find((a) => a.agentId === agentId)
-        if (agent) previousEvery.current[agentId] = agent.heartbeat.every
-        newEvery = "0m"
-      } else {
-        newEvery = previousEvery.current[agentId] ?? defaults.every ?? "30m"
-      }
-      await gatewayWs.configPatch(
-        { agents: { list: [{ id: agentId, heartbeat: { every: newEvery } }] } },
-        configHash,
-      )
-      refetch()
-      gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
-    } catch (err) {
-      addToast(`Failed to toggle heartbeat: ${formatRpcError(err)}`)
-    }
-  }
 
   if (isLoading) {
     return (
@@ -58,7 +30,7 @@ export function HeartbeatsPage() {
         }
       />
       <GlobalHeartbeatCard globalEnabled={enabledCount > 0} onConfigChanged={refetch} />
-      <HeartbeatTable agents={agents} onToggle={handleToggle} />
+      <HeartbeatTable agents={agents} />
     </PageContent>
   )
 }
