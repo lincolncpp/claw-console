@@ -14,7 +14,6 @@ interface HeartbeatRowProps {
 export function HeartbeatRow({ agent, lastHeartbeatTs, onToggle, onClick }: HeartbeatRowProps) {
   const { heartbeat } = agent
   const isActive = heartbeat.enabled && (heartbeat.everyMs ?? 0) > 0
-  const disabled = !isActive
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -23,7 +22,7 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onToggle, onClick }: Hear
 
   return (
     <TableRow
-      className={`cursor-pointer hover:bg-muted/50 ${disabled ? "opacity-50" : ""}`}
+      className="cursor-pointer hover:bg-muted/50"
       onClick={onClick}
     >
       <TableCell className="font-medium">
@@ -43,16 +42,16 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onToggle, onClick }: Hear
         </div>
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {disabled ? "--" : heartbeat.every}
+        {heartbeat.every}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {disabled ? "--" : heartbeat.target}
+        {heartbeat.target}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {disabled ? "--" : "agent default"}
+        agent default
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {disabled ? "--" : "main"}
+        main
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {lastHeartbeatTs ? formatTimeAgo(lastHeartbeatTs) : "--"}
