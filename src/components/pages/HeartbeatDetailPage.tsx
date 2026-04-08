@@ -59,10 +59,11 @@ export function HeartbeatDetailPage() {
   }
 
   const { heartbeat } = agent
+  const isActive = heartbeat.enabled && (heartbeat.everyMs ?? 0) > 0
 
   const handleToggle = async () => {
     try {
-      const newEvery = heartbeat.enabled ? "0m" : (defaults.every ?? "30m")
+      const newEvery = isActive ? "0m" : (defaults.every ?? "30m")
       await gatewayWs.configPatch(
         { agents: { list: [{ id: agentId, heartbeat: { every: newEvery } }] } },
         configHash,
@@ -122,9 +123,9 @@ export function HeartbeatDetailPage() {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 cursor-pointer" onClick={handleToggle}>
-              <Switch checked={heartbeat.enabled} className="pointer-events-none" />
+              <Switch checked={isActive} className="pointer-events-none" />
               <span className="text-xs text-muted-foreground">
-                {heartbeat.enabled ? "Enabled" : "Disabled"}
+                {isActive ? "Enabled" : "Disabled"}
               </span>
             </div>
             <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>

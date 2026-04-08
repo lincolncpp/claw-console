@@ -13,11 +13,12 @@ interface HeartbeatRowProps {
 
 export function HeartbeatRow({ agent, lastHeartbeatTs, onToggle, onClick }: HeartbeatRowProps) {
   const { heartbeat } = agent
-  const disabled = !heartbeat.enabled
+  const isActive = heartbeat.enabled && (heartbeat.everyMs ?? 0) > 0
+  const disabled = !isActive
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onToggle(agent.agentId, heartbeat.enabled)
+    onToggle(agent.agentId, isActive)
   }
 
   return (
@@ -35,9 +36,9 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onToggle, onClick }: Hear
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2" onClick={handleToggle}>
-          <Switch checked={heartbeat.enabled} className="pointer-events-none" />
+          <Switch checked={isActive} className="pointer-events-none" />
           <span className="text-xs text-muted-foreground">
-            {heartbeat.enabled ? "On" : "Off"}
+            {isActive ? "On" : "Off"}
           </span>
         </div>
       </TableCell>

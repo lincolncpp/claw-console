@@ -7,10 +7,11 @@ import { HeartbeatDefaultsDialog } from "./HeartbeatDefaultsDialog"
 
 interface GlobalHeartbeatCardProps {
   globalEnabled: boolean
+  onConfigChanged?: () => void
 }
 
-export function GlobalHeartbeatCard({ globalEnabled }: GlobalHeartbeatCardProps) {
-  const { defaults } = useHeartbeatDefaults()
+export function GlobalHeartbeatCard({ globalEnabled, onConfigChanged }: GlobalHeartbeatCardProps) {
+  const { defaults, refetch: refetchDefaults } = useHeartbeatDefaults()
   const { toggle } = useGlobalHeartbeatToggle()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [enabled, setEnabled] = useState(globalEnabled)
@@ -70,7 +71,12 @@ export function GlobalHeartbeatCard({ globalEnabled }: GlobalHeartbeatCardProps)
         </CardContent>
       </Card>
       {dialogOpen && (
-        <HeartbeatDefaultsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+        <HeartbeatDefaultsDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onSaved={() => { refetchDefaults(); onConfigChanged?.() }}
+          currentDefaults={defaults}
+        />
       )}
     </>
   )

@@ -15,15 +15,23 @@ import type { HeartbeatConfig } from "@/types/heartbeat"
 interface HeartbeatDefaultsDialogProps {
   open: boolean
   onClose: () => void
+  onSaved?: () => void
+  currentDefaults?: HeartbeatConfig
 }
 
-export function HeartbeatDefaultsDialog({ open, onClose }: HeartbeatDefaultsDialogProps) {
-  const { defaults, updateDefaults } = useHeartbeatDefaults()
+export function HeartbeatDefaultsDialog({
+  open,
+  onClose,
+  onSaved,
+  currentDefaults,
+}: HeartbeatDefaultsDialogProps) {
+  const { updateDefaults } = useHeartbeatDefaults()
 
-  const [every, setEvery] = useState(defaults.every ?? "30m")
-  const [target, setTarget] = useState(defaults.target ?? "none")
-  const [session, setSession] = useState(defaults.session ?? "main")
-  const [ackMaxChars, setAckMaxChars] = useState(String(defaults.ackMaxChars ?? 300))
+  const d = currentDefaults ?? {}
+  const [every, setEvery] = useState(d.every ?? "30m")
+  const [target, setTarget] = useState(d.target ?? "none")
+  const [session, setSession] = useState(d.session ?? "main")
+  const [ackMaxChars, setAckMaxChars] = useState(String(d.ackMaxChars ?? 300))
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
@@ -36,6 +44,7 @@ export function HeartbeatDefaultsDialog({ open, onClose }: HeartbeatDefaultsDial
         ackMaxChars: parseInt(ackMaxChars, 10),
       }
       await updateDefaults(patch)
+      onSaved?.()
       onClose()
     } catch {
       // error toast handled by updateDefaults

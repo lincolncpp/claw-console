@@ -13,7 +13,7 @@ export function HeartbeatsPage() {
   const { defaults, configHash, refetch } = useHeartbeatDefaults()
   const addToast = useErrorToastStore((s) => s.addToast)
 
-  const enabledCount = agents.filter((a) => a.heartbeat.enabled).length
+  const enabledCount = agents.filter((a) => a.heartbeat.enabled && (a.heartbeat.everyMs ?? 0) > 0).length
 
   const handleToggle = async (agentId: string, currentEnabled: boolean) => {
     try {
@@ -48,7 +48,7 @@ export function HeartbeatsPage() {
             : undefined
         }
       />
-      <GlobalHeartbeatCard globalEnabled={enabledCount > 0} />
+      <GlobalHeartbeatCard globalEnabled={enabledCount > 0} onConfigChanged={refetch} />
       <HeartbeatTable agents={agents} onToggle={handleToggle} />
     </PageContent>
   )
