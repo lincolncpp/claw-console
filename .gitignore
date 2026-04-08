@@ -26,3 +26,7 @@ dist-ssr
 
 # Superpowers
 .superpowers
+docs/superpowers
+
+# Playwright
+.playwright-mcp
