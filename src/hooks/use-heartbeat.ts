@@ -41,7 +41,7 @@ export function useHeartbeatDefaults() {
           configHash,
         )
         await refetch()
-        void gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
+        await gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
       } catch (err) {
         addToast(`Failed to update heartbeat defaults: ${formatRpcError(err)}`)
         throw err
@@ -73,7 +73,7 @@ export function useHeartbeatConfig(agentId: string) {
           configHash,
         )
         await refetch()
-        void gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
+        await gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
       } catch (err) {
         addToast(`Failed to update heartbeat config: ${formatRpcError(err)}`)
         throw err
@@ -90,7 +90,7 @@ export function useHeartbeatConfig(agentId: string) {
           configHash,
         )
         await refetch()
-        void gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
+        await gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
       } catch (err) {
         addToast(`Failed to remove heartbeat config: ${formatRpcError(err)}`)
         throw err

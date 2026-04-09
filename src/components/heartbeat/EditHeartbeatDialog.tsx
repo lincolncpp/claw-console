@@ -70,19 +70,19 @@ export function EditHeartbeatDialog({
     if (!Number.isFinite(parsedAck) || parsedAck < 0) return
     setSaving(true)
     try {
-      const patch: Partial<HeartbeatConfig> = {
-        every,
-        target,
-        to: to.trim() || undefined,
-        session,
-        ackMaxChars: parsedAck,
-        isolatedSession,
-        lightContext,
-        directPolicy,
-        includeReasoning,
-        suppressToolErrorWarnings: suppressToolErrors,
-      }
-      if (model) patch.model = model
+      const patch: Partial<HeartbeatConfig> = {}
+      if (every !== (config.every ?? "30m")) patch.every = every
+      if (target !== (config.target ?? "none")) patch.target = target
+      const trimmedTo = to.trim()
+      if (trimmedTo !== (config.to ?? "")) patch.to = trimmedTo || undefined
+      if (model !== (config.model ?? "")) patch.model = model || undefined
+      if (session !== (config.session ?? "main")) patch.session = session
+      if (parsedAck !== (config.ackMaxChars ?? 300)) patch.ackMaxChars = parsedAck
+      if (isolatedSession !== (config.isolatedSession ?? false)) patch.isolatedSession = isolatedSession
+      if (lightContext !== (config.lightContext ?? false)) patch.lightContext = lightContext
+      if (directPolicy !== (config.directPolicy ?? "allow")) patch.directPolicy = directPolicy
+      if (includeReasoning !== (config.includeReasoning ?? false)) patch.includeReasoning = includeReasoning
+      if (suppressToolErrors !== (config.suppressToolErrorWarnings ?? false)) patch.suppressToolErrorWarnings = suppressToolErrors
       await onSave(patch)
       onClose()
     } catch {
