@@ -4,6 +4,7 @@ export interface AgentHeartbeatStatus {
   everyMs: number | null
   prompt: string
   target: string
+  model?: string
   ackMaxChars: number
 }
 

@@ -9,8 +9,14 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
 import { useHeartbeatDefaults } from "@/hooks/use-heartbeat"
+import { useModels } from "@/hooks/use-agents"
 import type { HeartbeatConfig } from "@/types/heartbeat"
+
+const selectClass =
+  "h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [&>option]:bg-popover [&>option]:text-popover-foreground"
 
 interface HeartbeatDefaultsDialogProps {
   open: boolean
@@ -26,10 +32,12 @@ export function HeartbeatDefaultsDialog({
   currentDefaults,
 }: HeartbeatDefaultsDialogProps) {
   const { updateDefaults } = useHeartbeatDefaults()
+  const { models } = useModels()
 
   const d = currentDefaults ?? {}
   const [every, setEvery] = useState(d.every ?? "30m")
   const [target, setTarget] = useState(d.target ?? "none")
+  const [model, setModel] = useState(d.model ?? "")
   const [session, setSession] = useState(d.session ?? "main")
   const [ackMaxChars, setAckMaxChars] = useState(String(d.ackMaxChars ?? 300))
   const [saving, setSaving] = useState(false)
@@ -45,6 +53,7 @@ export function HeartbeatDefaultsDialog({
         session,
         ackMaxChars: parsedAck,
       }
+      if (model) patch.model = model
       await updateDefaults(patch)
       onSaved?.()
       onClose()
@@ -82,6 +91,21 @@ export function HeartbeatDefaultsDialog({
             />
           </div>
           <div>
+            <label className="text-xs text-muted-foreground">Model</label>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">Inherited</option>
+              {models.map((m) => (
+                <option key={m.id} value={`${m.provider}/${m.id}`}>
+                  {m.provider}/{m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="text-xs text-muted-foreground">Session</label>
             <Input
               placeholder="main"
@@ -90,7 +114,17 @@ export function HeartbeatDefaultsDialog({
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Ack Max Chars</label>
+            <label className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              Ack Max Chars
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts.
+                </TooltipContent>
+              </Tooltip>
+            </label>
             <Input
               type="number"
               min="0"

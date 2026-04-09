@@ -46,7 +46,7 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onClick }: HeartbeatRowPr
         {heartbeat.target}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        agent default
+        {heartbeat.model ?? "agent default"}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         main

@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
 import { useHeartbeatDefaults } from "@/hooks/use-heartbeat"
 import { HeartbeatDefaultsDialog } from "./HeartbeatDefaultsDialog"
 
@@ -12,11 +14,13 @@ export function GlobalHeartbeatCard({ onConfigChanged }: GlobalHeartbeatCardProp
   const { defaults, refetch: refetchDefaults } = useHeartbeatDefaults()
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  const ackTooltip = "Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts."
+
   const rows = [
     { label: "Interval", value: defaults.every ?? "30m" },
     { label: "Target", value: defaults.target ?? "none" },
     { label: "Model", value: defaults.model ?? "inherited" },
-    { label: "Ack Max Chars", value: defaults.ackMaxChars != null ? String(defaults.ackMaxChars) : "300" },
+    { label: "Ack Max Chars", value: defaults.ackMaxChars != null ? String(defaults.ackMaxChars) : "300", tooltip: ackTooltip },
     { label: "Session", value: defaults.session ?? "main" },
   ]
 
@@ -41,7 +45,17 @@ export function GlobalHeartbeatCard({ onConfigChanged }: GlobalHeartbeatCardProp
                 key={row.label}
                 className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0 text-sm"
               >
-                <span className="text-muted-foreground text-xs">{row.label}</span>
+                <span className="text-muted-foreground text-xs inline-flex items-center gap-1">
+                  {row.label}
+                  {row.tooltip && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>{row.tooltip}</TooltipContent>
+                    </Tooltip>
+                  )}
+                </span>
                 <span className="font-mono text-xs tabular-nums">{row.value}</span>
               </div>
             ))}

@@ -53,7 +53,10 @@ export function HeartbeatTable({ agents, onNewHeartbeat }: HeartbeatTableProps) 
           </Table>
         )}
         {onNewHeartbeat && (
-          <TableFooter className="justify-end">
+          <TableFooter className="justify-between">
+            <p className="text-xs text-muted-foreground">
+              To disable a heartbeat, set its interval to <span className="font-mono">0m</span>.
+            </p>
             <Button variant="outline" size="sm" onClick={onNewHeartbeat}>
               <Plus className="h-3 w-3 mr-1" />
               New Heartbeat

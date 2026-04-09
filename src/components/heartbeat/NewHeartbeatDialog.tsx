@@ -9,7 +9,10 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
 import { useSystemStore } from "@/stores/system-store"
+import { useModels } from "@/hooks/use-agents"
 import { useConfig } from "@/hooks/use-config"
 import { gatewayWs } from "@/services/gateway-ws"
 import { useErrorToastStore } from "@/stores/error-toast-store"
@@ -30,6 +33,7 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
   const [every, setEvery] = useState("")
   const [target, setTarget] = useState("")
   const [to, setTo] = useState("")
+  const [model, setModel] = useState("")
   const [session, setSession] = useState("")
   const [ackMaxChars, setAckMaxChars] = useState("")
   const [agentError, setAgentError] = useState("")
@@ -37,6 +41,7 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
 
   const agents = useSystemStore((s) => s.agents)
   const channels = useSystemStore((s) => s.channels)
+  const { models } = useModels()
   const { configHash } = useConfig()
   const addToast = useErrorToastStore((s) => s.addToast)
 
@@ -55,6 +60,7 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
       if (every.trim()) patch.every = every.trim()
       if (target && target !== "none") patch.target = target
       if (to.trim()) patch.to = to.trim()
+      if (model) patch.model = model
       if (session.trim()) patch.session = session.trim()
       if (Number.isFinite(parsedAck) && parsedAck >= 0) patch.ackMaxChars = parsedAck
       await gatewayWs.configPatch(
@@ -76,6 +82,7 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
     setEvery("")
     setTarget("")
     setTo("")
+    setModel("")
     setSession("")
     setAckMaxChars("")
     setAgentError("")
@@ -146,6 +153,21 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
             </div>
           )}
           <div>
+            <label className="text-xs text-muted-foreground">Model</label>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">Use agent default</option>
+              {models.map((m) => (
+                <option key={m.id} value={`${m.provider}/${m.id}`}>
+                  {m.provider}/{m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="text-xs text-muted-foreground">Session</label>
             <Input
               placeholder="main"
@@ -154,7 +176,17 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Ack Max Chars</label>
+            <label className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              Ack Max Chars
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts.
+                </TooltipContent>
+              </Tooltip>
+            </label>
             <Input
               type="number"
               min="0"

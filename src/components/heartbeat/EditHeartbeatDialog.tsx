@@ -10,7 +10,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
 import { useSystemStore } from "@/stores/system-store"
+import { useModels } from "@/hooks/use-agents"
 import type { HeartbeatConfig } from "@/types/heartbeat"
 
 const selectClass =
@@ -30,6 +33,7 @@ export function EditHeartbeatDialog({
   onSave,
 }: EditHeartbeatDialogProps) {
   const channels = useSystemStore((s) => s.channels)
+  const { models } = useModels()
 
   const [every, setEvery] = useState(config.every ?? "30m")
   const [target, setTarget] = useState(config.target ?? "none")
@@ -131,12 +135,19 @@ export function EditHeartbeatDialog({
             </div>
           )}
           <div>
-            <label className="text-xs text-muted-foreground">Model (blank = agent default)</label>
-            <Input
-              placeholder="e.g. openai/gpt-5.4-mini"
+            <label className="text-xs text-muted-foreground">Model</label>
+            <select
               value={model}
-              onChange={(e) => setModel((e.target as HTMLInputElement).value)}
-            />
+              onChange={(e) => setModel(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">Use agent default</option>
+              {models.map((m) => (
+                <option key={m.id} value={`${m.provider}/${m.id}`}>
+                  {m.provider}/{m.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Session</label>
@@ -147,7 +158,17 @@ export function EditHeartbeatDialog({
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Ack Max Chars</label>
+            <label className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              Ack Max Chars
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts.
+                </TooltipContent>
+              </Tooltip>
+            </label>
             <Input
               type="number"
               min="0"
