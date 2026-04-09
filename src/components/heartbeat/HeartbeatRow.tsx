@@ -40,7 +40,7 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onClick }: HeartbeatRowPr
         </Badge>
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {heartbeat.every === "disabled" || heartbeat.every === "0m" ? "--" : heartbeat.every}
+        {heartbeat.every}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {heartbeat.target}

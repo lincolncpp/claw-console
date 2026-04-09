@@ -171,10 +171,6 @@ export class GatewayWebSocket {
     return this.sendRpc("last-heartbeat", agentId ? { agentId } : undefined)
   }
 
-  async setHeartbeats(enabled: boolean): Promise<unknown> {
-    return this.sendRpc("set-heartbeats", { enabled })
-  }
-
   async health(): Promise<HealthPayload> {
     return this.sendRpc("health") as Promise<HealthPayload>
   }

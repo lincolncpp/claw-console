@@ -6,15 +6,19 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 import { HeartbeatRow } from "./HeartbeatRow"
+import { TableFooter } from "@/components/shared/TableFooter"
 import { useNavigate } from "react-router-dom"
 import type { HeartbeatAgentEntry } from "@/types/heartbeat"
 
 interface HeartbeatTableProps {
   agents: HeartbeatAgentEntry[]
+  onNewHeartbeat?: () => void
 }
 
-export function HeartbeatTable({ agents }: HeartbeatTableProps) {
+export function HeartbeatTable({ agents, onNewHeartbeat }: HeartbeatTableProps) {
   const navigate = useNavigate()
 
   return (
@@ -47,6 +51,14 @@ export function HeartbeatTable({ agents }: HeartbeatTableProps) {
               ))}
             </TableBody>
           </Table>
+        )}
+        {onNewHeartbeat && (
+          <TableFooter className="justify-end">
+            <Button variant="outline" size="sm" onClick={onNewHeartbeat}>
+              <Plus className="h-3 w-3 mr-1" />
+              New Heartbeat
+            </Button>
+          </TableFooter>
         )}
       </CardContent>
     </Card>

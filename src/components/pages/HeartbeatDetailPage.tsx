@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Breadcrumb } from "@/components/shared/Breadcrumb"
 import { PageContent } from "@/components/shared/PageContent"
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
 import {
   useHeartbeatAgents,
   useHeartbeatConfig,
@@ -12,17 +13,19 @@ import {
 } from "@/hooks/use-heartbeat"
 import { EditHeartbeatDialog } from "@/components/heartbeat/EditHeartbeatDialog"
 import { formatTimeAgo } from "@/lib/format"
-import { Settings, Pencil, Check, X } from "lucide-react"
+import { Settings, Pencil, Check, X, Trash2 } from "lucide-react"
 
 export function HeartbeatDetailPage() {
   const { agentId } = useParams<{ agentId: string }>()
   const { agents } = useHeartbeatAgents()
-  const { config, updateConfig } = useHeartbeatConfig(agentId ?? "")
+  const { config, updateConfig, deleteConfig } = useHeartbeatConfig(agentId ?? "")
   const { data: lastHeartbeat } = useLastHeartbeat(agentId)
+  const navigate = useNavigate()
 
   const agent = agents.find((a) => a.agentId === agentId)
 
   const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -67,7 +70,7 @@ export function HeartbeatDetailPage() {
   const effectivePrompt = config.prompt ?? heartbeat.prompt
 
   const configFields = [
-    { label: "Interval", value: (() => { const v = config.every ?? heartbeat.every; return v === "disabled" || v === "0m" ? "--" : v })() },
+    { label: "Interval", value: (() => { const v = config.every ?? heartbeat.every; return v === "disabled" ? "0m" : v })() },
     { label: "Target", value: config.target ?? heartbeat.target },
     { label: "Model", value: config.model ?? "agent default" },
     { label: "Session", value: config.session ?? "main" },
@@ -110,6 +113,9 @@ export function HeartbeatDetailPage() {
             <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
               <Settings className="h-3 w-3 mr-1" />
               Edit
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="h-3 w-3" />
             </Button>
           </div>
         </CardHeader>
@@ -217,6 +223,17 @@ export function HeartbeatDetailPage() {
         onClose={() => setEditOpen(false)}
         config={config}
         onSave={updateConfig}
+      />
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={async () => {
+          await deleteConfig()
+          navigate("/heartbeats")
+        }}
+        targetLabel={agent.name || agentId}
+        title="Remove Heartbeat"
+        description="Remove heartbeat configuration from this agent? The agent will no longer run heartbeats."
       />
     </PageContent>
   )

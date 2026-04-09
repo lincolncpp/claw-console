@@ -14,7 +14,7 @@ export function useHeartbeatAgents() {
   const heartbeatAgents: HeartbeatAgentEntry[] = useMemo(
     () =>
       agents
-        .filter((a) => a.heartbeat != null)
+        .filter((a) => a.heartbeat != null && a.heartbeat.enabled)
         .map((a) => ({
           agentId: a.agentId,
           name: a.name,
@@ -82,28 +82,26 @@ export function useHeartbeatConfig(agentId: string) {
     [agentId, configHash, refetch, addToast],
   )
 
-  return { config: agentConfig, configHash, isLoading, updateConfig, refetch }
+  const deleteConfig = useCallback(
+    async () => {
+      try {
+        await gatewayWs.configPatch(
+          { agents: { list: [{ id: agentId, heartbeat: null }] } },
+          configHash,
+        )
+        await refetch()
+        void gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
+      } catch (err) {
+        addToast(`Failed to remove heartbeat config: ${formatRpcError(err)}`)
+        throw err
+      }
+    },
+    [agentId, configHash, refetch, addToast],
+  )
+
+  return { config: agentConfig, configHash, isLoading, updateConfig, deleteConfig, refetch }
 }
 
 export function useLastHeartbeat(agentId?: string) {
   return useRpc(() => gatewayWs.lastHeartbeat(agentId), [agentId])
-}
-
-export function useGlobalHeartbeatToggle() {
-  const addToast = useErrorToastStore((s) => s.addToast)
-
-  const toggle = useCallback(
-    async (enabled: boolean) => {
-      try {
-        await gatewayWs.setHeartbeats(enabled)
-        await gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
-      } catch (err) {
-        addToast(`Failed to toggle heartbeats: ${formatRpcError(err)}`)
-        throw err
-      }
-    },
-    [addToast],
-  )
-
-  return { toggle }
 }
