@@ -223,6 +223,11 @@ export function HeartbeatDetailPage() {
                     <Badge variant="outline" className="text-xs">
                       {String(hb.status ?? "unknown")}
                     </Badge>
+                    {hb.reason != null && (
+                      <span className="text-xs text-muted-foreground">
+                        reason: {String(hb.reason)}
+                      </span>
+                    )}
                     {hb.agentId && (
                       <span className="text-xs text-muted-foreground">{String(hb.agentId)}</span>
                     )}
