@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Bot,
   Timer,
+  HeartPulse,
   Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
@@ -21,6 +22,7 @@ const navItems: { path: string; label: string; icon: typeof LayoutDashboard }[] 
   { path: "/skills", label: "Skills", icon: Sparkles },
   { path: "/nodes", label: "Nodes", icon: Server },
   { path: "/cron", label: "Cron Jobs", icon: Timer },
+  { path: "/heartbeats", label: "Heartbeats", icon: HeartPulse },
   { path: "/logs", label: "Logs", icon: ScrollText },
   { path: "/approvals", label: "Approvals", icon: ShieldCheck },
 ]

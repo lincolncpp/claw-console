@@ -12,6 +12,7 @@ import {
   CronJobSchema,
   NodeListResponseSchema,
   LogsTailResponseSchema,
+  HealthPayloadSchema,
 } from "./schemas"
 
 function assertSchema(name: string, schema: { safeParse: (v: unknown) => { success: boolean; error?: unknown } }, data: unknown) {
@@ -108,5 +109,31 @@ describe("Approvals RPCs", () => {
   it("exec.approvals.get", async () => {
     const result = await client.sendRpc("exec.approvals.get")
     expect(result).toBeDefined()
+  })
+})
+
+describe("Heartbeat RPCs", () => {
+  it("last-heartbeat", async () => {
+    const result = await client.sendRpc("last-heartbeat", {})
+    // Returns null when no heartbeat has run, or an event object
+    expect(result === null || typeof result === "object").toBe(true)
+  })
+
+  it("last-heartbeat with agentId", async () => {
+    const result = await client.sendRpc("last-heartbeat", { agentId: "main" })
+    expect(result === null || typeof result === "object").toBe(true)
+  })
+
+  it("health payload includes heartbeat per agent", async () => {
+    const result = await client.sendRpc("health", {})
+    const health = HealthPayloadSchema.parse(result)
+    for (const agent of health.agents) {
+      const a = agent as Record<string, unknown>
+      if (a.heartbeat != null) {
+        const hb = a.heartbeat as Record<string, unknown>
+        expect(typeof hb.enabled).toBe("boolean")
+        expect(typeof hb.every).toBe("string")
+      }
+    }
   })
 })

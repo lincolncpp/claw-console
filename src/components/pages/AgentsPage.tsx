@@ -332,11 +332,7 @@ export function AgentsPage() {
               <Settings className="h-3 w-3 mr-1" />
               Edit Global Settings
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAddDialogOpen(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)}>
               <Plus className="h-3 w-3 mr-1" />
               New Agent
             </Button>
