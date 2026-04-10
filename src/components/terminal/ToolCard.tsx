@@ -16,7 +16,8 @@ export function ToolCard({ tool }: { tool: ToolCallData }) {
         <summary className="text-[0.6875rem] text-muted-foreground/60 cursor-pointer select-none hover:text-muted-foreground transition-colors">
           {tool.name}
           <span className={statusColors[tool.status] ?? "text-muted-foreground/60"}>
-            {" "}{tool.status}
+            {" "}
+            {tool.status}
           </span>
           {duration}
         </summary>

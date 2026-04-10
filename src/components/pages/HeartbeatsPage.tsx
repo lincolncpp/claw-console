@@ -14,7 +14,10 @@ export function HeartbeatsPage() {
 
   const sessionMap = useMemo(() => {
     const map: Record<string, string> = {}
-    for (const a of (parsed?.agents?.list ?? []) as { id?: string; heartbeat?: { session?: string } }[]) {
+    for (const a of (parsed?.agents?.list ?? []) as {
+      id?: string
+      heartbeat?: { session?: string }
+    }[]) {
       if (a.id && a.heartbeat?.session) map[a.id] = a.heartbeat.session
     }
     return map
@@ -47,12 +50,12 @@ export function HeartbeatsPage() {
         }
       />
       <GlobalHeartbeatCard onConfigChanged={refetch} />
-      <HeartbeatTable agents={agents} sessionMap={sessionMap} onNewHeartbeat={() => setNewOpen(true)} />
-      <NewHeartbeatDialog
-        open={newOpen}
-        onClose={() => setNewOpen(false)}
-        onSaved={handleSaved}
+      <HeartbeatTable
+        agents={agents}
+        sessionMap={sessionMap}
+        onNewHeartbeat={() => setNewOpen(true)}
       />
+      <NewHeartbeatDialog open={newOpen} onClose={() => setNewOpen(false)} onSaved={handleSaved} />
     </PageContent>
   )
 }

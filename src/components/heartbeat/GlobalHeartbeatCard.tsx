@@ -14,13 +14,18 @@ export function GlobalHeartbeatCard({ onConfigChanged }: GlobalHeartbeatCardProp
   const { defaults, refetch: refetchDefaults } = useHeartbeatDefaults()
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const ackTooltip = "Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts."
+  const ackTooltip =
+    "Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts."
 
   const rows = [
     { label: "Interval", value: defaults.every ?? "30m" },
     { label: "Target", value: defaults.target ?? "none" },
     { label: "Model", value: defaults.model ?? "Use agent model" },
-    { label: "Ack Max Chars", value: defaults.ackMaxChars != null ? String(defaults.ackMaxChars) : "300", tooltip: ackTooltip },
+    {
+      label: "Ack Max Chars",
+      value: defaults.ackMaxChars != null ? String(defaults.ackMaxChars) : "300",
+      tooltip: ackTooltip,
+    },
     { label: "Session", value: defaults.session ?? "main" },
   ]
 
@@ -49,9 +54,9 @@ export function GlobalHeartbeatCard({ onConfigChanged }: GlobalHeartbeatCardProp
                   {row.label}
                   {row.tooltip && (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={<Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />}
+                      />
                       <TooltipContent>{row.tooltip}</TooltipContent>
                     </Tooltip>
                   )}
@@ -66,7 +71,10 @@ export function GlobalHeartbeatCard({ onConfigChanged }: GlobalHeartbeatCardProp
         <HeartbeatDefaultsDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
-          onSaved={() => { refetchDefaults(); onConfigChanged?.() }}
+          onSaved={() => {
+            refetchDefaults()
+            onConfigChanged?.()
+          }}
           currentDefaults={defaults}
         />
       )}

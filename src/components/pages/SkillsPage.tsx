@@ -18,10 +18,25 @@ import { PageHeader } from "@/components/shared/PageHeader"
 
 function statusBadge(skill: { eligible?: boolean; disabled?: boolean }) {
   if (skill.disabled)
-    return <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">disabled</Badge>
+    return (
+      <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">
+        disabled
+      </Badge>
+    )
   if (skill.eligible)
-    return <Badge variant="default" className="text-[0.625rem] px-1.5 py-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">ready</Badge>
-  return <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0 text-muted-foreground">needs setup</Badge>
+    return (
+      <Badge
+        variant="default"
+        className="text-[0.625rem] px-1.5 py-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+      >
+        ready
+      </Badge>
+    )
+  return (
+    <Badge variant="outline" className="text-[0.625rem] px-1.5 py-0 text-muted-foreground">
+      needs setup
+    </Badge>
+  )
 }
 
 export function SkillsPage() {
@@ -68,7 +83,9 @@ export function SkillsPage() {
                         {skill.emoji && <span className="text-sm">{skill.emoji}</span>}
                         <span className="font-medium text-sm">{skill.name}</span>
                         {skill.always && (
-                          <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">always</Badge>
+                          <Badge variant="secondary" className="text-[0.625rem] px-1.5 py-0">
+                            always
+                          </Badge>
                         )}
                       </div>
                     </TableCell>

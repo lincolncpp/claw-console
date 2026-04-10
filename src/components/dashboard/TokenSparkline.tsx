@@ -149,7 +149,9 @@ export function TokenHistogram({ tokenSessions }: { tokenSessions?: SessionEntry
                 {items.map((p) => (
                   <div key={p.dataKey as string} className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
-                    <span className="text-muted-foreground">{seriesNames[p.dataKey as string]}</span>
+                    <span className="text-muted-foreground">
+                      {seriesNames[p.dataKey as string]}
+                    </span>
                     <span className="ml-auto font-mono">
                       {formatTokensCompact(p.value as number)}
                     </span>

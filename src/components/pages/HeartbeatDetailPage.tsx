@@ -76,15 +76,51 @@ export function HeartbeatDetailPage() {
   const effectivePrompt = config.prompt ?? heartbeat.prompt
 
   const configFields = [
-    { label: "Interval", value: config.every ?? heartbeat.every, tip: "How often the heartbeat runs. Use 0m to disable." },
-    { label: "Target", value: config.target ?? heartbeat.target, tip: "Where heartbeat messages are delivered: last contact, a specific channel, or none." },
-    { label: "Model", value: config.model ?? "Default", tip: "Model used for heartbeat runs. Defaults to the global heartbeat model, then the agent's own model." },
-    { label: "Session", value: config.session ?? "Default", tip: "Session key for heartbeat runs. Defaults to main." },
-    { label: "Ack Max Chars", value: String(config.ackMaxChars ?? defaults.ackMaxChars ?? heartbeat.ackMaxChars), tip: "Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts." },
-    { label: "Isolated Session", value: renderBool(config.isolatedSession, defaults.isolatedSession), tip: "When enabled, each heartbeat runs in a fresh session with no conversation history. Reduces token cost significantly." },
-    { label: "Light Context", value: renderBool(config.lightContext, defaults.lightContext), tip: "When enabled, only HEARTBEAT.md is injected from workspace bootstrap files, reducing context size." },
-    { label: "Direct Policy", value: config.directPolicy ?? defaults.directPolicy ?? "allow", tip: "Controls DM delivery: allow permits direct-target delivery, block suppresses it." },
-    { label: "Include Reasoning", value: renderBool(config.includeReasoning, defaults.includeReasoning), tip: "When enabled, delivers a separate Reasoning message alongside the heartbeat response." },
+    {
+      label: "Interval",
+      value: config.every ?? heartbeat.every,
+      tip: "How often the heartbeat runs. Use 0m to disable.",
+    },
+    {
+      label: "Target",
+      value: config.target ?? heartbeat.target,
+      tip: "Where heartbeat messages are delivered: last contact, a specific channel, or none.",
+    },
+    {
+      label: "Model",
+      value: config.model ?? "Default",
+      tip: "Model used for heartbeat runs. Defaults to the global heartbeat model, then the agent's own model.",
+    },
+    {
+      label: "Session",
+      value: config.session ?? "Default",
+      tip: "Session key for heartbeat runs. Defaults to main.",
+    },
+    {
+      label: "Ack Max Chars",
+      value: String(config.ackMaxChars ?? defaults.ackMaxChars ?? heartbeat.ackMaxChars),
+      tip: "Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts.",
+    },
+    {
+      label: "Isolated Session",
+      value: renderBool(config.isolatedSession, defaults.isolatedSession),
+      tip: "When enabled, each heartbeat runs in a fresh session with no conversation history. Reduces token cost significantly.",
+    },
+    {
+      label: "Light Context",
+      value: renderBool(config.lightContext, defaults.lightContext),
+      tip: "When enabled, only HEARTBEAT.md is injected from workspace bootstrap files, reducing context size.",
+    },
+    {
+      label: "Direct Policy",
+      value: config.directPolicy ?? defaults.directPolicy ?? "allow",
+      tip: "Controls DM delivery: allow permits direct-target delivery, block suppresses it.",
+    },
+    {
+      label: "Include Reasoning",
+      value: renderBool(config.includeReasoning, defaults.includeReasoning),
+      tip: "When enabled, delivers a separate Reasoning message alongside the heartbeat response.",
+    },
   ]
 
   const lastHb = lastHeartbeat as { ts?: number } | null
@@ -92,10 +128,7 @@ export function HeartbeatDetailPage() {
   return (
     <PageContent>
       <Breadcrumb
-        items={[
-          { label: "Heartbeats", to: "/heartbeats" },
-          { label: agent.name || agentId },
-        ]}
+        items={[{ label: "Heartbeats", to: "/heartbeats" }, { label: agent.name || agentId }]}
       />
 
       {/* Config Card */}
@@ -132,9 +165,9 @@ export function HeartbeatDetailPage() {
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide inline-flex items-center gap-1">
                   {field.label}
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={<Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />}
+                    />
                     <TooltipContent className="max-w-60">{field.tip}</TooltipContent>
                   </Tooltip>
                 </p>
@@ -215,31 +248,33 @@ export function HeartbeatDetailPage() {
             )}
           </div>
           <div className="rounded-md border border-border bg-muted/30 p-3">
-            {lastHeartbeat != null ? (() => {
-              const hb = lastHeartbeat as Record<string, unknown>
-              return (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {String(hb.status ?? "unknown")}
-                    </Badge>
-                    {hb.reason != null && (
-                      <span className="text-xs text-muted-foreground">
-                        reason: {String(hb.reason)}
-                      </span>
-                    )}
-                    {hb.agentId && (
-                      <span className="text-xs text-muted-foreground">{String(hb.agentId)}</span>
+            {lastHeartbeat != null ? (
+              (() => {
+                const hb = lastHeartbeat as Record<string, unknown>
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {String(hb.status ?? "unknown")}
+                      </Badge>
+                      {hb.reason != null && (
+                        <span className="text-xs text-muted-foreground">
+                          reason: {String(hb.reason)}
+                        </span>
+                      )}
+                      {hb.agentId != null && (
+                        <span className="text-xs text-muted-foreground">{String(hb.agentId)}</span>
+                      )}
+                    </div>
+                    {hb.text != null && (
+                      <div className="text-xs font-mono leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                        {String(hb.text)}
+                      </div>
                     )}
                   </div>
-                  {hb.text && (
-                    <div className="text-xs font-mono leading-relaxed text-muted-foreground whitespace-pre-wrap">
-                      {String(hb.text)}
-                    </div>
-                  )}
-                </div>
-              )
-            })() : (
+                )
+              })()
+            ) : (
               <p className="text-xs text-muted-foreground italic">
                 No data available yet. Heartbeat results will appear here after the next run.
               </p>

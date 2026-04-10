@@ -201,13 +201,15 @@ export function TerminalPanel() {
               {totalTokens != null ? formatTokensCompact(totalTokens) : "--"}
             </span>
             {totalTokens != null && (
-              <span className={`ml-1 text-[0.625rem] ${
-                tokenLevel === "medium"
-                  ? "text-yellow-600"
-                  : tokenLevel === "high"
-                    ? "text-destructive"
-                    : ""
-              }`}>
+              <span
+                className={`ml-1 text-[0.625rem] ${
+                  tokenLevel === "medium"
+                    ? "text-yellow-600"
+                    : tokenLevel === "high"
+                      ? "text-destructive"
+                      : ""
+                }`}
+              >
                 ({tokenLevelLabel})
               </span>
             )}

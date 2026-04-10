@@ -69,9 +69,7 @@ export function HeartbeatDefaultsDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Heartbeat Defaults</DialogTitle>
-          <DialogDescription>
-            Update default heartbeat settings for all agents.
-          </DialogDescription>
+          <DialogDescription>Update default heartbeat settings for all agents.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -117,11 +115,12 @@ export function HeartbeatDefaultsDialog({
             <label className="text-xs text-muted-foreground inline-flex items-center gap-1">
               Ack Max Chars
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={<Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />}
+                />
                 <TooltipContent>
-                  Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts.
+                  Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies
+                  are delivered as alerts.
                 </TooltipContent>
               </Tooltip>
             </label>

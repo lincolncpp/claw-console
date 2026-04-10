@@ -42,18 +42,12 @@ export function HeartbeatRow({ agent, session, onClick }: HeartbeatRowProps) {
           {isActive ? "Active" : "Inactive"}
         </Badge>
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {heartbeat.every}
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {heartbeat.target}
-      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">{heartbeat.every}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{heartbeat.target}</TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {heartbeat.model ?? "Default"}
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {session ?? "Default"}
-      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">{session ?? "Default"}</TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {lastHbTs != null ? formatTimeAgo(lastHbTs) : "--"}
       </TableCell>

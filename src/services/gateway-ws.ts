@@ -160,7 +160,10 @@ export class GatewayWebSocket {
     return this.sendRpc("models.list") as Promise<ModelsListResponse>
   }
   async toolsCatalog(agentId?: string): Promise<ToolsCatalogResponse> {
-    return this.sendRpc("tools.catalog", agentId ? { agentId } : undefined) as Promise<ToolsCatalogResponse>
+    return this.sendRpc(
+      "tools.catalog",
+      agentId ? { agentId } : undefined,
+    ) as Promise<ToolsCatalogResponse>
   }
   async skillsStatus(): Promise<SkillsStatusResponse> {
     return this.sendRpc("skills.status") as Promise<SkillsStatusResponse>
@@ -192,11 +195,7 @@ export class GatewayWebSocket {
 
   // --- Chat RPCs ---
   async chatSend(sessionKey: string, message: string): Promise<unknown> {
-    return this.sendRpc(
-      "chat.send",
-      { sessionKey, message, idempotencyKey: uuid() },
-      45000,
-    )
+    return this.sendRpc("chat.send", { sessionKey, message, idempotencyKey: uuid() }, 45000)
   }
   async chatHistory(sessionKey: string, limit = 200): Promise<unknown> {
     return this.sendRpc("chat.history", { sessionKey, limit })

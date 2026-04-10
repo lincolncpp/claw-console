@@ -104,9 +104,7 @@ function AgentConfigDialog({
       const entry: Record<string, unknown> = { ...existing, id: agent.id }
 
       entry.name = name.trim() || null
-      entry.model = model
-        ? fallbacks.length > 0 ? { primary: model, fallbacks } : model
-        : null
+      entry.model = model ? (fallbacks.length > 0 ? { primary: model, fallbacks } : model) : null
       entry.thinkingDefault = thinking || null
       entry.memorySearch = memorySearch ? { enabled: memorySearch === "enabled" } : null
       entry.subagents = subagentModel ? { model: subagentModel } : null

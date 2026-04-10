@@ -27,12 +27,7 @@ interface EditHeartbeatDialogProps {
   onSave: (patch: Partial<HeartbeatConfig>) => Promise<void>
 }
 
-export function EditHeartbeatDialog({
-  open,
-  onClose,
-  config,
-  onSave,
-}: EditHeartbeatDialogProps) {
+export function EditHeartbeatDialog({ open, onClose, config, onSave }: EditHeartbeatDialogProps) {
   const channels = useSystemStore((s) => s.channels)
   const { models } = useModels()
   const { defaults } = useHeartbeatDefaults()
@@ -51,7 +46,9 @@ export function EditHeartbeatDialog({
   const [to, setTo] = useState(config.to ?? "")
   const [model, setModel] = useState(config.model ?? "")
   const [session, setSession] = useState(config.session ?? "")
-  const [ackMaxChars, setAckMaxChars] = useState(config.ackMaxChars != null ? String(config.ackMaxChars) : "")
+  const [ackMaxChars, setAckMaxChars] = useState(
+    config.ackMaxChars != null ? String(config.ackMaxChars) : "",
+  )
   const [isolatedSession, setIsolatedSession] = useState(config.isolatedSession ?? dIsolated)
   const [lightContext, setLightContext] = useState(config.lightContext ?? dLight)
   const [directPolicy, setDirectPolicy] = useState(config.directPolicy ?? "")
@@ -92,11 +89,15 @@ export function EditHeartbeatDialog({
       } else if (config.ackMaxChars != null && !ackMaxChars) {
         patch.ackMaxChars = undefined
       }
-      if (isolatedSession !== (config.isolatedSession ?? dIsolated)) patch.isolatedSession = isolatedSession
+      if (isolatedSession !== (config.isolatedSession ?? dIsolated))
+        patch.isolatedSession = isolatedSession
       if (lightContext !== (config.lightContext ?? dLight)) patch.lightContext = lightContext
-      if (directPolicy !== (config.directPolicy ?? "")) patch.directPolicy = directPolicy || undefined
-      if (includeReasoning !== (config.includeReasoning ?? dReasoning)) patch.includeReasoning = includeReasoning
-      if (suppressToolErrors !== (config.suppressToolErrorWarnings ?? dSuppressTools)) patch.suppressToolErrorWarnings = suppressToolErrors
+      if (directPolicy !== (config.directPolicy ?? ""))
+        patch.directPolicy = directPolicy || undefined
+      if (includeReasoning !== (config.includeReasoning ?? dReasoning))
+        patch.includeReasoning = includeReasoning
+      if (suppressToolErrors !== (config.suppressToolErrorWarnings ?? dSuppressTools))
+        patch.suppressToolErrorWarnings = suppressToolErrors
       await onSave(patch)
       onClose()
     } catch {
@@ -176,11 +177,12 @@ export function EditHeartbeatDialog({
             <label className="text-xs text-muted-foreground inline-flex items-center gap-1">
               Ack Max Chars
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={<Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />}
+                />
                 <TooltipContent>
-                  Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts.
+                  Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies
+                  are delivered as alerts.
                 </TooltipContent>
               </Tooltip>
             </label>

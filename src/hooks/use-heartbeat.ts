@@ -41,7 +41,10 @@ export function useHeartbeatDefaults() {
           configHash,
         )
         await refetch()
-        await gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
+        await gatewayWs
+          .health()
+          .then(useSystemStore.getState().updateFromHealth)
+          .catch(() => {})
       } catch (err) {
         addToast(`Failed to update heartbeat defaults: ${formatRpcError(err)}`)
         throw err
@@ -59,9 +62,9 @@ export function useHeartbeatConfig(agentId: string) {
 
   const agentConfig: HeartbeatConfig = useMemo(() => {
     const agentList = parsed?.agents?.list ?? []
-    const entry = agentList.find(
-      (a: { id?: string }) => a.id === agentId,
-    ) as Record<string, unknown> | undefined
+    const entry = agentList.find((a: { id?: string }) => a.id === agentId) as
+      | Record<string, unknown>
+      | undefined
     return (entry?.heartbeat as HeartbeatConfig) ?? {}
   }, [parsed, agentId])
 
@@ -73,7 +76,10 @@ export function useHeartbeatConfig(agentId: string) {
           configHash,
         )
         await refetch()
-        await gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
+        await gatewayWs
+          .health()
+          .then(useSystemStore.getState().updateFromHealth)
+          .catch(() => {})
       } catch (err) {
         addToast(`Failed to update heartbeat config: ${formatRpcError(err)}`)
         throw err
@@ -82,22 +88,22 @@ export function useHeartbeatConfig(agentId: string) {
     [agentId, configHash, refetch, addToast],
   )
 
-  const deleteConfig = useCallback(
-    async () => {
-      try {
-        await gatewayWs.configPatch(
-          { agents: { list: [{ id: agentId, heartbeat: null }] } },
-          configHash,
-        )
-        await refetch()
-        await gatewayWs.health().then(useSystemStore.getState().updateFromHealth).catch(() => {})
-      } catch (err) {
-        addToast(`Failed to remove heartbeat config: ${formatRpcError(err)}`)
-        throw err
-      }
-    },
-    [agentId, configHash, refetch, addToast],
-  )
+  const deleteConfig = useCallback(async () => {
+    try {
+      await gatewayWs.configPatch(
+        { agents: { list: [{ id: agentId, heartbeat: null }] } },
+        configHash,
+      )
+      await refetch()
+      await gatewayWs
+        .health()
+        .then(useSystemStore.getState().updateFromHealth)
+        .catch(() => {})
+    } catch (err) {
+      addToast(`Failed to remove heartbeat config: ${formatRpcError(err)}`)
+      throw err
+    }
+  }, [agentId, configHash, refetch, addToast])
 
   return { config: agentConfig, configHash, isLoading, updateConfig, deleteConfig, refetch }
 }

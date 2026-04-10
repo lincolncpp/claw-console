@@ -5,10 +5,7 @@ export function useSessionTokens(sessionKey: string | null): number | undefined 
   const [totalTokens, setTotalTokens] = useState<number | undefined>()
 
   useEffect(() => {
-    if (!sessionKey) {
-      setTotalTokens(undefined)
-      return
-    }
+    if (!sessionKey) return
     let active = true
 
     const poll = () => {
@@ -30,5 +27,5 @@ export function useSessionTokens(sessionKey: string | null): number | undefined 
     }
   }, [sessionKey])
 
-  return totalTokens
+  return sessionKey ? totalTokens : undefined
 }
