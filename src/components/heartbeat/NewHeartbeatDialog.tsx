@@ -14,6 +14,7 @@ import { Info } from "lucide-react"
 import { useSystemStore } from "@/stores/system-store"
 import { useModels } from "@/hooks/use-agents"
 import { useConfig } from "@/hooks/use-config"
+import { useHeartbeatDefaults } from "@/hooks/use-heartbeat"
 import { gatewayWs } from "@/services/gateway-ws"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { formatRpcError } from "@/lib/errors"
@@ -43,6 +44,7 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
   const channels = useSystemStore((s) => s.channels)
   const { models } = useModels()
   const { configHash } = useConfig()
+  const { defaults } = useHeartbeatDefaults()
   const addToast = useErrorToastStore((s) => s.addToast)
 
   const availableAgents = agents.filter((a) => !a.heartbeat?.enabled)
@@ -159,7 +161,7 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
               onChange={(e) => setModel(e.target.value)}
               className={selectClass}
             >
-              <option value="">Use agent default</option>
+              <option value="">Default</option>
               {models.map((m) => (
                 <option key={m.id} value={`${m.provider}/${m.id}`}>
                   {m.provider}/{m.name}
@@ -170,7 +172,7 @@ export function NewHeartbeatDialog({ open, onClose, onSaved }: NewHeartbeatDialo
           <div>
             <label className="text-xs text-muted-foreground">Session</label>
             <Input
-              placeholder="main"
+              placeholder={defaults.session ?? "main"}
               value={session}
               onChange={(e) => setSession((e.target as HTMLInputElement).value)}
             />

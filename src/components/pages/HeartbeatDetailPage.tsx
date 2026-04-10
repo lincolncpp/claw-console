@@ -9,16 +9,19 @@ import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog"
 import {
   useHeartbeatAgents,
   useHeartbeatConfig,
+  useHeartbeatDefaults,
   useLastHeartbeat,
 } from "@/hooks/use-heartbeat"
 import { EditHeartbeatDialog } from "@/components/heartbeat/EditHeartbeatDialog"
 import { formatTimeAgo } from "@/lib/format"
-import { Settings, Pencil, Check, X, Trash2 } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Settings, Pencil, Check, X, Trash2, Info } from "lucide-react"
 
 export function HeartbeatDetailPage() {
   const { agentId } = useParams<{ agentId: string }>()
   const { agents } = useHeartbeatAgents()
   const { config, updateConfig, deleteConfig } = useHeartbeatConfig(agentId ?? "")
+  const { defaults } = useHeartbeatDefaults()
   const { data: lastHeartbeat } = useLastHeartbeat(agentId)
   const navigate = useNavigate()
 
@@ -65,20 +68,23 @@ export function HeartbeatDetailPage() {
     }
   }
 
-  const renderBool = (v?: boolean) => (v == null ? "--" : v ? "Yes" : "No")
+  const renderBool = (v: boolean | undefined, dv: boolean | undefined) => {
+    const resolved = v ?? dv
+    return resolved == null ? "No" : resolved ? "Yes" : "No"
+  }
 
   const effectivePrompt = config.prompt ?? heartbeat.prompt
 
   const configFields = [
-    { label: "Interval", value: (() => { const v = config.every ?? heartbeat.every; return v === "disabled" ? "0m" : v })() },
-    { label: "Target", value: config.target ?? heartbeat.target },
-    { label: "Model", value: config.model ?? "agent default" },
-    { label: "Session", value: config.session ?? "main" },
-    { label: "Ack Max Chars", value: String(config.ackMaxChars ?? heartbeat.ackMaxChars) },
-    { label: "Isolated Session", value: renderBool(config.isolatedSession) },
-    { label: "Light Context", value: renderBool(config.lightContext) },
-    { label: "Direct Policy", value: config.directPolicy ?? "allow" },
-    { label: "Include Reasoning", value: renderBool(config.includeReasoning) },
+    { label: "Interval", value: config.every ?? heartbeat.every, tip: "How often the heartbeat runs. Use 0m to disable." },
+    { label: "Target", value: config.target ?? heartbeat.target, tip: "Where heartbeat messages are delivered: last contact, a specific channel, or none." },
+    { label: "Model", value: config.model ?? "Default", tip: "Model used for heartbeat runs. Defaults to the global heartbeat model, then the agent's own model." },
+    { label: "Session", value: config.session ?? "Default", tip: "Session key for heartbeat runs. Defaults to main." },
+    { label: "Ack Max Chars", value: String(config.ackMaxChars ?? defaults.ackMaxChars ?? heartbeat.ackMaxChars), tip: "Replies under this length containing HEARTBEAT_OK are suppressed. Longer replies are delivered as alerts." },
+    { label: "Isolated Session", value: renderBool(config.isolatedSession, defaults.isolatedSession), tip: "When enabled, each heartbeat runs in a fresh session with no conversation history. Reduces token cost significantly." },
+    { label: "Light Context", value: renderBool(config.lightContext, defaults.lightContext), tip: "When enabled, only HEARTBEAT.md is injected from workspace bootstrap files, reducing context size." },
+    { label: "Direct Policy", value: config.directPolicy ?? defaults.directPolicy ?? "allow", tip: "Controls DM delivery: allow permits direct-target delivery, block suppresses it." },
+    { label: "Include Reasoning", value: renderBool(config.includeReasoning, defaults.includeReasoning), tip: "When enabled, delivers a separate Reasoning message alongside the heartbeat response." },
   ]
 
   const lastHb = lastHeartbeat as { ts?: number } | null
@@ -123,8 +129,14 @@ export function HeartbeatDetailPage() {
           <div className="grid grid-cols-3 gap-x-6 gap-y-3">
             {configFields.map((field) => (
               <div key={field.label}>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide inline-flex items-center gap-1">
                   {field.label}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-60">{field.tip}</TooltipContent>
+                  </Tooltip>
                 </p>
                 <p className="text-sm mt-0.5">{field.value}</p>
               </div>
@@ -203,13 +215,26 @@ export function HeartbeatDetailPage() {
             )}
           </div>
           <div className="rounded-md border border-border bg-muted/30 p-3">
-            {lastHeartbeat != null ? (
-              <div>
-                <Badge variant="outline" className="text-xs">
-                  {String((lastHeartbeat as Record<string, unknown>).status ?? "unknown")}
-                </Badge>
-              </div>
-            ) : (
+            {lastHeartbeat != null ? (() => {
+              const hb = lastHeartbeat as Record<string, unknown>
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {String(hb.status ?? "unknown")}
+                    </Badge>
+                    {hb.agentId && (
+                      <span className="text-xs text-muted-foreground">{String(hb.agentId)}</span>
+                    )}
+                  </div>
+                  {hb.text && (
+                    <div className="text-xs font-mono leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                      {String(hb.text)}
+                    </div>
+                  )}
+                </div>
+              )
+            })() : (
               <p className="text-xs text-muted-foreground italic">
                 No data available yet. Heartbeat results will appear here after the next run.
               </p>

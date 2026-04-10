@@ -97,7 +97,7 @@ export function HeartbeatDefaultsDialog({
               onChange={(e) => setModel(e.target.value)}
               className={selectClass}
             >
-              <option value="">Inherited</option>
+              <option value="">Use agent model</option>
               {models.map((m) => (
                 <option key={m.id} value={`${m.provider}/${m.id}`}>
                   {m.provider}/{m.name}

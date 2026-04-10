@@ -1,17 +1,20 @@
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { formatTimeAgo } from "@/lib/format"
+import { useLastHeartbeat } from "@/hooks/use-heartbeat"
 import type { HeartbeatAgentEntry } from "@/types/heartbeat"
 
 interface HeartbeatRowProps {
   agent: HeartbeatAgentEntry
-  lastHeartbeatTs?: number | null
+  session?: string
   onClick: () => void
 }
 
-export function HeartbeatRow({ agent, lastHeartbeatTs, onClick }: HeartbeatRowProps) {
+export function HeartbeatRow({ agent, session, onClick }: HeartbeatRowProps) {
   const { heartbeat } = agent
   const isActive = heartbeat.enabled && (heartbeat.everyMs ?? 0) > 0
+  const { data: lastHeartbeat } = useLastHeartbeat(agent.agentId)
+  const lastHbTs = (lastHeartbeat as { ts?: number } | null)?.ts
 
   return (
     <TableRow
@@ -46,13 +49,13 @@ export function HeartbeatRow({ agent, lastHeartbeatTs, onClick }: HeartbeatRowPr
         {heartbeat.target}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {heartbeat.model ?? "agent default"}
+        {heartbeat.model ?? "Default"}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        main
+        {session ?? "Default"}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {lastHeartbeatTs != null ? formatTimeAgo(lastHeartbeatTs) : "--"}
+        {lastHbTs != null ? formatTimeAgo(lastHbTs) : "--"}
       </TableCell>
     </TableRow>
   )

@@ -15,10 +15,11 @@ import type { HeartbeatAgentEntry } from "@/types/heartbeat"
 
 interface HeartbeatTableProps {
   agents: HeartbeatAgentEntry[]
+  sessionMap?: Record<string, string>
   onNewHeartbeat?: () => void
 }
 
-export function HeartbeatTable({ agents, onNewHeartbeat }: HeartbeatTableProps) {
+export function HeartbeatTable({ agents, sessionMap, onNewHeartbeat }: HeartbeatTableProps) {
   const navigate = useNavigate()
 
   return (
@@ -46,6 +47,7 @@ export function HeartbeatTable({ agents, onNewHeartbeat }: HeartbeatTableProps) 
                 <HeartbeatRow
                   key={agent.agentId}
                   agent={agent}
+                  session={sessionMap?.[agent.agentId]}
                   onClick={() => navigate(`/heartbeats/${encodeURIComponent(agent.agentId)}`)}
                 />
               ))}

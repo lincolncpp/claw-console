@@ -19,7 +19,7 @@ export function GlobalHeartbeatCard({ onConfigChanged }: GlobalHeartbeatCardProp
   const rows = [
     { label: "Interval", value: defaults.every ?? "30m" },
     { label: "Target", value: defaults.target ?? "none" },
-    { label: "Model", value: defaults.model ?? "inherited" },
+    { label: "Model", value: defaults.model ?? "Use agent model" },
     { label: "Ack Max Chars", value: defaults.ackMaxChars != null ? String(defaults.ackMaxChars) : "300", tooltip: ackTooltip },
     { label: "Session", value: defaults.session ?? "main" },
   ]

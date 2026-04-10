@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Info } from "lucide-react"
 import { useSystemStore } from "@/stores/system-store"
 import { useModels } from "@/hooks/use-agents"
+import { useHeartbeatDefaults } from "@/hooks/use-heartbeat"
 import type { HeartbeatConfig } from "@/types/heartbeat"
 
 const selectClass =
@@ -34,55 +35,68 @@ export function EditHeartbeatDialog({
 }: EditHeartbeatDialogProps) {
   const channels = useSystemStore((s) => s.channels)
   const { models } = useModels()
+  const { defaults } = useHeartbeatDefaults()
 
-  const [every, setEvery] = useState(config.every ?? "30m")
-  const [target, setTarget] = useState(config.target ?? "none")
+  const dEvery = defaults.every ?? "30m"
+  const dTarget = defaults.target ?? "none"
+  const dAck = defaults.ackMaxChars ?? 300
+  const dIsolated = defaults.isolatedSession ?? false
+  const dLight = defaults.lightContext ?? false
+  const dPolicy = defaults.directPolicy ?? "allow"
+  const dReasoning = defaults.includeReasoning ?? false
+  const dSuppressTools = defaults.suppressToolErrorWarnings ?? false
+
+  const [every, setEvery] = useState(config.every ?? "")
+  const [target, setTarget] = useState(config.target ?? "")
   const [to, setTo] = useState(config.to ?? "")
   const [model, setModel] = useState(config.model ?? "")
-  const [session, setSession] = useState(config.session ?? "main")
-  const [ackMaxChars, setAckMaxChars] = useState(String(config.ackMaxChars ?? 300))
-  const [isolatedSession, setIsolatedSession] = useState(config.isolatedSession ?? false)
-  const [lightContext, setLightContext] = useState(config.lightContext ?? false)
-  const [directPolicy, setDirectPolicy] = useState(config.directPolicy ?? "allow")
-  const [includeReasoning, setIncludeReasoning] = useState(config.includeReasoning ?? false)
+  const [session, setSession] = useState(config.session ?? "")
+  const [ackMaxChars, setAckMaxChars] = useState(config.ackMaxChars != null ? String(config.ackMaxChars) : "")
+  const [isolatedSession, setIsolatedSession] = useState(config.isolatedSession ?? dIsolated)
+  const [lightContext, setLightContext] = useState(config.lightContext ?? dLight)
+  const [directPolicy, setDirectPolicy] = useState(config.directPolicy ?? "")
+  const [includeReasoning, setIncludeReasoning] = useState(config.includeReasoning ?? dReasoning)
   const [suppressToolErrors, setSuppressToolErrors] = useState(
-    config.suppressToolErrorWarnings ?? false,
+    config.suppressToolErrorWarnings ?? dSuppressTools,
   )
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
-    setEvery(config.every ?? "30m")
-    setTarget(config.target ?? "none")
+    setEvery(config.every ?? "")
+    setTarget(config.target ?? "")
     setTo(config.to ?? "")
     setModel(config.model ?? "")
-    setSession(config.session ?? "main")
-    setAckMaxChars(String(config.ackMaxChars ?? 300))
-    setIsolatedSession(config.isolatedSession ?? false)
-    setLightContext(config.lightContext ?? false)
-    setDirectPolicy(config.directPolicy ?? "allow")
-    setIncludeReasoning(config.includeReasoning ?? false)
-    setSuppressToolErrors(config.suppressToolErrorWarnings ?? false)
-  }, [open, config])
+    setSession(config.session ?? "")
+    setAckMaxChars(config.ackMaxChars != null ? String(config.ackMaxChars) : "")
+    setIsolatedSession(config.isolatedSession ?? dIsolated)
+    setLightContext(config.lightContext ?? dLight)
+    setDirectPolicy(config.directPolicy ?? "")
+    setIncludeReasoning(config.includeReasoning ?? dReasoning)
+    setSuppressToolErrors(config.suppressToolErrorWarnings ?? dSuppressTools)
+  }, [open, config, dIsolated, dLight, dReasoning, dSuppressTools])
 
   const handleSave = async () => {
-    const parsedAck = parseInt(ackMaxChars, 10)
-    if (!Number.isFinite(parsedAck) || parsedAck < 0) return
+    const parsedAck = ackMaxChars ? parseInt(ackMaxChars, 10) : NaN
     setSaving(true)
     try {
       const patch: Partial<HeartbeatConfig> = {}
-      if (every !== (config.every ?? "30m")) patch.every = every
-      if (target !== (config.target ?? "none")) patch.target = target
+      if (every !== (config.every ?? "")) patch.every = every || undefined
+      if (target !== (config.target ?? "")) patch.target = target || undefined
       const trimmedTo = to.trim()
       if (trimmedTo !== (config.to ?? "")) patch.to = trimmedTo || undefined
       if (model !== (config.model ?? "")) patch.model = model || undefined
-      if (session !== (config.session ?? "main")) patch.session = session
-      if (parsedAck !== (config.ackMaxChars ?? 300)) patch.ackMaxChars = parsedAck
-      if (isolatedSession !== (config.isolatedSession ?? false)) patch.isolatedSession = isolatedSession
-      if (lightContext !== (config.lightContext ?? false)) patch.lightContext = lightContext
-      if (directPolicy !== (config.directPolicy ?? "allow")) patch.directPolicy = directPolicy
-      if (includeReasoning !== (config.includeReasoning ?? false)) patch.includeReasoning = includeReasoning
-      if (suppressToolErrors !== (config.suppressToolErrorWarnings ?? false)) patch.suppressToolErrorWarnings = suppressToolErrors
+      if (session !== (config.session ?? "")) patch.session = session || undefined
+      if (Number.isFinite(parsedAck) && parsedAck >= 0) {
+        if (parsedAck !== config.ackMaxChars) patch.ackMaxChars = parsedAck
+      } else if (config.ackMaxChars != null && !ackMaxChars) {
+        patch.ackMaxChars = undefined
+      }
+      if (isolatedSession !== (config.isolatedSession ?? dIsolated)) patch.isolatedSession = isolatedSession
+      if (lightContext !== (config.lightContext ?? dLight)) patch.lightContext = lightContext
+      if (directPolicy !== (config.directPolicy ?? "")) patch.directPolicy = directPolicy || undefined
+      if (includeReasoning !== (config.includeReasoning ?? dReasoning)) patch.includeReasoning = includeReasoning
+      if (suppressToolErrors !== (config.suppressToolErrorWarnings ?? dSuppressTools)) patch.suppressToolErrorWarnings = suppressToolErrors
       await onSave(patch)
       onClose()
     } catch {
@@ -103,7 +117,7 @@ export function EditHeartbeatDialog({
           <div>
             <label className="text-xs text-muted-foreground">Interval</label>
             <Input
-              placeholder="e.g. 30m, 1h, 0m to disable"
+              placeholder={dEvery}
               value={every}
               onChange={(e) => setEvery((e.target as HTMLInputElement).value)}
             />
@@ -115,6 +129,7 @@ export function EditHeartbeatDialog({
               onChange={(e) => setTarget(e.target.value)}
               className={selectClass}
             >
+              <option value="">Default ({dTarget})</option>
               <option value="none">None</option>
               <option value="last">Last contact</option>
               {channels.map((ch) => (
@@ -141,7 +156,7 @@ export function EditHeartbeatDialog({
               onChange={(e) => setModel(e.target.value)}
               className={selectClass}
             >
-              <option value="">Use agent default</option>
+              <option value="">Default</option>
               {models.map((m) => (
                 <option key={m.id} value={`${m.provider}/${m.id}`}>
                   {m.provider}/{m.name}
@@ -152,7 +167,7 @@ export function EditHeartbeatDialog({
           <div>
             <label className="text-xs text-muted-foreground">Session</label>
             <Input
-              placeholder="main"
+              placeholder={defaults.session ?? "main"}
               value={session}
               onChange={(e) => setSession((e.target as HTMLInputElement).value)}
             />
@@ -172,6 +187,7 @@ export function EditHeartbeatDialog({
             <Input
               type="number"
               min="0"
+              placeholder={String(dAck)}
               value={ackMaxChars}
               onChange={(e) => setAckMaxChars((e.target as HTMLInputElement).value)}
             />
@@ -179,7 +195,7 @@ export function EditHeartbeatDialog({
           <div>
             <label className="text-xs text-muted-foreground">Direct Policy</label>
             <Input
-              placeholder="allow or block"
+              placeholder={dPolicy}
               value={directPolicy}
               onChange={(e) => setDirectPolicy((e.target as HTMLInputElement).value)}
             />
