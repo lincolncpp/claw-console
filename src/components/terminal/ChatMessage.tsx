@@ -1,4 +1,4 @@
-import ReactMarkdown from "react-markdown"
+import { SafeMarkdown } from "@/components/shared/SafeMarkdown"
 import type { ChatMessageData } from "@/types/terminal"
 
 const roleColors: Record<string, string> = {
@@ -87,11 +87,11 @@ export function ChatMessage({
               Thinking
             </summary>
             <div className="mt-1 pl-2 border-l border-muted-foreground/20 text-muted-foreground/50 text-[0.75rem]">
-              <ReactMarkdown>{thinking}</ReactMarkdown>
+              <SafeMarkdown>{thinking}</SafeMarkdown>
             </div>
           </details>
         )}
-        {text && <ReactMarkdown>{text}</ReactMarkdown>}
+        {text && <SafeMarkdown>{text}</SafeMarkdown>}
       </div>
     </div>
   )

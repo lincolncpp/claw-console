@@ -20,6 +20,32 @@ import { uuid } from "@/lib/uuid"
 
 type EventHandler = (event: string, payload: unknown) => void
 
+const GATEWAY_DEBUG_FRAMES =
+  import.meta.env.DEV && import.meta.env.VITE_DEBUG_GATEWAY_FRAMES === "true"
+
+function summarizeGatewayFrame(frame: GatewayFrame) {
+  if (frame.type === "event") {
+    return { type: frame.type, event: frame.event }
+  }
+
+  if ("method" in frame) {
+    return {
+      type: frame.type,
+      id: frame.id,
+      method: frame.method,
+    }
+  }
+
+  if (frame.type === "response" || frame.type === "res") {
+    return {
+      type: frame.type,
+      id: frame.id,
+      ok: frame.ok,
+      error: frame.error?.message,
+    }
+  }
+}
+
 interface PendingRpc {
   resolve: (value: unknown) => void
   reject: (error: Error) => void
@@ -229,13 +255,13 @@ export class GatewayWebSocket {
       try {
         frame = JSON.parse(event.data)
       } catch {
-        console.warn("[gw-ws] Failed to parse frame:", event.data?.slice?.(0, 200))
+        console.warn("[gw-ws] Failed to parse gateway frame")
         return
       }
       try {
         this.handleFrame(frame, token)
       } catch (err) {
-        console.error("[gw-ws] Error handling frame:", err, frame)
+        console.error("[gw-ws] Error handling frame:", err, summarizeGatewayFrame(frame))
       }
     }
     ws.onclose = () => {
@@ -253,7 +279,9 @@ export class GatewayWebSocket {
 
   private handleFrame(frame: GatewayFrame, token: string) {
     this.lastFrameAt = Date.now()
-    console.log("[gw-frame]", frame.type, frame)
+    if (GATEWAY_DEBUG_FRAMES) {
+      console.debug("[gw-frame]", summarizeGatewayFrame(frame))
+    }
     if (frame.type === "event") {
       if (frame.event === "connect.challenge") {
         const connectMsg = {
@@ -400,7 +428,9 @@ export interface EventDispatchHandlers {
 export function setupEventDispatch(handlers: EventDispatchHandlers): () => void {
   gatewayWs.setConnectHandler(handlers.onConnect)
   gatewayWs.setEventHandler((event, payload) => {
-    console.log("[gw-event]", event, payload)
+    if (GATEWAY_DEBUG_FRAMES) {
+      console.debug("[gw-event]", event)
+    }
     switch (event) {
       case "health":
         handlers.onHealth(payload as HealthPayload)
