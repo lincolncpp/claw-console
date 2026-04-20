@@ -17,7 +17,7 @@ export function SafeMarkdown({ components, ...props }: SafeMarkdownProps) {
       skipHtml
       disallowedElements={["img"]}
       urlTransform={defaultUrlTransform}
-      components={{ ...secureComponents, ...components }}
+      components={{ ...components, ...secureComponents }}
     />
   )
 }
