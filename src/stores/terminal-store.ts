@@ -30,6 +30,12 @@ interface TerminalState {
   messages: ChatMessageData[]
   streamingText: string | null
   streamingToolCall: ToolCallData | null
+  /**
+   * ID of the assistant message we're currently building during this turn.
+   * Tools and final text from the same turn collapse into this single message,
+   * mirroring how the gateway stores one assistant message per turn.
+   */
+  currentTurnAssistantId: string | null
 
   // Status
   runState: RunState
@@ -61,6 +67,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   messages: [],
   streamingText: null,
   streamingToolCall: null,
+  currentTurnAssistantId: null,
 
   runState: "idle",
   lastEventAt: 0,
@@ -84,6 +91,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
       messages: [],
       streamingText: null,
       streamingToolCall: null,
+      currentTurnAssistantId: null,
       runState: "idle",
       lastEventAt: 0,
     }),
@@ -111,24 +119,34 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   completeToolCall: (finishedTool) =>
     set((s) => {
       const msgs = [...s.messages]
-      const lastMsg = msgs[msgs.length - 1]
-      if (lastMsg && lastMsg.role === "assistant") {
-        msgs[msgs.length - 1] = {
-          ...lastMsg,
-          toolCalls: [...(lastMsg.toolCalls ?? []), finishedTool],
+      const turnId = s.currentTurnAssistantId
+      const turnIdx = turnId ? msgs.findIndex((m) => m.id === turnId) : -1
+
+      if (turnIdx >= 0) {
+        const target = msgs[turnIdx]
+        msgs[turnIdx] = {
+          ...target,
+          toolCalls: [...(target.toolCalls ?? []), finishedTool],
         }
-      } else {
-        msgs.push({
-          id: uuid(),
-          role: "assistant",
-          content: "",
-          timestamp: Date.now(),
-          toolCalls: [finishedTool],
-        })
+        return {
+          messages: msgs,
+          streamingToolCall: null,
+          lastEventAt: Date.now(),
+        }
       }
+
+      const newMsg: ChatMessageData = {
+        id: uuid(),
+        role: "assistant",
+        content: "",
+        timestamp: Date.now(),
+        toolCalls: [finishedTool],
+      }
+      msgs.push(newMsg)
       return {
         messages: msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs,
         streamingToolCall: null,
+        currentTurnAssistantId: newMsg.id,
         lastEventAt: Date.now(),
       }
     }),
@@ -136,23 +154,49 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   finalizeStreaming: () =>
     set((s) => {
       const msgs = [...s.messages]
+      const turnId = s.currentTurnAssistantId
+      const turnIdx = turnId ? msgs.findIndex((m) => m.id === turnId) : -1
+
       if (s.streamingText != null) {
-        msgs.push({
-          id: uuid(),
-          role: "assistant",
-          content: s.streamingText,
-          timestamp: Date.now(),
-        })
+        if (turnIdx >= 0) {
+          msgs[turnIdx] = { ...msgs[turnIdx], content: s.streamingText }
+        } else {
+          msgs.push({
+            id: uuid(),
+            role: "assistant",
+            content: s.streamingText,
+            timestamp: Date.now(),
+          })
+        }
       }
       return {
         messages: msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs,
         streamingText: null,
         streamingToolCall: null,
+        currentTurnAssistantId: null,
         runState: "idle",
       }
     }),
 
-  resetStreaming: () => set({ streamingText: null, streamingToolCall: null, runState: "idle" }),
+  resetStreaming: () =>
+    set({
+      streamingText: null,
+      streamingToolCall: null,
+      currentTurnAssistantId: null,
+      runState: "idle",
+    }),
 
-  setRunState: (runState) => set({ runState }),
+  setRunState: (runState) =>
+    set(
+      runState === "waiting"
+        ? {
+            runState,
+            // Starting a new turn: drop any leftover streaming state from a
+            // prior errored or aborted turn so deltas don't append to stale text.
+            streamingText: null,
+            streamingToolCall: null,
+            currentTurnAssistantId: null,
+          }
+        : { runState },
+    ),
 }))

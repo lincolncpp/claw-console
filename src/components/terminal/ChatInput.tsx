@@ -26,7 +26,8 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") {
+          // isComposing skips the Enter that confirms an IME candidate (CJK input).
+          if (e.key === "Enter" && !e.nativeEvent.isComposing) {
             e.preventDefault()
             handleSubmit()
           }

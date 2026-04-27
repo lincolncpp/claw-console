@@ -33,7 +33,7 @@ export function parseChatHistory(resp: unknown): ChatMessageData[] | null {
     .map((m) => ({
       id: m.id ?? uuid(),
       role: (m.role as "user" | "assistant" | "system") ?? "system",
-      content: m.content as string,
+      content: m.content,
       timestamp: m.timestamp ?? Date.now(),
       toolCalls: extractToolCalls(m.content),
     }))
@@ -57,12 +57,18 @@ export function serverHasNewerMessages(
   const lastServer = serverMsgs[serverMsgs.length - 1]
   const lastLocal = localMsgs[localMsgs.length - 1]
 
+  const localContent = lastLocal?.content
+  const localEmpty =
+    localContent == null ||
+    (typeof localContent === "string" && localContent.length === 0) ||
+    (Array.isArray(localContent) && localContent.length === 0)
+
   if (
     lastServer.role === "assistant" &&
     lastLocal?.role === "assistant" &&
     typeof lastServer.content === "string" &&
     lastServer.content.length > 0 &&
-    (!lastLocal.content || lastLocal.content.length === 0)
+    localEmpty
   ) {
     return true
   }

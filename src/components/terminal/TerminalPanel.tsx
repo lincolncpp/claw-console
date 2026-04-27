@@ -12,7 +12,8 @@ import { ChatInput } from "./ChatInput"
 import { X, GripHorizontal } from "lucide-react"
 import type { ChatMessageData } from "@/types/terminal"
 import { uuid } from "@/lib/uuid"
-import { useSessionTokens } from "@/hooks/use-session-tokens"
+import { useSessionInfo } from "@/hooks/use-session-info"
+import { useAgents } from "@/hooks/use-agents"
 import { formatTokensCompact } from "@/lib/format"
 import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
 
@@ -37,22 +38,38 @@ export function TerminalPanel() {
     (s) => s.agents.find((a) => a.agentId === agentId)?.name ?? agentId ?? "agent",
   )
 
-  const totalTokens = useSessionTokens(sessionKey)
+  // Pass null when the panel is closed so the polling hook stops firing
+  // sessionsList every second in the background.
+  const sessionInfo = useSessionInfo(isOpen ? sessionKey : null)
+  const totalTokens = sessionInfo?.totalTokens
   const tokenLevel = classifyTokenConsumption(totalTokens)
   const tokenLevelLabel = tokenLevelBadgeProps[tokenLevel].label
+
+  const { agents: configuredAgents } = useAgents()
+  const agentEntry = configuredAgents.find((a) => a.id === agentId)
+  const model = sessionInfo?.model ?? agentEntry?.model ?? null
+  const thinkingLevel = agentEntry?.thinkingDefault ?? null
 
   const connectionStatus = useGatewayStore((s) => s.connectionStatus)
   const connected = connectionStatus === "connected"
 
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const chatLogRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
   const panelRef = useRef<HTMLDivElement>(null)
 
+  // The panel never unmounts (App always renders it), so reset auto-scroll
+  // each time it reopens — otherwise a prior scroll-up sticks across reopens.
   useEffect(() => {
-    if (autoScrollRef.current) {
-      requestAnimationFrame(() => bottomRef.current?.scrollIntoView())
-    }
-  }, [messages, streamingText, runState])
+    if (isOpen) autoScrollRef.current = true
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!autoScrollRef.current) return
+    requestAnimationFrame(() => {
+      const log = chatLogRef.current
+      if (log) log.scrollTop = log.scrollHeight
+    })
+  }, [messages, streamingText, runState, isOpen])
 
   useEffect(() => {
     if (!isOpen || !agentId || !sessionKey) return
@@ -183,19 +200,27 @@ export function TerminalPanel() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between px-3 h-8 border-b border-border shrink-0">
-        <div className="flex items-center gap-2.5 text-xs">
-          <span className="font-medium text-foreground">Terminal</span>
-          <span className="text-muted-foreground/40">|</span>
-          <span className="text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 px-3 h-8 border-b border-border shrink-0">
+        <div className="flex items-center gap-2.5 text-xs min-w-0 overflow-x-auto">
+          <span className="font-medium text-foreground shrink-0">Terminal</span>
+          <span className="text-muted-foreground/40 shrink-0">|</span>
+          <span className="text-muted-foreground shrink-0">
             agent: <span className="text-primary">{agentId ?? "none"}</span>
           </span>
-          <span className="text-muted-foreground/40">|</span>
-          <span className="text-muted-foreground">
+          <span className="text-muted-foreground/40 shrink-0">|</span>
+          <span className="text-muted-foreground shrink-0">
             session: <span className="text-primary">{sessionKey ?? "none"}</span>
           </span>
-          <span className="text-muted-foreground/40">|</span>
-          <span className="text-muted-foreground">
+          <span className="text-muted-foreground/40 shrink-0">|</span>
+          <span className="text-muted-foreground shrink-0">
+            model: <span className="text-primary">{model ?? "--"}</span>
+          </span>
+          <span className="text-muted-foreground/40 shrink-0">|</span>
+          <span className="text-muted-foreground shrink-0">
+            thinking: <span className="text-primary">{thinkingLevel ?? "--"}</span>
+          </span>
+          <span className="text-muted-foreground/40 shrink-0">|</span>
+          <span className="text-muted-foreground shrink-0">
             total tokens:{" "}
             <span className="text-primary">
               {totalTokens != null ? formatTokensCompact(totalTokens) : "--"}
@@ -230,6 +255,7 @@ export function TerminalPanel() {
 
       {/* Chat log */}
       <div
+        ref={chatLogRef}
         className="flex-1 min-h-0 overflow-y-auto py-2 font-mono text-sm"
         onScroll={(e) => {
           const el = e.currentTarget
@@ -279,7 +305,6 @@ export function TerminalPanel() {
             </span>
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}

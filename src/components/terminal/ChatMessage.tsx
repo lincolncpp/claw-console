@@ -82,14 +82,12 @@ export function ChatMessage({
         className={`text-[0.8125rem] font-mono break-words min-w-0 leading-5 [&_pre]:bg-muted [&_pre]:rounded [&_pre]:px-2 [&_pre]:py-1 [&_pre]:my-1 [&_pre]:overflow-x-auto [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_p]:my-0 ${isError ? "text-status-error/90" : "text-foreground/90"}`}
       >
         {thinking && (
-          <details className="mb-1">
-            <summary className="text-[0.6875rem] text-muted-foreground/60 cursor-pointer select-none hover:text-muted-foreground transition-colors">
+          <div className="mb-1 pl-2 border-l border-muted-foreground/20 text-muted-foreground/60 text-[0.75rem] italic">
+            <div className="not-italic text-[0.625rem] uppercase tracking-wider text-muted-foreground/50 mb-0.5">
               Thinking
-            </summary>
-            <div className="mt-1 pl-2 border-l border-muted-foreground/20 text-muted-foreground/50 text-[0.75rem]">
-              <SafeMarkdown>{thinking}</SafeMarkdown>
             </div>
-          </details>
+            <SafeMarkdown>{thinking}</SafeMarkdown>
+          </div>
         )}
         {text && <SafeMarkdown>{text}</SafeMarkdown>}
       </div>
