@@ -99,9 +99,16 @@ function App() {
             }
           } else if (stream === "item") {
             // Activity feed items: commands, patches, searches. Reasoning
-            // ("analysis") items are bare start/end markers with no content,
-            // so rendering them adds noise without information.
-            if (data.kind === "analysis") return
+            // ("analysis") items are bare start/end markers — the reasoning
+            // text itself only streams when the agent has reasoning streaming
+            // enabled — so show them as a transient thinking indicator
+            // instead of an empty card.
+            if (data.kind === "analysis") {
+              useTerminalStore
+                .getState()
+                .updateStreamingThinking(() => (data.phase === "end" ? "" : "…"))
+              return
+            }
             const phase = data.phase as string | undefined
             const itemId = (data.itemId as string) ?? uuid()
             const name =
