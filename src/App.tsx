@@ -65,7 +65,12 @@ function App() {
         const evtSession = (p.sessionKey as string) ?? (p.session as string) ?? null
         const { sessionKey: tSession } = useTerminalStore.getState()
 
-        if (evtSession && tSession && evtSession !== tSession) return
+        // Cron/subagent runs execute on a per-run child lane of the session
+        // being viewed (e.g. "agent:a:cron:<job>:run:<id>"); accept those too.
+        const matchesTerminalSession =
+          !evtSession || !tSession || evtSession === tSession ||
+          evtSession.startsWith(`${tSession}:run:`)
+        if (!matchesTerminalSession) return
 
         useTerminalStore.getState().touchLastEvent()
 
@@ -74,7 +79,47 @@ function App() {
           const data = p.data as Record<string, unknown> | undefined
           if (!stream || !data) return
 
-          if (stream === "text" || stream === "content") {
+          if (stream === "assistant") {
+            // data.text carries the full text snapshot for the current
+            // assistant segment; deltas are a fallback for older gateways.
+            const text = data.text as string | undefined
+            const delta = data.delta as string | undefined
+            if (text) {
+              useTerminalStore.getState().updateStreamingText(() => text)
+            } else if (delta) {
+              useTerminalStore.getState().updateStreamingText((prev) => (prev ?? "") + delta)
+            }
+          } else if (stream === "thinking") {
+            const text = data.text as string | undefined
+            const delta = data.delta as string | undefined
+            if (text) {
+              useTerminalStore.getState().updateStreamingThinking(() => text)
+            } else if (delta) {
+              useTerminalStore.getState().updateStreamingThinking((prev) => (prev ?? "") + delta)
+            }
+          } else if (stream === "item") {
+            // Activity feed items: commands, patches, searches, reasoning.
+            const phase = data.phase as string | undefined
+            const itemId = (data.itemId as string) ?? uuid()
+            const name =
+              (data.name as string) ?? (data.title as string) ?? (data.kind as string) ?? "activity"
+            if (phase === "start" || phase === "update") {
+              useTerminalStore.getState().updateStreamingToolCall({
+                id: itemId,
+                name,
+                args: data.meta ?? data.progressText,
+                status: "running",
+              })
+            } else if (phase === "end") {
+              useTerminalStore.getState().completeToolCall({
+                id: itemId,
+                name,
+                args: data.meta,
+                result: data.summary ?? data.error ?? data.progressText,
+                status: data.status === "failed" || data.error ? "error" : "success",
+              })
+            }
+          } else if (stream === "text" || stream === "content") {
             if (data.type === "thinking") return
             const text =
               (data.text as string) ?? (data.content as string) ?? (data.delta as string) ?? ""
@@ -107,7 +152,8 @@ function App() {
               }
             }
           } else if (stream === "lifecycle") {
-            const status = (data.status as string) ?? (data.state as string) ?? ""
+            const status =
+              (data.status as string) ?? (data.state as string) ?? (data.phase as string) ?? ""
             if (status === "done" || status === "end" || status === "complete") {
               useTerminalStore.getState().finalizeStreaming()
             } else if (status === "error" || status === "failed") {

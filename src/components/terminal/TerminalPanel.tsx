@@ -25,6 +25,7 @@ export function TerminalPanel() {
   const panelHeight = useTerminalStore((s) => s.panelHeight)
   const messages = useTerminalStore((s) => s.messages)
   const streamingText = useTerminalStore((s) => s.streamingText)
+  const streamingThinking = useTerminalStore((s) => s.streamingThinking)
   const streamingToolCall = useTerminalStore((s) => s.streamingToolCall)
   const runState = useTerminalStore((s) => s.runState)
   const agentId = useTerminalStore((s) => s.agentId)
@@ -69,7 +70,7 @@ export function TerminalPanel() {
       const log = chatLogRef.current
       if (log) log.scrollTop = log.scrollHeight
     })
-  }, [messages, streamingText, runState, isOpen])
+  }, [messages, streamingText, streamingThinking, streamingToolCall, runState, isOpen])
 
   useEffect(() => {
     if (!isOpen || !agentId || !sessionKey) return
@@ -278,6 +279,16 @@ export function TerminalPanel() {
             ))}
           </div>
         ))}
+        {streamingThinking && (
+          <div className="flex gap-3 items-start px-2 py-0.5">
+            <span className="shrink-0 w-20 text-right text-[0.6875rem] font-mono pt-px truncate text-muted-foreground/60">
+              thinking
+            </span>
+            <span className="text-[0.75rem] font-mono text-muted-foreground/60 italic break-words min-w-0 leading-5 whitespace-pre-wrap">
+              {streamingThinking}
+            </span>
+          </div>
+        )}
         {streamingToolCall && <ToolCard tool={streamingToolCall} />}
         {streamingText != null && (
           <div className="flex gap-3 items-start px-2 py-0.5">

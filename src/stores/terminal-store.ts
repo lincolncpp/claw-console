@@ -29,6 +29,7 @@ interface TerminalState {
   // Messages
   messages: ChatMessageData[]
   streamingText: string | null
+  streamingThinking: string | null
   streamingToolCall: ToolCallData | null
   /**
    * ID of the assistant message we're currently building during this turn.
@@ -50,6 +51,7 @@ interface TerminalState {
   setMessages: (msgs: ChatMessageData[]) => void
   touchLastEvent: () => void
   updateStreamingText: (updater: string | ((prev: string | null) => string)) => void
+  updateStreamingThinking: (updater: string | ((prev: string | null) => string)) => void
   updateStreamingToolCall: (tool: ToolCallData) => void
   completeToolCall: (finishedTool: ToolCallData) => void
   finalizeStreaming: () => void
@@ -66,6 +68,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
 
   messages: [],
   streamingText: null,
+  streamingThinking: null,
   streamingToolCall: null,
   currentTurnAssistantId: null,
 
@@ -90,6 +93,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
       sessionKey,
       messages: [],
       streamingText: null,
+      streamingThinking: null,
       streamingToolCall: null,
       currentTurnAssistantId: null,
       runState: "idle",
@@ -109,6 +113,13 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   updateStreamingText: (updater) =>
     set((s) => ({
       streamingText: typeof updater === "function" ? updater(s.streamingText) : updater,
+      runState: "streaming",
+      lastEventAt: Date.now(),
+    })),
+
+  updateStreamingThinking: (updater) =>
+    set((s) => ({
+      streamingThinking: typeof updater === "function" ? updater(s.streamingThinking) : updater,
       runState: "streaming",
       lastEventAt: Date.now(),
     })),
@@ -172,6 +183,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
       return {
         messages: msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs,
         streamingText: null,
+        streamingThinking: null,
         streamingToolCall: null,
         currentTurnAssistantId: null,
         runState: "idle",
@@ -181,6 +193,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   resetStreaming: () =>
     set({
       streamingText: null,
+      streamingThinking: null,
       streamingToolCall: null,
       currentTurnAssistantId: null,
       runState: "idle",
@@ -194,6 +207,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
             // Starting a new turn: drop any leftover streaming state from a
             // prior errored or aborted turn so deltas don't append to stale text.
             streamingText: null,
+            streamingThinking: null,
             streamingToolCall: null,
             currentTurnAssistantId: null,
           }
