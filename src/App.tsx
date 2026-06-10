@@ -98,7 +98,10 @@ function App() {
               useTerminalStore.getState().updateStreamingThinking((prev) => (prev ?? "") + delta)
             }
           } else if (stream === "item") {
-            // Activity feed items: commands, patches, searches, reasoning.
+            // Activity feed items: commands, patches, searches. Reasoning
+            // ("analysis") items are bare start/end markers with no content,
+            // so rendering them adds noise without information.
+            if (data.kind === "analysis") return
             const phase = data.phase as string | undefined
             const itemId = (data.itemId as string) ?? uuid()
             const name =
