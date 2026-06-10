@@ -1,15 +1,54 @@
 import type { ChatMessageData, ToolCallData } from "@/types/terminal"
 import { uuid } from "@/lib/uuid"
 
-function extractToolCalls(content: unknown): ToolCallData[] | undefined {
+interface ToolBlock {
+  type?: string
+  id?: string
+  name?: string
+  toolName?: string
+  toolCallId?: string
+  tool_use_id?: string
+  arguments?: unknown
+  args?: unknown
+  content?: unknown
+  text?: unknown
+  output?: unknown
+}
+
+/**
+ * Collects tool outputs from toolResult messages, keyed by tool call id, so
+ * they can be attached to their originating toolCall cards.
+ */
+function collectToolResults(
+  messages: Array<{ role?: string; content?: unknown }>,
+): Map<string, unknown> {
+  const results = new Map<string, unknown>()
+  for (const m of messages) {
+    if (m.role !== "toolResult" || !Array.isArray(m.content)) continue
+    for (const block of m.content as ToolBlock[]) {
+      if (!block || typeof block !== "object" || block.type !== "toolResult") continue
+      const key = block.toolCallId ?? block.tool_use_id ?? block.id
+      const output = block.text ?? block.content ?? block.output
+      if (key && output != null) results.set(key, output)
+    }
+  }
+  return results
+}
+
+function extractToolCalls(
+  content: unknown,
+  toolResults: Map<string, unknown>,
+): ToolCallData[] | undefined {
   if (!Array.isArray(content)) return undefined
   const tools: ToolCallData[] = []
-  for (const block of content) {
+  for (const block of content as ToolBlock[]) {
     if (block && typeof block === "object" && block.type === "toolCall") {
+      const id = block.id ?? uuid()
       tools.push({
-        id: block.id ?? uuid(),
+        id,
         name: block.name ?? "unknown",
         args: block.arguments ?? block.args,
+        result: block.id != null ? toolResults.get(block.id) : undefined,
         status: "success",
       })
     }
@@ -18,8 +57,9 @@ function extractToolCalls(content: unknown): ToolCallData[] | undefined {
 }
 
 /**
- * Parse a raw chat history response into ChatMessageData[],
- * filtering out toolResult messages.
+ * Parse a raw chat history response into ChatMessageData[].
+ * toolResult messages are folded into their originating toolCall cards
+ * (as `result`) rather than rendered as standalone rows.
  * Returns null if the response contains no messages.
  */
 export function parseChatHistory(resp: unknown): ChatMessageData[] | null {
@@ -28,6 +68,8 @@ export function parseChatHistory(resp: unknown): ChatMessageData[] | null {
   }
   if (!data.messages?.length) return null
 
+  const toolResults = collectToolResults(data.messages)
+
   return data.messages
     .filter((m) => m.role !== "toolResult")
     .map((m) => ({
@@ -35,7 +77,7 @@ export function parseChatHistory(resp: unknown): ChatMessageData[] | null {
       role: (m.role as "user" | "assistant" | "system") ?? "system",
       content: m.content,
       timestamp: m.timestamp ?? Date.now(),
-      toolCalls: extractToolCalls(m.content),
+      toolCalls: extractToolCalls(m.content, toolResults),
     }))
 }
 
