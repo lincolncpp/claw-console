@@ -5,6 +5,7 @@ import { uuid } from "@/lib/uuid"
 const STORAGE_KEY = "terminal-panel-height"
 const DEFAULT_HEIGHT = 240
 const MAX_MESSAGES = 500
+const SESSION_CACHE_KEY = "terminal-session-cache"
 
 function loadHeight(): number {
   try {
@@ -12,6 +13,33 @@ function loadHeight(): number {
     return v ? Number(v) : DEFAULT_HEIGHT
   } catch {
     return DEFAULT_HEIGHT
+  }
+}
+
+// Live agent events are not replayable from the gateway (and codex runs only
+// persist their transcript at turn end), so the accumulated conversation is
+// cached per session to survive page refreshes mid-run.
+function loadSessionCache(sessionKey: string): ChatMessageData[] | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { sessionKey?: string; messages?: ChatMessageData[] }
+    return parsed.sessionKey === sessionKey && Array.isArray(parsed.messages)
+      ? parsed.messages
+      : null
+  } catch {
+    return null
+  }
+}
+
+function persistSessionCache(sessionKey: string | null, messages: ChatMessageData[]) {
+  if (!sessionKey) return
+  try {
+    const raw = JSON.stringify({ sessionKey, messages })
+    if (raw.length > 2_000_000) return
+    sessionStorage.setItem(SESSION_CACHE_KEY, raw)
+  } catch {
+    // best effort — quota or serialization failures just lose the cache
   }
 }
 
@@ -91,7 +119,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
     set({
       agentId,
       sessionKey,
-      messages: [],
+      messages: loadSessionCache(sessionKey) ?? [],
       streamingText: null,
       streamingThinking: null,
       streamingToolCall: null,
@@ -103,10 +131,16 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   appendMessage: (msg) =>
     set((s) => {
       const next = [...s.messages, msg]
-      return { messages: next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next }
+      const messages = next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next
+      persistSessionCache(s.sessionKey, messages)
+      return { messages }
     }),
 
-  setMessages: (messages) => set({ messages }),
+  setMessages: (messages) =>
+    set((s) => {
+      persistSessionCache(s.sessionKey, messages)
+      return { messages }
+    }),
 
   touchLastEvent: () => set({ lastEventAt: Date.now() }),
 
@@ -139,6 +173,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
           ...target,
           toolCalls: [...(target.toolCalls ?? []), finishedTool],
         }
+        persistSessionCache(s.sessionKey, msgs)
         return {
           messages: msgs,
           streamingToolCall: null,
@@ -154,8 +189,10 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
         toolCalls: [finishedTool],
       }
       msgs.push(newMsg)
+      const messages = msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs
+      persistSessionCache(s.sessionKey, messages)
       return {
-        messages: msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs,
+        messages,
         streamingToolCall: null,
         currentTurnAssistantId: newMsg.id,
         lastEventAt: Date.now(),
@@ -180,8 +217,10 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
           })
         }
       }
+      const messages = msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs
+      persistSessionCache(s.sessionKey, messages)
       return {
-        messages: msgs.length > MAX_MESSAGES ? msgs.slice(-MAX_MESSAGES) : msgs,
+        messages,
         streamingText: null,
         streamingThinking: null,
         streamingToolCall: null,

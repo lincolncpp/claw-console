@@ -78,7 +78,14 @@ export function TerminalPanel() {
       .chatHistory(sessionKey)
       .then((resp) => {
         const msgs = parseChatHistory(resp)
-        if (msgs) useTerminalStore.getState().setMessages(msgs)
+        if (!msgs) return
+        // During an in-flight run the server snapshot may hold only the
+        // prompt; don't let it clobber a richer locally-cached conversation
+        // restored after a refresh.
+        const current = useTerminalStore.getState().messages
+        if (current.length === 0 || serverHasNewerMessages(msgs, current)) {
+          useTerminalStore.getState().setMessages(msgs)
+        }
       })
       .catch((err) => {
         addToast(`Failed to load chat history: ${formatRpcError(err)}`)
