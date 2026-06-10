@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { TokenBadge } from "@/components/shared/TokenBadge"
 import { formatSchedule, formatTimeAgo } from "@/lib/format"
+import { formatCronPayloadModel } from "@/lib/cron-payload"
 import { formatCronSessionTarget } from "@/lib/cron-session-target"
 import { useCronToggle } from "@/hooks/use-cron-actions"
 import type { CronJob } from "@/types/cron"
@@ -46,7 +47,7 @@ export function CronJobRow({ job, recentStatuses, avgTokens, onClick }: CronJobR
         {formatCronSessionTarget(job.sessionTarget)}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {(job.payload?.model as string) ?? "agent default"}
+        {formatCronPayloadModel(job.payload)}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">{job.delivery?.mode ?? "--"}</TableCell>
       <TableCell>

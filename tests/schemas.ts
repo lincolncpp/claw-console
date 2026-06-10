@@ -201,7 +201,7 @@ export const SessionsListResponseSchema = z
 const CronScheduleSchema = z.union([
   z.object({ kind: z.literal("cron"), expr: z.string(), tz: z.string().optional() }).passthrough(),
   z.object({ kind: z.literal("every"), everyMs: z.number() }).passthrough(),
-  z.object({ kind: z.literal("at"), atMs: z.number() }).passthrough(),
+  z.object({ kind: z.literal("at"), at: z.string() }).passthrough(),
 ])
 
 export const CronJobSchema = z

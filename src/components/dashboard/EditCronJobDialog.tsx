@@ -15,10 +15,18 @@ import { useCronStore } from "@/stores/cron-store"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { formatRpcError } from "@/lib/errors"
 import {
+  buildCronPatchDelivery,
+  buildCronPatchPayload,
+  isValidWebhookUrl,
+  normalizeDeliveryMode,
+  type CronDeliveryMode,
+} from "@/lib/cron-payload"
+import {
   buildCronSessionTarget,
   parseCronSessionTarget,
   type CronSessionTargetMode,
 } from "@/lib/cron-session-target"
+import { formatSchedule } from "@/lib/format"
 import type { CronJob, CronSchedule } from "@/types/cron"
 
 const selectClass =
@@ -45,7 +53,9 @@ interface EditCronJobDialogProps {
 
 export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps) {
   const [name, setName] = useState("")
-  const [scheduleType, setScheduleType] = useState<"every" | "cron">("every")
+  // "at" is shown read-only; the dialog has no one-shot editor, so the
+  // existing schedule is preserved on save instead of being rebuilt.
+  const [scheduleType, setScheduleType] = useState<"every" | "cron" | "at">("every")
   const [everyValue, setEveryValue] = useState("10")
   const [everyUnit, setEveryUnit] = useState("m")
   const [cronExpr, setCronExpr] = useState("0 * * * *")
@@ -56,12 +66,19 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
   const [model, setModel] = useState("")
   const [thinking, setThinking] = useState("")
   const [timeout, setTimeout] = useState("")
-  const [deliveryMode, setDeliveryMode] = useState("none")
+  const [deliveryMode, setDeliveryMode] = useState<CronDeliveryMode>("none")
   const [deliveryChannel, setDeliveryChannel] = useState("")
   const [deliveryTo, setDeliveryTo] = useState("")
   const [saving, setSaving] = useState(false)
   const [nameError, setNameError] = useState("")
   const [sessionError, setSessionError] = useState("")
+  const [deliveryError, setDeliveryError] = useState("")
+  const [scheduleError, setScheduleError] = useState("")
+
+  const isMainTarget = sessionTargetMode === "main"
+  // Model/thinking/timeout only apply to agentTurn payloads; command jobs keep
+  // their payload untouched and main-session jobs use systemEvent payloads.
+  const isCommandJob = job.payload?.kind === "command"
 
   const { models } = useModels()
   const updateJob = useCronStore((s) => s.updateJob)
@@ -76,14 +93,16 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
     setUnsupportedSessionTarget(
       parsedSessionTarget.mode === "unsupported" ? parsedSessionTarget.raw : "",
     )
-    setModel((job.payload?.model as string) ?? "")
-    setThinking((job.payload?.thinking as string) ?? "")
+    setModel(job.payload?.model ?? "")
+    setThinking(job.payload?.thinking ?? "")
     setTimeout(job.payload?.timeoutSeconds != null ? String(job.payload.timeoutSeconds) : "")
-    setDeliveryMode(job.delivery?.mode ?? "none")
+    setDeliveryMode(normalizeDeliveryMode(job.delivery?.mode))
     setDeliveryChannel(job.delivery?.channel ?? "")
     setDeliveryTo(job.delivery?.to ?? "")
     setNameError("")
     setSessionError("")
+    setDeliveryError("")
+    setScheduleError("")
 
     if (job.schedule.kind === "every") {
       setScheduleType("every")
@@ -96,6 +115,12 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
       setScheduleType("cron")
       setCronExpr(job.schedule.expr)
       setTimezone(job.schedule.tz ?? "")
+      setEveryValue("10")
+      setEveryUnit("m")
+    } else {
+      setScheduleType("at")
+      setCronExpr("0 * * * *")
+      setTimezone("")
       setEveryValue("10")
       setEveryUnit("m")
     }
@@ -116,6 +141,17 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
       return
     }
     setNameError("")
+    if (scheduleType === "every") {
+      const interval = Number(everyValue)
+      if (!Number.isInteger(interval) || interval < 1) {
+        setScheduleError("Interval must be a whole number of at least 1")
+        return
+      }
+    } else if (scheduleType === "cron" && !cronExpr.trim()) {
+      setScheduleError("Cron expression is required")
+      return
+    }
+    setScheduleError("")
     const nextSessionTarget =
       sessionTargetMode === "unsupported"
         ? unsupportedSessionTarget
@@ -125,31 +161,38 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
       return
     }
     setSessionError("")
+    if (deliveryMode === "webhook" && !isValidWebhookUrl(deliveryTo)) {
+      setDeliveryError("Webhook delivery requires a valid http(s) URL")
+      return
+    }
+    setDeliveryError("")
     setSaving(true)
 
-    const currentPayload = { ...(job.payload ?? {}) }
-    if (model) currentPayload.model = model
-    else delete currentPayload.model
-    if (thinking) currentPayload.thinking = thinking
-    else delete currentPayload.thinking
-    if (timeout) currentPayload.timeoutSeconds = parseInt(timeout, 10)
-    else delete currentPayload.timeoutSeconds
-
-    const delivery: Record<string, string> = { mode: deliveryMode }
-    if (deliveryMode !== "none" && deliveryChannel.trim()) delivery.channel = deliveryChannel.trim()
-    if (deliveryMode !== "none" && deliveryTo.trim()) delivery.to = deliveryTo.trim()
-
+    const parsedTimeout = parseInt(timeout, 10)
     const patch: Partial<CronJob> = {
       name: name.trim(),
-      schedule: buildSchedule(),
       sessionTarget: nextSessionTarget,
-      payload: currentPayload,
-      delivery,
+      delivery: buildCronPatchDelivery(deliveryMode, deliveryChannel, deliveryTo),
+    }
+    // One-shot ("at") schedules have no editor here; omitting schedule from
+    // the patch preserves them instead of rewriting to an interval.
+    if (scheduleType !== "at") {
+      patch.schedule = buildSchedule()
+    }
+    if (!isCommandJob) {
+      patch.payload = buildCronPatchPayload(nextSessionTarget, job.payload, {
+        model: model || undefined,
+        thinking: thinking || undefined,
+        timeoutSeconds: Number.isFinite(parsedTimeout) ? parsedTimeout : undefined,
+      })
     }
 
     try {
-      await gatewayWs.cronUpdate(job.id, patch)
-      updateJob(job.id, patch)
+      // The response carries the fully merged job; the local patch is sparse
+      // (payload/delivery patches use null clears) and would clobber fields
+      // under the store's shallow merge.
+      const updated = await gatewayWs.cronUpdate(job.id, patch)
+      updateJob(job.id, updated)
       onClose()
     } catch (err) {
       addToast(`Failed to update cron job: ${formatRpcError(err)}`)
@@ -183,43 +226,60 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
             <label className="text-xs text-muted-foreground">Schedule Type</label>
             <select
               value={scheduleType}
-              onChange={(e) => setScheduleType(e.target.value as "every" | "cron")}
+              onChange={(e) => {
+                setScheduleType(e.target.value as "every" | "cron" | "at")
+                setScheduleError("")
+              }}
               className={selectClass}
             >
               <option value="every">Every (interval)</option>
               <option value="cron">Cron expression</option>
+              {job.schedule.kind === "at" && <option value="at">One-shot (keep as is)</option>}
             </select>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground">
-              {scheduleType === "every" ? "Interval" : "Cron Expression"}
-            </label>
-            {scheduleType === "every" ? (
-              <div className="grid grid-cols-2 gap-2">
+          {scheduleType === "at" ? (
+            <p className="text-xs text-muted-foreground font-mono">
+              Preserving existing schedule: {formatSchedule(job.schedule)}
+            </p>
+          ) : (
+            <div>
+              <label className="text-xs text-muted-foreground">
+                {scheduleType === "every" ? "Interval" : "Cron Expression"}
+              </label>
+              {scheduleType === "every" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={everyValue}
+                    onChange={(e) => {
+                      setEveryValue((e.target as HTMLInputElement).value)
+                      if (scheduleError) setScheduleError("")
+                    }}
+                  />
+                  <select
+                    value={everyUnit}
+                    onChange={(e) => setEveryUnit(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="m">minutes</option>
+                    <option value="h">hours</option>
+                    <option value="d">days</option>
+                  </select>
+                </div>
+              ) : (
                 <Input
-                  type="number"
-                  min="1"
-                  value={everyValue}
-                  onChange={(e) => setEveryValue((e.target as HTMLInputElement).value)}
+                  value={cronExpr}
+                  onChange={(e) => {
+                    setCronExpr((e.target as HTMLInputElement).value)
+                    if (scheduleError) setScheduleError("")
+                  }}
+                  placeholder="0 * * * *"
                 />
-                <select
-                  value={everyUnit}
-                  onChange={(e) => setEveryUnit(e.target.value)}
-                  className={selectClass}
-                >
-                  <option value="m">minutes</option>
-                  <option value="h">hours</option>
-                  <option value="d">days</option>
-                </select>
-              </div>
-            ) : (
-              <Input
-                value={cronExpr}
-                onChange={(e) => setCronExpr((e.target as HTMLInputElement).value)}
-                placeholder="0 * * * *"
-              />
-            )}
-          </div>
+              )}
+              {scheduleError && <p className="text-xs text-destructive mt-1">{scheduleError}</p>}
+            </div>
+          )}
           {scheduleType === "cron" && (
             <div>
               <label className="text-xs text-muted-foreground">Timezone</label>
@@ -235,13 +295,20 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
             <select
               value={sessionTargetMode}
               onChange={(e) => {
-                setSessionTargetMode(e.target.value as CronSessionTargetMode)
+                const nextMode = e.target.value as CronSessionTargetMode
+                setSessionTargetMode(nextMode)
                 setSessionError("")
+                // Main-session jobs cannot announce to channels; only
+                // webhook or no delivery is accepted by the gateway.
+                if (nextMode === "main" && deliveryMode === "announce") {
+                  setDeliveryMode("none")
+                }
               }}
               className={selectClass}
             >
               <option value="isolated">Isolated</option>
-              <option value="main">Main</option>
+              {/* Main requires a systemEvent payload, which command jobs can never have. */}
+              {!isCommandJob && <option value="main">Main</option>}
               <option value="session">Specific session</option>
               {sessionTargetMode === "unsupported" && (
                 <option value="unsupported">Unsupported (preserve existing)</option>
@@ -269,82 +336,100 @@ export function EditCronJobDialog({ open, onClose, job }: EditCronJobDialogProps
             )}
             {sessionError && <p className="text-xs text-destructive mt-1">{sessionError}</p>}
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Model</label>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className={selectClass}
-            >
-              <option value="">Use agent default</option>
-              {models.map((m) => (
-                <option key={m.id} value={`${m.provider}/${m.id}`}>
-                  {m.provider}/{m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Thinking</label>
-            <select
-              value={thinking}
-              onChange={(e) => setThinking(e.target.value)}
-              className={selectClass}
-            >
-              <option value="">Use default</option>
-              <option value="off">off</option>
-              <option value="minimal">minimal</option>
-              <option value="low">low</option>
-              <option value="medium">medium</option>
-              <option value="high">high</option>
-              <option value="xhigh">xhigh</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Timeout (seconds)</label>
-            <Input
-              type="number"
-              min="1"
-              value={timeout}
-              onChange={(e) => setTimeout((e.target as HTMLInputElement).value)}
-              placeholder="e.g. 120"
-            />
-          </div>
+          {!isMainTarget && !isCommandJob && (
+            <>
+              <div>
+                <label className="text-xs text-muted-foreground">Model</label>
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">Use agent default</option>
+                  {models.map((m) => (
+                    <option key={m.id} value={`${m.provider}/${m.id}`}>
+                      {m.provider}/{m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Thinking</label>
+                <select
+                  value={thinking}
+                  onChange={(e) => setThinking(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">Use default</option>
+                  <option value="off">off</option>
+                  <option value="minimal">minimal</option>
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                  <option value="xhigh">xhigh</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Timeout (seconds)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={timeout}
+                  onChange={(e) => setTimeout((e.target as HTMLInputElement).value)}
+                  placeholder="e.g. 120"
+                />
+              </div>
+            </>
+          )}
           <div>
             <label className="text-xs text-muted-foreground">Delivery Mode</label>
             <select
               value={deliveryMode}
-              onChange={(e) => setDeliveryMode(e.target.value)}
+              onChange={(e) => {
+                setDeliveryMode(e.target.value as CronDeliveryMode)
+                setDeliveryError("")
+              }}
               className={selectClass}
             >
               <option value="none">None</option>
-              <option value="announce">Announce (channel)</option>
+              {!isMainTarget && <option value="announce">Announce (channel)</option>}
               <option value="webhook">Webhook</option>
-              <option value="direct">Direct</option>
             </select>
           </div>
-          {deliveryMode !== "none" && (
+          {deliveryMode === "announce" && (
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-muted-foreground">Channel</label>
                 <Input
                   value={deliveryChannel}
                   onChange={(e) => setDeliveryChannel((e.target as HTMLInputElement).value)}
-                  placeholder={deliveryMode === "webhook" ? "n/a" : "e.g. slack"}
+                  placeholder="e.g. slack"
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">
-                  {deliveryMode === "webhook" ? "URL" : "To"}
-                </label>
+                <label className="text-xs text-muted-foreground">To</label>
                 <Input
                   value={deliveryTo}
                   onChange={(e) => setDeliveryTo((e.target as HTMLInputElement).value)}
-                  placeholder={deliveryMode === "webhook" ? "https://..." : "e.g. channel:C123"}
+                  placeholder="e.g. channel:C123"
                 />
               </div>
             </div>
           )}
+          {deliveryMode === "webhook" && (
+            <div>
+              <label className="text-xs text-muted-foreground">URL</label>
+              <Input
+                value={deliveryTo}
+                onChange={(e) => {
+                  setDeliveryTo((e.target as HTMLInputElement).value)
+                  if (deliveryError) setDeliveryError("")
+                }}
+                placeholder="https://..."
+              />
+            </div>
+          )}
+          {deliveryError && <p className="text-xs text-destructive mt-1">{deliveryError}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>

@@ -3,6 +3,7 @@ import { useCronStore } from "@/stores/cron-store"
 import { gatewayWs } from "@/services/gateway-ws"
 import { useErrorToastStore } from "@/stores/error-toast-store"
 import { formatRpcError } from "@/lib/errors"
+import type { CronJobPayload } from "@/types/cron"
 
 export function useCronToggle() {
   const updateJob = useCronStore((s) => s.updateJob)
@@ -45,11 +46,16 @@ export function useCronUpdateInstructions() {
 
   const update = async (
     jobId: string,
-    currentPayload: Record<string, unknown>,
+    currentPayload: CronJobPayload,
     message: string,
   ) => {
     setSaving(true)
-    const newPayload = { ...currentPayload, message }
+    // systemEvent payloads carry instructions in `text`; agentTurn in
+    // `message`. The gateway requires an explicit kind on payload patches.
+    const newPayload: CronJobPayload =
+      currentPayload.kind === "systemEvent"
+        ? { ...currentPayload, text: message }
+        : { kind: "agentTurn", ...currentPayload, message }
     updateJob(jobId, { payload: newPayload })
     try {
       await gatewayWs.cronUpdate(jobId, { payload: newPayload })

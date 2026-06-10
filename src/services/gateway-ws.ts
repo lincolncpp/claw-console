@@ -122,10 +122,21 @@ export class GatewayWebSocket {
 
   // --- Cron RPCs ---
   async cronList(): Promise<CronJob[]> {
-    const res = (await this.sendRpc("cron.list", { includeDisabled: true })) as
-      | { jobs?: CronJob[] }
-      | CronJob[]
-    return Array.isArray(res) ? res : (res?.jobs ?? [])
+    // cron.list is paginated and clamps each page to 200 jobs.
+    const all: CronJob[] = []
+    let offset = 0
+    for (;;) {
+      const res = (await this.sendRpc("cron.list", {
+        includeDisabled: true,
+        limit: 200,
+        offset,
+      })) as { jobs?: CronJob[]; hasMore?: boolean; nextOffset?: number | null } | CronJob[]
+      if (Array.isArray(res)) return res
+      const jobs = res?.jobs ?? []
+      all.push(...jobs)
+      if (!res?.hasMore || res.nextOffset == null || jobs.length === 0) return all
+      offset = res.nextOffset
+    }
   }
   async cronRuns(jobId: string, limit = 50): Promise<{ runs: CronRun[]; total: number }> {
     const res = (await this.sendRpc("cron.runs", { jobId, limit })) as CronRunsResponse | CronRun[]
@@ -134,9 +145,6 @@ export class GatewayWebSocket {
   }
   async cronRun(jobId: string): Promise<void> {
     await this.sendRpc("cron.run", { jobId })
-  }
-  async cronStatus(jobId: string): Promise<CronJob> {
-    return this.sendRpc("cron.status", { jobId }) as Promise<CronJob>
   }
   async cronUpdate(id: string, patch: Partial<CronJob>): Promise<CronJob> {
     return this.sendRpc("cron.update", { id, patch }) as Promise<CronJob>

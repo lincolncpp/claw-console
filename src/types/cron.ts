@@ -1,9 +1,26 @@
 export type ScheduleKind = "cron" | "every" | "at"
 
 export type CronSchedule =
-  | { kind: "cron"; expr: string; tz?: string }
+  | { kind: "cron"; expr: string; tz?: string; staggerMs?: number }
   | { kind: "every"; everyMs: number; anchorMs?: number }
-  | { kind: "at"; atMs: number }
+  | { kind: "at"; at: string }
+
+export type CronPayloadKind = "agentTurn" | "systemEvent" | "command"
+
+// The gateway requires payload.kind to be explicit: "systemEvent" carries
+// `text` (main session), "agentTurn" carries `message` (+ model overrides),
+// "command" carries `argv`. Fields are kept flat here so callers can read a
+// job's payload without narrowing.
+export interface CronJobPayload {
+  kind?: CronPayloadKind
+  message?: string
+  text?: string
+  model?: string | null
+  thinking?: string
+  timeoutSeconds?: number
+  argv?: string[]
+  [key: string]: unknown
+}
 
 export interface CronJobState {
   lastRunAtMs?: number
@@ -19,8 +36,9 @@ export interface CronJobState {
 
 export interface CronJobDelivery {
   mode?: string
-  channel?: string
-  to?: string
+  // null is the explicit "clear this field" signal in cron.update patches
+  channel?: string | null
+  to?: string | null
 }
 
 export interface CronJob {
@@ -33,7 +51,7 @@ export interface CronJob {
   sessionTarget: string
   schedule: CronSchedule
   wakeMode?: string
-  payload?: Record<string, unknown>
+  payload?: CronJobPayload
   delivery?: CronJobDelivery
   state?: CronJobState
 }

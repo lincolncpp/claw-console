@@ -28,7 +28,7 @@ export function formatSchedule(schedule: CronSchedule): string {
       return `Every ${ms / 86_400_000}d`
     }
     case "at":
-      return `Once at ${new Date(schedule.atMs).toLocaleString()}`
+      return `Once at ${new Date(schedule.at).toLocaleString()}`
     default:
       return "Unknown"
   }

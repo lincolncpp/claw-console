@@ -10,6 +10,7 @@ import { useCronRuns } from "@/hooks/use-cron-runs"
 import { useCronRunNow, useCronToggle, useCronUpdateInstructions } from "@/hooks/use-cron-actions"
 import { useCronDelete } from "@/hooks/use-cron-mutations"
 import { formatSchedule, formatDuration } from "@/lib/format"
+import { formatCronPayloadModel } from "@/lib/cron-payload"
 import { formatCronSessionTarget } from "@/lib/cron-session-target"
 import { CronRunHistory } from "./CronRunHistory"
 import remarkGfm from "remark-gfm"
@@ -55,6 +56,9 @@ export function CronJobDetail() {
       </div>
     )
   }
+
+  // agentTurn payloads carry instructions in `message`, systemEvent in `text`
+  const instructionsText = job.payload?.message ?? job.payload?.text
 
   return (
     <div className="space-y-4">
@@ -104,10 +108,18 @@ export function CronJobDetail() {
               <dd className="font-mono">{formatSchedule(job.schedule)}</dd>
               <dt className="text-muted-foreground">Session Target</dt>
               <dd className="font-mono">{formatCronSessionTarget(job.sessionTarget)}</dd>
-              <dt className="text-muted-foreground">Model</dt>
-              <dd>{(job.payload?.model as string) ?? "agent default"}</dd>
-              <dt className="text-muted-foreground">Thinking</dt>
-              <dd>{(job.payload?.thinking as string) ?? "default"}</dd>
+              <dt className="text-muted-foreground">
+                {job.payload?.kind === "command" ? "Command" : "Model"}
+              </dt>
+              <dd className={job.payload?.kind === "command" ? "font-mono" : undefined}>
+                {formatCronPayloadModel(job.payload)}
+              </dd>
+              {job.payload?.kind !== "command" && job.payload?.kind !== "systemEvent" && (
+                <>
+                  <dt className="text-muted-foreground">Thinking</dt>
+                  <dd>{job.payload?.thinking ?? "default"}</dd>
+                </>
+              )}
               {job.payload?.timeoutSeconds != null && (
                 <>
                   <dt className="text-muted-foreground">Timeout</dt>
@@ -125,7 +137,7 @@ export function CronJobDetail() {
                 )}
               </dd>
             </dl>
-            {job.payload?.message != null && (
+            {instructionsText != null && (
               <div className="rounded-md border border-border bg-muted/30 p-3">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium text-muted-foreground">Instructions</p>
@@ -135,7 +147,7 @@ export function CronJobDetail() {
                       variant="ghost"
                       className="h-5 w-5 p-0"
                       onClick={() => {
-                        setDraft(job.payload!.message as string)
+                        setDraft(instructionsText)
                         setEditing(true)
                       }}
                     >
@@ -184,7 +196,7 @@ export function CronJobDetail() {
                 ) : (
                   <div className="text-sm text-foreground leading-relaxed max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-4 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-4 [&_ol]:list-decimal [&_li]:my-0.5 [&_pre]:my-2 [&_pre]:rounded [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:text-xs [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:my-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:my-1.5 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:my-1 [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_hr]:my-2 [&_hr]:border-border [&_table]:text-xs [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1">
                     <SafeMarkdown remarkPlugins={[remarkGfm]}>
-                      {job.payload.message as string}
+                      {instructionsText}
                     </SafeMarkdown>
                   </div>
                 )}
