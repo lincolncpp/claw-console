@@ -158,7 +158,22 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   upsertAssistantText: (id, text) =>
     set((s) => {
       const msgs = [...s.messages]
-      const idx = msgs.findIndex((m) => m.id === id)
+      let idx = msgs.findIndex((m) => m.id === id)
+      if (idx < 0) {
+        // The gateway re-emits a completed commentary block's full text under
+        // a different id (raw-assistant-N). If the most recent assistant text
+        // message is a prefix of the new text (or vice versa), it's the same
+        // block — update it instead of duplicating it.
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          const m = msgs[i]
+          if (m.role !== "assistant" || m.toolCalls || typeof m.content !== "string" || !m.content)
+            continue
+          if (text.startsWith(m.content) || m.content.startsWith(text)) {
+            idx = i
+          }
+          break
+        }
+      }
       if (idx >= 0) {
         msgs[idx] = { ...msgs[idx], content: text }
       } else {
