@@ -109,8 +109,17 @@ function App() {
                 .updateStreamingThinking(() => (data.phase === "end" ? "" : "…"))
               return
             }
+            // Preamble items carry the agent's commentary ("thoughts") before
+            // it acts; keep them in the flow as regular assistant text.
+            if (data.kind === "preamble") {
+              const text = (data.progressText as string) ?? ""
+              if (text) {
+                useTerminalStore.getState().upsertAssistantText(`preamble-${data.itemId}`, text)
+              }
+              return
+            }
             const phase = data.phase as string | undefined
-            const itemId = (data.itemId as string) ?? uuid()
+            const itemId = (data.toolCallId as string) ?? (data.itemId as string) ?? uuid()
             const name =
               (data.name as string) ?? (data.title as string) ?? (data.kind as string) ?? "activity"
             if (phase === "start" || phase === "update") {
@@ -137,29 +146,39 @@ function App() {
               useTerminalStore.getState().updateStreamingText((prev) => (prev ?? "") + text)
             }
           } else if (stream === "tool" || stream === "tool_use") {
-            const status = (data.status as string) ?? (data.state as string) ?? ""
-            if (status === "start" || status === "running") {
+            // Tool events carry the raw call (args.command) and its result;
+            // they describe the same calls as "item" events, so they share
+            // ids and merge into one card via completeToolCall.
+            const phase =
+              (data.phase as string) ?? (data.status as string) ?? (data.state as string) ?? ""
+            const id =
+              (data.toolCallId as string) ??
+              (data.itemId as string) ??
+              (data.id as string) ??
+              uuid()
+            const name = (data.name as string) ?? (data.tool as string) ?? "unknown"
+            if (phase === "start" || phase === "running") {
               useTerminalStore.getState().updateStreamingToolCall({
-                id: (data.toolCallId as string) ?? (data.id as string) ?? uuid(),
-                name: (data.name as string) ?? (data.tool as string) ?? "unknown",
+                id,
+                name,
                 args: data.args ?? data.input,
                 status: "running",
               })
             } else if (
-              status === "end" ||
-              status === "done" ||
-              status === "success" ||
-              status === "error"
+              phase === "result" ||
+              phase === "end" ||
+              phase === "done" ||
+              phase === "success" ||
+              phase === "error"
             ) {
-              const current = useTerminalStore.getState().streamingToolCall
-              if (current) {
-                useTerminalStore.getState().completeToolCall({
-                  ...current,
-                  result: data.result ?? data.output,
-                  status: (status === "error" ? "error" : "success") as "error" | "success",
-                  durationMs: data.durationMs as number | undefined,
-                })
-              }
+              useTerminalStore.getState().completeToolCall({
+                id,
+                name,
+                args: data.args ?? data.input,
+                result: data.result ?? data.output ?? data.text,
+                status: phase === "error" || data.isError === true ? "error" : "success",
+                durationMs: data.durationMs as number | undefined,
+              })
             }
           } else if (stream === "lifecycle") {
             const status =
