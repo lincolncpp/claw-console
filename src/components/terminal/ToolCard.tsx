@@ -1,47 +1,38 @@
 import type { ToolCallData } from "@/types/terminal"
 
-const statusColors: Record<string, string> = {
-  running: "text-status-warning",
-  success: "text-status-success",
-  error: "text-status-error",
+// Status is conveyed solely by the command box's left border.
+const statusBorders: Record<string, string> = {
+  running: "border-l-status-warning",
+  success: "border-l-status-success",
+  error: "border-l-status-error",
+}
+
+/** The command line itself: bash args carry it in `command`; live activity items pass a description string. */
+function commandText(args: unknown): string {
+  if (args == null) return ""
+  if (typeof args === "string") return args
+  if (typeof args === "object" && typeof (args as { command?: unknown }).command === "string") {
+    return (args as { command: string }).command
+  }
+  return JSON.stringify(args, null, 2)
 }
 
 export function ToolCard({ tool }: { tool: ToolCallData }) {
-  const duration = tool.durationMs != null ? ` (${(tool.durationMs / 1000).toFixed(1)}s)` : ""
+  const command = commandText(tool.args) || tool.name
 
   return (
     <div className="flex gap-3 items-start px-2 py-0.5">
       <span className="shrink-0 w-20" />
-      <div className="min-w-0 flex-1">
-        <div className="text-[0.6875rem] text-muted-foreground/60">
-          {tool.name}
-          <span className={statusColors[tool.status] ?? "text-muted-foreground/60"}>
-            {" "}
-            {tool.status}
-          </span>
-          {duration}
-        </div>
-        {(tool.args != null || tool.result != null) && (
-          <div className="mt-1 pl-2 border-l border-muted-foreground/20 text-muted-foreground/50 text-[0.75rem] font-mono space-y-2">
-            {tool.args != null && (
-              <div>
-                <div className="text-muted-foreground/40 text-[0.625rem] mb-0.5">ARGS</div>
-                <pre className="bg-muted rounded px-2 py-1 overflow-x-auto text-foreground/70 text-[0.6875rem]">
-                  {typeof tool.args === "string" ? tool.args : JSON.stringify(tool.args, null, 2)}
-                </pre>
-              </div>
-            )}
-            {tool.result != null && (
-              <div>
-                <div className="text-muted-foreground/40 text-[0.625rem] mb-0.5">RESULT</div>
-                <pre className="bg-muted rounded px-2 py-1 overflow-x-auto max-h-64 overflow-y-auto text-foreground/70 text-[0.6875rem]">
-                  {typeof tool.result === "string"
-                    ? tool.result
-                    : JSON.stringify(tool.result, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
+      <div className="min-w-0 flex-1 space-y-1 text-[0.6875rem] font-mono">
+        <pre
+          className={`bg-muted rounded px-2 py-1 overflow-x-auto whitespace-pre-wrap break-words text-foreground/70 border-l-2 ${statusBorders[tool.status] ?? "border-l-muted-foreground/40"}`}
+        >
+          {command}
+        </pre>
+        {tool.result != null && (
+          <pre className="bg-muted/60 rounded px-2 py-1 overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-muted-foreground/70">
+            {typeof tool.result === "string" ? tool.result : JSON.stringify(tool.result, null, 2)}
+          </pre>
         )}
       </div>
     </div>
