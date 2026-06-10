@@ -9,6 +9,7 @@ import { useCronStore } from "@/stores/cron-store"
 import { useCronRuns } from "@/hooks/use-cron-runs"
 import { classifyTokenConsumption, tokenLevelBadgeProps } from "@/lib/status"
 import { formatDuration, formatTokens } from "@/lib/format"
+import { agentIdFromSessionKey, cronRunParentSessionKey } from "@/lib/cron-session-target"
 import { Clock, Coins, Cpu } from "lucide-react"
 
 export function CronRunDetail() {
@@ -18,6 +19,10 @@ export function CronRunDetail() {
 
   const job = jobs.find((j) => j.id === jobId)
   const run = jobRuns.find((r) => String(r.ts) === runTs)
+  // Only the job's newest run is viewable: the cron session row rotates to
+  // the latest run's transcript and older run sessions are unreachable.
+  const isLatestRun =
+    run != null && jobRuns.every((r) => r.runAtMs == null || r.runAtMs <= run.runAtMs)
 
   if (!jobId) {
     return <p className="py-8 text-center text-sm text-muted-foreground">No job selected.</p>
@@ -97,7 +102,19 @@ export function CronRunDetail() {
               <div className="flex gap-4">
                 <dt className="text-muted-foreground w-32 shrink-0">Session</dt>
                 <dd>
-                  <SessionKeyButton agentId={run.jobId} sessionKey={run.sessionKey} />
+                  {isLatestRun ? (
+                    <SessionKeyButton
+                      agentId={agentIdFromSessionKey(run.sessionKey)}
+                      sessionKey={cronRunParentSessionKey(run.sessionKey)}
+                    />
+                  ) : (
+                    <span
+                      className="font-mono text-xs text-muted-foreground"
+                      title="Transcript no longer available — the cron session now holds a newer run"
+                    >
+                      {run.sessionKey}
+                    </span>
+                  )}
                 </dd>
               </div>
             )}

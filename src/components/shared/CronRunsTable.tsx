@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge"
 import { SessionKeyButton } from "@/components/shared/SessionKeyButton"
 import { TokenBadge } from "@/components/shared/TokenBadge"
 import { formatTimeAgo, formatDuration } from "@/lib/format"
+import { agentIdFromSessionKey, cronRunParentSessionKey } from "@/lib/cron-session-target"
 import type { CronRun } from "@/types/cron"
 
 interface CronRunsTableProps {
@@ -19,6 +21,16 @@ interface CronRunsTableProps {
 }
 
 export function CronRunsTable({ runs, jobNameMap, onRowClick }: CronRunsTableProps) {
+  // The cron session row holds only the latest run's transcript (the gateway
+  // rotates it each run), so only each job's newest run gets a session link.
+  const latestRunTsByJob = useMemo(() => {
+    const latest: Record<string, number> = {}
+    for (const r of runs) {
+      if (latest[r.jobId] == null || r.runAtMs > latest[r.jobId]) latest[r.jobId] = r.runAtMs
+    }
+    return latest
+  }, [runs])
+
   return (
     <Table>
       <TableHeader>
@@ -53,7 +65,19 @@ export function CronRunsTable({ runs, jobNameMap, onRowClick }: CronRunsTablePro
             </TableCell>
             <TableCell>
               {run.sessionKey ? (
-                <SessionKeyButton agentId={run.jobId} sessionKey={run.sessionKey} />
+                run.runAtMs === latestRunTsByJob[run.jobId] ? (
+                  <SessionKeyButton
+                    agentId={agentIdFromSessionKey(run.sessionKey)}
+                    sessionKey={cronRunParentSessionKey(run.sessionKey)}
+                  />
+                ) : (
+                  <span
+                    className="font-mono text-xs text-muted-foreground/50 truncate block max-w-[400px]"
+                    title="Transcript no longer available — the cron session now holds a newer run"
+                  >
+                    {run.sessionKey}
+                  </span>
+                )
               ) : (
                 <span className="text-sm text-muted-foreground">--</span>
               )}

@@ -1,6 +1,23 @@
 export type CronSessionTargetMode = "main" | "isolated" | "session" | "unsupported"
 
 const SESSION_PREFIX = "session:"
+const RUN_SEGMENT = ":run:"
+
+/**
+ * Cron runs execute on per-run child lanes ("agent:<a>:cron:<job>:run:<id>")
+ * that are never persisted as session rows; only the parent cron session key
+ * is resolvable via chat.history, and it always holds the latest run.
+ */
+export function cronRunParentSessionKey(sessionKey: string): string {
+  const idx = sessionKey.indexOf(RUN_SEGMENT)
+  return idx === -1 ? sessionKey : sessionKey.slice(0, idx)
+}
+
+/** Agent id embedded in an "agent:<id>:..." session key. */
+export function agentIdFromSessionKey(sessionKey: string): string {
+  const parts = sessionKey.split(":")
+  return parts[0] === "agent" && parts[1] ? parts[1] : sessionKey
+}
 
 export function parseCronSessionTarget(target: string | undefined): {
   mode: CronSessionTargetMode
