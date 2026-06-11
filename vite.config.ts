@@ -10,6 +10,17 @@ export default defineConfig(({ mode }) => {
   const gatewayPort = env.VITE_GATEWAY_PORT || "18789"
   const gatewayTarget = `http://${gatewayHost}:${gatewayPort}`
 
+  // Optional machine-local dev-server overrides, set in .env (gitignored):
+  // VITE_DEV_LAN=true binds beyond localhost, VITE_DEV_PORT pins a port
+  // (strict), VITE_DEV_ALLOWED_HOSTS allow-lists reverse-proxied Host
+  // headers (comma-separated).
+  const devPort = env.VITE_DEV_PORT ? Number(env.VITE_DEV_PORT) : undefined
+  const allowedHosts = env.VITE_DEV_ALLOWED_HOSTS
+    ? env.VITE_DEV_ALLOWED_HOSTS.split(",")
+        .map((h) => h.trim())
+        .filter(Boolean)
+    : undefined
+
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -18,18 +29,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      // Bind to 0.0.0.0 so the dev server is reachable over the LAN; Vite's HMR
-      // websocket connects straight to :5174. nginx also serves the app on :80
-      // at the clean http://claw.local hostname (see infra/README.md).
-      host: true,
-      // 5174, not Vite's default 5173 — the home-gym dev server already owns 5173
-      // on this machine, and strictPort makes a collision fail loudly.
-      port: 5174,
-      strictPort: true,
-      // Vite blocks requests whose Host header isn't localhost/an IP. The nginx
-      // proxy forwards Host: claw.local, so allow-list it (`.local` also covers
-      // the mDNS/Bonjour name when hitting :5174 directly).
-      allowedHosts: ["claw.local", ".local"],
+      ...(env.VITE_DEV_LAN === "true" ? { host: true } : {}),
+      ...(devPort ? { port: devPort, strictPort: true } : {}),
+      ...(allowedHosts ? { allowedHosts } : {}),
       proxy: {
         "/api": {
           target: gatewayTarget,

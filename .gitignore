@@ -31,6 +31,7 @@ docs/superpowers
 # Playwright
 .playwright-mcp
 
-# Generated mDNS LaunchDaemon plist — embeds this checkout's absolute path
-# (machine-specific). Generated from the .template by infra/mdns/install.sh.
-infra/mdns/com.clawconsole.mdns.plist
+# Machine-local serving setup (LAN hostname, reverse proxy, process manager) —
+# kept out of the repo on purpose.
+infra/
+ecosystem.config.cjs

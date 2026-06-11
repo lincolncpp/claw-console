@@ -13,12 +13,7 @@
     "preview": "vite preview",
     "check": "npm run format:check && npm run lint && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "start": "pm2 start ecosystem.config.cjs",
-    "stop": "pm2 delete ecosystem.config.cjs",
-    "restart": "pm2 restart ecosystem.config.cjs",
-    "logs": "pm2 logs claw-console",
-    "status": "pm2 status"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
